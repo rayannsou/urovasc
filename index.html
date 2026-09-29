@@ -442,7 +442,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astgo{min-height:64px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:10px 16px;border:0;border-radius:14px;font-size:17px;font-weight:800;color:#fff;text-align:left}
 .astgo small{font-weight:500;font-size:13px;opacity:.95}
 .astmode{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.astmode span.on{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}.astmode button{flex:1;min-height:40px}.pll em.auto{background:#E4F1FF;color:#1B5FA8}.pll em.man{background:#F1EAF9;color:#6A3FA0}
-.astbar{background:var(--card,var(--bg));border:1px solid var(--line,#d9e0e3);border-radius:14px;padding:10px}.astpair{display:flex;gap:8px}.astbtn{flex:1;min-height:44px;border:1px solid var(--line,#c9d3d7);background:transparent;color:inherit;border-radius:10px;font:600 15px var(--font-body);display:flex;align-items:center;justify-content:center;gap:8px}.astbtn[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.astbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.ko{background:#C62828}.dot.ok{background:#1E7B4B}.aststat{margin:0;font-size:13px;color:var(--muted)}.aststat.ko{color:#C62828}.aststat.ok{color:#1E7B4B}.genrow{min-height:36px;padding:0 10px;white-space:nowrap}.genrow[aria-pressed=false]{color:#C62828;border-color:#C62828}.astrow{gap:8px}.astbtn.big{min-height:64px;font-size:17px;flex-direction:column;gap:2px}.astbtn.go{width:100%}.astback{align-self:flex-start;min-height:36px;padding:0 10px}.astbar .astbtn.go{margin-top:2px}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
+.astbar{background:var(--card,var(--bg));border:1px solid var(--line,#d9e0e3);border-radius:14px;padding:10px}.astpair{display:flex;gap:8px}.astbtn{flex:1;min-height:44px;border:1px solid var(--line,#c9d3d7);background:transparent;color:inherit;border-radius:10px;font:600 15px var(--font-body);display:flex;align-items:center;justify-content:center;gap:8px}.astbtn[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.astbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.ko{background:#C62828}.dot.ok{background:#1E7B4B}.aststat{margin:0;font-size:13px;color:var(--muted)}.aststat.ko{color:#C62828}.aststat.ok{color:#1E7B4B}.genrow{min-height:36px;padding:0 10px;white-space:nowrap}.genrow[aria-pressed=false]{color:#C62828;border-color:#C62828}.astrow{gap:8px}#cwImport[data-src=xl] .srcg,#cwImport[data-src=gs] .srcx{display:none!important}
+.astbtn.big{min-height:64px;font-size:17px;flex-direction:column;gap:2px}.astbtn.go{width:100%}.astback{align-self:flex-start;min-height:36px;padding:0 10px}.astbar .astbtn.go{margin-top:2px}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
 .astgo.ko{background:#C62828}.astgo.ok{background:#1E7B4B}
 .astmiss{min-height:48px;text-align:left}
 .astrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -512,6 +513,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     <section id="view-plan" aria-labelledby="tab-plan" hidden>
       <div class="col">
         <div id="astBarBox" class="astbar" hidden></div>
+        <div id="impSlotP" hidden></div>
         <div class="card" id="plCard">
           <h2 id="plTitle">Créer un planning</h2>
           <div class="subtabs" id="plSubtabs" hidden role="group" aria-label="Type de planning"><button type="button" data-plmode="week" aria-pressed="true">📅 Semaine normale</button><button type="button" data-plmode="ast" aria-pressed="false">🔔 Astreintes</button></div>
@@ -578,15 +580,15 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <h2>Importer le planning Excel</h2>
           <p class="hint">Importez le fichier du service (une feuille par semaine : postes, congés, absences, astreintes, notes). Toutes les semaines du fichier sont créées d’un coup et les médecins inconnus sont ajoutés à la liste. Un tableau simple (postes en lignes, jours en colonnes) est aussi accepté.</p>
           <fieldset data-edit id="xlSet">
-            <label class="filebtn primary" for="xlFile">Choisir un fichier Excel…</label>
+            <label class="filebtn primary srcx" for="xlFile">Choisir un fichier Excel…</label>
             <input type="file" id="xlFile" accept=".xlsx,.xls,.csv" class="visually-hidden">
-            <button type="button" class="ghost" id="xlModel">Télécharger le modèle (semaine affichée)</button>
-            <div style="display:flex;margin-top:12px;gap:8px;flex-wrap:wrap">
+            <button type="button" class="ghost srcx" id="xlModel">Télécharger le modèle (semaine affichée)</button>
+            <div class="srcg" style="display:flex;margin-top:12px;gap:8px;flex-wrap:wrap">
               <input type="url" id="gsLink" inputmode="url" placeholder="Ou collez un lien Google Sheets…" aria-label="Lien Google Sheets" style="flex:1 1 100%;min-width:0">
               <input type="text" id="gsTab" placeholder="Onglet(s), ex. oct 26 (facultatif)" aria-label="Nom des onglets" style="flex:1 1 180px;min-width:0">
               <button type="button" class="ghost" id="gsGo">Importer le lien</button>
             </div>
-            <p class="hint" style="margin-top:6px">Le classeur doit être partagé en « Toute personne disposant du lien ». Indiquez le nom de l’onglet (le mois, ex. « oct 26 ») ; plusieurs onglets : séparez par une virgule. Sans nom d’onglet, l’appli tente de lire tout le classeur.</p>
+            <p class="hint srcg" style="margin-top:6px">Le classeur doit être partagé en « Toute personne disposant du lien ». Indiquez le nom de l’onglet (le mois, ex. « oct 26 ») ; plusieurs onglets : séparez par une virgule. Sans nom d’onglet, l’appli tente de lire tout le classeur.</p>
           </fieldset>
           <div id="xlPreview" hidden></div>
         </div>
@@ -770,7 +772,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 23h00 (mode v12)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 23h30 (import v14)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1573,7 +1575,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#plLabel').textContent = plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
     document.querySelectorAll('[data-plmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plmode === plMode)));
     $('#plTitle').textContent = plMode === 'ast' ? 'Planning d’astreinte' : 'Planning de la semaine';
-    $('#plCard').hidden = plStage !== 'auto' && plStage !== 'man'; $('#plManBox').hidden = plStage !== 'man'; grid.hidden = plStage !== 'man'; if (plStage !== 'man') { grid.innerHTML = ''; return; }
+    $('#impSlotP').hidden = plStage !== 'impx' && plStage !== 'impg'; { const ci = $('#cwImport'); if (ci) ci.dataset.src = plStage === 'impg' ? 'gs' : 'xl'; }
+    $('#plCard').hidden = plStage !== 'auto' && plStage !== 'man' && plStage !== 'shot'; $('#plManBox').hidden = plStage !== 'man'; grid.hidden = plStage !== 'man'; if (plStage !== 'man') { grid.innerHTML = ''; return; }
     $('#plDays').hidden = plMode === 'ast'; $('#plCopy').hidden = plMode === 'ast';
     document.querySelectorAll('[data-plscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plscope === plScope)));
     const dn = ['lundi','mardi','mercredi','jeudi','vendredi','samedi'];
@@ -1717,9 +1720,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const months = astMonths(), miss = astMissing(months), allOk = !miss.length, dis = canWrite ? '' : ' disabled';
     box.hidden = false;
     const stat = allOk ? 'Tout le monde a renseigné ses indisponibilités' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
-    const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' ? '' : 'how')+'">‹ Retour</button>';
+    const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' ? '' : (plStage === 'impx' || plStage === 'impg' || plStage === 'shot') ? 'imp' : 'how')+'">‹ Retour</button>';
     if (!plStage) box.innerHTML = '<p class="aststat">Que voulez-vous créer ?</p><div class="astpair"><button type="button" class="astbtn big" data-plpick="week">📅 Semaine</button><button type="button" class="astbtn big" data-plpick="ast">🔔 Astreinte</button></div>';
-    else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · comment l’assigner ?</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="auto">⚡ Assignation automatique</button><button type="button" class="astbtn big" data-plstage="man">✋ Assignation manuelle</button></div>';
+    else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · comment l’assigner ?</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="auto">⚡ Assignation automatique</button><button type="button" class="astbtn big" data-plstage="man">✋ Assignation manuelle</button></div><button type="button" class="astbtn" data-plstage="imp">📥 Importer un planning</button>';
+    else if (plStage === 'imp') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis…</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="impx">📗 Fichier Excel</button><button type="button" class="astbtn big" data-plstage="impg">🔗 Google Sheet</button></div><button type="button" class="astbtn" data-plstage="shot">📷 Capture d’écran</button>';
+    else if (plStage === 'impx' || plStage === 'impg') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · '+(plStage === 'impx' ? 'fichier Excel' : 'Google Sheet')+'. '+(ast ? 'Seules les astreintes (samedis) du fichier seront importées.' : 'Seules les vacations de la semaine (lundi à vendredi) seront importées.')+'</p>';
+    else if (plStage === 'shot') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis une capture d’écran</p><label class="astbtn go filebtn" for="shotFile" style="cursor:pointer">📷 Choisir la capture</label><input type="file" id="shotFile" accept="image/*" class="visually-hidden"><p class="aststat" id="shotStat" role="status">'+(shotMsg ? esc(shotMsg) : 'Une capture nette du tableau (jours en colonnes, postes en lignes) donne le meilleur résultat. Le texte est lu sur votre téléphone ; vous relirez tout avant d’enregistrer.')+'</p>';
     else if (plStage === 'man') box.innerHTML = back;
     else box.innerHTML = back + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
       + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p><p class="aststat">Vous pourrez relire et confirmer chaque vacation avant l’enregistrement.</p>'
@@ -1746,6 +1752,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#astShL').innerHTML = h;
     $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Assigner quand même</button>' : '';
   }
+  $('#astBarBox').addEventListener('change', e=>{ const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
   $('#astBarBox').addEventListener('click', e=>{ const pk = e.target.closest('[data-plpick]'); if (pk) { plMode = pk.dataset.plpick; plStage = 'how'; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
   $('#astSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-astx]')) return closeMiss();
@@ -1867,6 +1874,123 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     plStage = 'man'; renderCompose();
     if (ok) notify(ws.length+' modification'+(ws.length > 1 ? 's enregistrées' : ' enregistrée')+'. Vous pouvez encore les corriger à la main.');
   });
+  /* ---------- import d'un planning depuis une capture d'écran (lecture de texte, OCR) ---------- */
+  let shotMsg = '', shotBusy = false;
+  const lev = (a, b) => { const m = a.length, n = b.length; if (Math.abs(m-n) > 2) return 9; let p = [...Array(n+1).keys()]; for (let i=1; i<=m; i++) { const c = [i]; for (let j=1; j<=n; j++) c[j] = Math.min(p[j]+1, c[j-1]+1, p[j-1] + (a[i-1] === b[j-1] ? 0 : 1)); p = c; } return p[n]; };
+  const JN5 = ['lundi','mardi','mercredi','jeudi','vendredi'];
+  const dayIdx = t => { const g = normS(t).replace(/[^a-z]/g,''); if (g.length < 5) return -1; if (lev(g,'samedi') <= 1) return 5; return JN5.findIndex(n=>lev(g,n) <= 1); };
+  /* mots reconnus (avec position) -> tableau de cellules : colonne 0 = libellés, puis Matin / Après-midi pour chaque jour */
+  function shotGrid(words){
+    const W = (words || []).filter(w=>w && w.text && String(w.text).trim() && w.bbox).map(w=>({t: String(w.text).trim(), x0: w.bbox.x0, x1: w.bbox.x1, y0: w.bbox.y0, y1: w.bbox.y1}));
+    if (!W.length) return null;
+    W.forEach(w=>{ w.cx = (w.x0+w.x1)/2; w.cy = (w.y0+w.y1)/2; });
+    const hs = W.map(w=>w.y1-w.y0).sort((a,b)=>a-b), mh = hs[Math.floor(hs.length/2)] || 10;
+    W.sort((a,b)=>a.cy-b.cy);
+    const lines = [];
+    W.forEach(w=>{ const l = lines[lines.length-1]; if (l && Math.abs(w.cy - l.cy) < mh*0.6) { l.w.push(w); l.cy = l.w.reduce((n,x)=>n+x.cy,0)/l.w.length; } else lines.push({cy: w.cy, w: [w]}); });
+    lines.forEach(l=>{ l.w.sort((a,b)=>a.x0-b.x0); l.text = l.w.map(w=>w.t).join(' '); l.days = l.w.filter(w=>dayIdx(w.t) >= 0).length; });
+    const hl = lines.find(l=>l.w.filter(w=>{ const d = dayIdx(w.t); return d >= 0 && d < 5; }).length >= 3);
+    if (!hl) return {aoa: null, lines};
+    const groups = [];
+    hl.w.forEach(w=>{ const d = dayIdx(w.t); if (d >= 0) groups.push({d, x0: w.x0, x1: w.x1}); else if (groups.length) { const g = groups[groups.length-1]; g.x1 = Math.max(g.x1, w.x1); } });
+    groups.forEach(g=>{ g.cx = (g.x0+g.x1)/2; });
+    const step = (groups[groups.length-1].cx - groups[0].cx) / Math.max(1, groups.length-1), left0 = groups[0].cx - step/2;
+    const nz = groups.length, hasSat = groups[nz-1].d === 5, ncol = 1 + 2*(hasSat ? nz-1 : nz) + (hasSat ? 1 : 0);
+    const place = (w, isH) => {
+      if (w.cx < left0) return 0;
+      let z = 0; while (z < nz-1 && w.cx >= (groups[z].x1 + groups[z+1].x0)/2) z++;
+      const g = groups[z], j = g.d === 5 ? nz-1 : z;
+      return 1 + 2*j + (g.d === 5 || isH ? 0 : (w.cx < g.cx ? 0 : 1));
+    };
+    const aoa = []; let prevHeader = true;
+    lines.forEach(l=>{
+      const row = Array(ncol).fill(''); let lab = false; const isH0 = l.days >= 3;
+      l.w.forEach(w=>{ const c = Math.min(place(w, isH0), ncol-1); row[c] = (row[c] ? row[c]+' ' : '')+(isH0 ? w.t.replace(/([A-Za-zÀ-ÿ])(\d)/g, '$1 $2') : w.t); if (c === 0) lab = true; });
+      const isH = l === hl || l.days >= 3;
+      if (!lab && !isH && aoa.length && !prevHeader) { const prev = aoa[aoa.length-1]; row.forEach((t,c)=>{ if (t) prev[c] = (prev[c] ? prev[c]+' ' : '')+t; }); }
+      else aoa.push(row);
+      prevHeader = isH;
+    });
+    return {aoa, lines};
+  }
+  const SHOT_MOIS = ['janv','fevr','mars','avr','mai','juin','juil','aout','sept','oct','nov','dec'];
+  function shotWrites(words, mode){
+    const res = shotGrid(words); if (!res) return {writes: [], unknown: [], msg: 'Aucun texte reconnu dans l’image.'};
+    const known = {}; sortedDocs().forEach(d=>{ known[normS(d.label)] = d.id; known[d.id] = d.id; });
+    const idOf = label => { const n = normS(label); if (known[n]) return known[n]; const c = Object.keys(known).filter(k=>k.length >= 3 && n.length >= 3 && lev(k,n) <= 1); return c.length === 1 ? known[c[0]] : null; };
+    const unknown = new Set(), writes = [], seen = new Set();
+    const push = (date, poste, part, ids) => {
+      const cur = (vacWho(poste, date, part) || {who: []}).who;
+      if (cur.length === ids.length && cur.every(x=>ids.includes(x))) return;
+      slotParts(poste, part).forEach(pt=>{ const sg = date+'|'+poste+'|'+pt; if (seen.has(sg)) return; seen.add(sg); writes.push({k: date, kk: poste+'_'+pt, val: {w: ids, t: 0}, poste, part: pt, before: cur.slice(), after: ids.slice()}); });
+    };
+    let weeks = null;
+    if (res.aoa) { try { weeks = PP.parseMonthGrid(res.aoa, {ref: addDays(plStart, 3)}); } catch(e) {} }
+    (weeks || []).forEach(w=>w.cells.forEach(c=>{
+      const p = findPost(c.poste); if (!p || (mode === 'ast') !== isSam(p) || (p.journee && c.part === 'AM')) return;
+      const ids = []; c.people.forEach(pp=>{ const id = idOf(pp.label); if (id) { if (!ids.includes(id)) ids.push(id); } else unknown.add(pp.label); });
+      if (ids.length) push(c.date, c.poste, c.part, ids);
+    }));
+    /* astreintes en liste (« sam. 3 oct  RM ») quand il n'y a pas de tableau */
+    const ap = trame && trame.postes.find(isSam);
+    if (mode === 'ast' && ap && !writes.length) res.lines.forEach(l=>{
+      const g = normS(l.text); let d = null, m;
+      if ((m = g.match(/(\d{1,2})\s*[\/.-]\s*(\d{1,2})(?:\s*[\/.-]\s*(\d{2,4}))?/))) d = [Number(m[1]), Number(m[2]), Number(m[3] || 0)];
+      else if ((m = g.match(/(\d{1,2})\s*(er)?\s+([a-z]{3,9})/))) { const mo = SHOT_MOIS.findIndex(x=>m[3].indexOf(x) === 0); if (mo >= 0) d = [Number(m[1]), mo+1, 0]; }
+      if (!d) return;
+      const ref = addDays(plStart, 5); let best = null, bd = 1e18;
+      (d[2] ? [d[2] < 100 ? 2000+d[2] : d[2]] : [ref.getFullYear()-1, ref.getFullYear(), ref.getFullYear()+1]).forEach(y=>{ const dt = new Date(y, d[1]-1, d[0]); if (dt.getMonth() === d[1]-1 && Math.abs(dt-ref) < bd) { best = dt; bd = Math.abs(dt-ref); } });
+      if (!best || best.getDay() !== 6) return;
+      const ids = []; l.w.forEach(w=>{ const id = known[normS(w.t)] || null; if (id && !ids.includes(id)) ids.push(id); });
+      if (ids.length) push(key(best), ap.id, 'M', ids.slice(0,1));
+    });
+    return {writes, unknown: [...unknown], msg: ''};
+  }
+  function loadTess(){
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    return new Promise((ok, ko)=>{ const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'; sc.onload = ()=>window.Tesseract ? ok(window.Tesseract) : ko(new Error('x')); sc.onerror = ()=>ko(new Error('x')); document.head.appendChild(sc); });
+  }
+  /* prépare la capture : agrandie, en noir sur blanc, sans les traits du tableau (qui gênent la lecture) */
+  async function shotPrep(file){
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((ok, ko)=>{ const i = new Image(); i.onload = ()=>ok(i); i.onerror = ()=>ko(new Error('img')); i.src = url; });
+      const sc = Math.max(1, Math.min(3, 2400 / (img.naturalWidth || 1)));
+      const W = Math.round(img.naturalWidth*sc), H = Math.round(img.naturalHeight*sc);
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const cx = cv.getContext('2d', {willReadFrequently: true}); cx.imageSmoothingQuality = 'high'; cx.fillStyle = '#fff'; cx.fillRect(0,0,W,H); cx.drawImage(img, 0, 0, W, H);
+      const im = cx.getImageData(0,0,W,H), d = im.data, g = new Uint8Array(W*H);
+      let sum = 0; for (let i=0; i<W*H; i++) { g[i] = (d[4*i]*77 + d[4*i+1]*150 + d[4*i+2]*29) >> 8; sum += g[i]; }
+      const dark = sum/(W*H) < 110;                       /* mode sombre : on inverse */
+      const ink = new Uint8Array(W*H);
+      for (let i=0; i<W*H; i++) { const v = dark ? 255-g[i] : g[i]; ink[i] = v < 140 ? 1 : 0; }
+      const hMin = Math.max(50, Math.round(W*0.04)), vMin = Math.max(60, Math.round(H*0.05)), del = new Uint8Array(W*H);
+      for (let y=0; y<H; y++) { let x = 0; while (x < W) { if (!ink[y*W+x]) { x++; continue; } let e = x; while (e < W && ink[y*W+e]) e++; if (e-x >= hMin) for (let k=x; k<e; k++) del[y*W+k] = 1; x = e; } }
+      for (let x=0; x<W; x++) { let y = 0; while (y < H) { if (!ink[y*W+x]) { y++; continue; } let e = y; while (e < H && ink[e*W+x]) e++; if (e-y >= vMin) for (let k=y; k<e; k++) del[k*W+x] = 1; y = e; } }
+      for (let i=0; i<W*H; i++) { const v = (ink[i] && !del[i]) ? 0 : 255; d[4*i] = d[4*i+1] = d[4*i+2] = v; d[4*i+3] = 255; }
+      cx.putImageData(im, 0, 0);
+      const blob = await new Promise(ok=>cv.toBlob(ok, 'image/png'));
+      return {blob, scale: sc};
+    } finally { URL.revokeObjectURL(url); }
+  }
+  async function shotRun(file){
+    if (shotBusy || !file) return;
+    if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
+    shotBusy = true; shotMsg = 'Chargement du lecteur de texte…'; renderAstBar();
+    const upd = t => { shotMsg = t; const el = $('#shotStat'); if (el) el.textContent = t; };
+    try {
+      const T = await loadTess(), pre = await shotPrep(file);
+      const wk = await T.createWorker('fra', 1, {logger: m=>{ if (m && m.status === 'recognizing text') upd('Lecture de l’image… '+Math.round((m.progress||0)*100)+' %'); }});
+      let r; try { await wk.setParameters({tessedit_pageseg_mode: '11', preserve_interword_spaces: '1'}); r = await wk.recognize(pre.blob); } finally { try { await wk.terminate(); } catch(e) {} }
+      let words = r && r.data && r.data.words;
+      if (!words || !words.length) words = ((r && r.data && r.data.blocks) || []).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[])));
+      const out = shotWrites(words, plMode);
+      shotBusy = false; shotMsg = '';
+      if (!out.writes.length) { renderAstBar(); return notify(out.msg || 'Rien de nouveau trouvé dans cette capture : vérifiez qu’elle montre bien le tableau avec les jours et les noms.', true); }
+      renderAstBar();
+      genOpen(plMode === 'ast' ? 'Astreintes lues sur la capture' : 'Semaine lue sur la capture', out.writes, out.unknown.length ? 'Noms non reconnus (ignorés) : '+out.unknown.join(', ') : '');
+    } catch(e) { shotBusy = false; shotMsg = ''; renderAstBar(); notify('Lecture de l’image impossible (connexion ?). Réessayez.', true); }
+  }
   async function plToggleUn(spec){
     const a = spec.split('|'), id = a[a.length-1], doc = doctors[id]; if (!doc) return;
     let patch = {}, on;
@@ -2018,7 +2142,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     window.scrollTo(0,0);
     if (typeof renderBadge === 'function') renderBadge();
     if (t === 'auj') renderToday();
-    const slot = t === 'general' ? '#impSlotG' : t === 'reglages' ? '#impSlotR' : '#impSlotC';
+    const slot = t === 'general' ? '#impSlotG' : t === 'reglages' ? '#impSlotR' : t === 'plan' ? '#impSlotP' : '#impSlotC';
     $(slot).appendChild($('#cwImport'));
     if (t === 'plan') { plStage = ''; renderCompose(); }
     if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); }
@@ -2628,7 +2752,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   let xlPlan = null;
   const PP = window.PlanningParser;
+  const impMode = () => (!$('#view-plan').hidden && (plStage === 'impx' || plStage === 'impg')) ? plMode : null;
   function planFromWeeks(weeks, ignored){
+    const im = impMode();
+    if (im) weeks = weeks.map(w=>({monday: w.monday, dates: w.dates, cells: w.cells.filter(c=>{ const p = findPost(c.poste); return !!p && (im === 'ast') === isSam(p); }), absences: im === 'ast' ? [] : w.absences, notes: im === 'ast' ? [] : w.notes})).filter(w=>w.cells.length);
     const known = {}, fresh = {};
     sortedDocs().forEach(d=>{ known[normS(d.label)] = d.id; known[d.id] = d.id; });
     const idOf = label=>{ const n = normS(label); let id = known[n] || known[slug(label)]; if (!id) { id = slug(label); if (id) { fresh[id] = fresh[id] || label; known[n] = id; } } return id || null; };
@@ -2764,7 +2891,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           if (st.length) val.s = st; if (c.x) val.x = c.x;
           byDate[c.date][c.poste+'_'+c.part] = val;
         });
-        for (const d of w.dates) {
+        for (const d of w.dates.filter(d=>{ const im = impMode(); if (!im) return true; const sat = parse(d).getDay() === 6; return im === 'ast' ? sat : !sat; })) {
           const ref = db.doc('ajustements/'+d);
           if (Object.keys(byDate[d]).length) await ref.set(byDate[d]);
           else if (overrides[d] && Object.keys(overrides[d]).length) await ref.delete();
