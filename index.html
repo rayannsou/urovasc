@@ -353,6 +353,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .lview .astr{margin-top:-2px}
 .subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
 .subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
+.gastrow{padding:12px 14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
 .subtabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent)}
 .plun{padding:10px 14px}
 .plun summary{cursor:pointer;font-weight:700;min-height:36px;display:flex;align-items:center;gap:8px}
@@ -667,6 +668,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
     <section id="view-general" aria-labelledby="tab-general" hidden>
       <div class="col">
+        <div class="subtabs" id="gKind" role="group" aria-label="Type de planning"><button type="button" data-gkind="week" aria-pressed="true">📅 Planning de semaine</button><button type="button" data-gkind="ast" aria-pressed="false">🔔 Planning d’astreinte</button></div>
+        <div id="gWeekWrap" class="col">
         <div class="seg" role="group" aria-label="Affichage du planning général">
           <button type="button" data-g="poste" aria-pressed="true">Par poste</button>
           <button type="button" data-g="medecin" aria-pressed="false">Par médecin</button>
@@ -715,6 +718,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <li><span class="sw k-I">×</span>Indisponible</li>
             <li>Dernière ligne : nombre de médecins absents sur la demi-journée</li>
           </ul>
+        </div>
+        </div>
+        <div id="gAstWrap" class="col" hidden>
+          <div class="weekbar">
+            <button type="button" id="gaPrev" aria-label="Astreintes précédentes">‹</button>
+            <h2 id="gaLabel"></h2>
+            <button type="button" id="gaNext" aria-label="Astreintes suivantes">›</button>
+            <button type="button" id="gaToday" class="ghost">Aujourd’hui</button>
+          </div>
+          <div id="gaList" class="col"></div>
         </div>
       </div>
     </section>
@@ -772,7 +785,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 00h00 (pas à pas v16)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 00h15 (lecture v17)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -2487,7 +2500,30 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
 
   /* ---------- vue Trame ---------- */
-  function renderTrame(){ renderTrameCore(); renderGNotes(); renderCreate(); renderCompose(); }
+  /* ---------- lecture du planning d'astreinte (onglet Planning) ---------- */
+  let gKind = 'week', gaStart = null;
+  const satOf = d => { const m = mondayOf(d); return addDays(m, 5); };
+  function renderGAst(){
+    const list = $('#gaList'); if (!list) return;
+    $('#gWeekWrap').hidden = gKind !== 'week'; $('#gAstWrap').hidden = gKind !== 'ast';
+    document.querySelectorAll('[data-gkind]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.gkind === gKind)));
+    if (gKind !== 'ast') return;
+    if (!gaStart) gaStart = satOf(new Date());
+    const ap = trame && trame.postes.find(isSam), sats = [...Array(10)].map((_,i)=>addDays(gaStart, 7*i));
+    $('#gaLabel').textContent = fmtDM.format(sats[0])+' – '+fmtDM.format(sats[9])+' '+sats[9].getFullYear();
+    if (!ap) { list.innerHTML = '<p class="empty">'+(loaded ? 'Aucune astreinte n’est encore prévue.' : 'Chargement…')+'</p>'; return; }
+    const today = key(new Date());
+    list.innerHTML = sats.map(d=>{
+      const k = key(d), v = vacWho(ap.id, k, 'M'), who = v ? v.who : [], mine = who.includes(me);
+      const chips = who.length ? who.map(id=>{ const r = reasonFor(id, k, 'M'); return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+'>'+(r ? '⚠ ' : '')+esc(dLabel(id))+'</span>'; }).join(' ') : '<span class="hint">Personne pour le moment</span>';
+      return '<div class="card gastrow'+(mine ? ' mine' : '')+(k === today ? ' today' : '')+'"><div class="gastin"><b>'+esc(fmtLong.format(d).replace(/^./, c=>c.toUpperCase()))+'</b><span class="gastw">'+chips+'</span></div></div>';
+    }).join('');
+  }
+  document.querySelectorAll('[data-gkind]').forEach(b=>b.addEventListener('click', ()=>{ gKind = b.dataset.gkind; renderGAst(); }));
+  $('#gaPrev').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), -70); renderGAst(); });
+  $('#gaNext').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), 70); renderGAst(); });
+  $('#gaToday').addEventListener('click', ()=>{ gaStart = satOf(new Date()); renderGAst(); });
+  function renderTrame(){ renderTrameCore(); renderGNotes(); renderCreate(); renderCompose(); renderGAst(); }
   function renderTrameCore(){
     const keys = [...Array(6)].map((_,i)=>addDays(weekStart,i));
     const wrap = $('#trameWrap');
