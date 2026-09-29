@@ -354,6 +354,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
 .subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
 .gastrow{padding:12px 14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
+.swraw{display:none!important}.swst{margin:14px 0 6px;font-weight:700;font-size:15px}.swst b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);margin-right:8px;font-size:13px}.swlist{display:flex;flex-direction:column;gap:6px}.swchips{display:flex;flex-wrap:wrap;gap:6px}.swopt{min-height:46px;text-align:left;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 12px;font-weight:600}.swchips .swopt{border-radius:999px;text-align:center}.swopt[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.swgrp{margin:8px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+@media(max-width:700px){#swBody .swmodecol{order:-2}#swBody .swformcol{order:-1}#swJump{display:none}}
 .subtabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent)}
 .plun{padding:10px 14px}
 .plun summary{cursor:pointer;font-weight:700;min-height:36px;display:flex;align-items:center;gap:8px}
@@ -684,7 +686,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         <div id="gPoste" class="col">
           <div id="trameWrap" class="tw"></div>
           <div id="gNotes" class="card" hidden></div>
-          <details class="card gmore" id="gMore"><summary>ℹ️ Légende · ✏️ Modifier une vacation · 📥 Importer</summary>
+          <details class="card gmore" id="gMore"><summary>ℹ️ Légende · ✏️ Modifier une vacation</summary>
           <ul class="legend">
             <li>Case hachurée : pas de vacation</li>
             <li><span class="ch me">RM</span>Vous</li>
@@ -708,7 +710,6 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
               <button type="button" class="ghost" id="edRevert" hidden>Effacer cette vacation</button>
             </fieldset>
           </form>
-        <div id="impSlotG"></div>
           </details>
         </div>
         <div id="gMed" class="col" hidden>
@@ -737,19 +738,20 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     <section id="view-echanges" aria-labelledby="tab-echanges" hidden>
       <p id="swEmpty" class="empty" hidden></p>
       <div id="swBody" class="grid2" hidden>
-        <div class="col" style="grid-column:1/-1"><div class="subtabs" role="group" aria-label="Type d’échange"><button type="button" data-swmode="week" aria-pressed="true">📅 Semaine</button><button type="button" data-swmode="ast" aria-pressed="false">🔔 Astreinte</button></div></div>
-        <div class="col">
+        <div class="col swmodecol" style="grid-column:1/-1"><div class="subtabs" role="group" aria-label="Type d’échange"><button type="button" data-swmode="week" aria-pressed="true">📅 Échange de semaine</button><button type="button" data-swmode="ast" aria-pressed="false">🔔 Échange d’astreinte</button></div></div>
+        <div class="col swlistcol">
           <button type="button" class="ghost" id="swJump">Échanger deux vacations ↓</button>
           <div id="swLists" class="col"></div>
         </div>
-        <div class="col">
+        <div class="col swformcol">
           <form id="swForm" class="card">
             <h2>Échanger deux vacations</h2>
+            <div id="swSteps"></div>
             <p class="hint">L'échange est immédiat, sans validation du confrère. Il apparaît dans l'onglet Échanges de chacun et peut être annulé par l'un ou l'autre.</p>
             <fieldset data-edit id="swSet">
-              <div class="f"><label for="swMine">Ma vacation</label><select id="swMine"></select></div>
-              <div class="f"><label for="swWith">Échanger avec</label><select id="swWith"></select></div>
-              <div class="f"><label for="swTheirs">Contre sa vacation</label><select id="swTheirs"></select></div>
+              <div class="f swraw"><label for="swMine">Ma vacation</label><select id="swMine"></select></div>
+              <div class="f swraw"><label for="swWith">Échanger avec</label><select id="swWith"></select></div>
+              <div class="f swraw"><label for="swTheirs">Contre sa vacation</label><select id="swTheirs"></select></div>
               <p id="swCheck" class="hint" aria-live="polite"></p>
               <button type="submit" class="primary" id="swGo" disabled>Échanger</button>
             </fieldset>
@@ -787,7 +789,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 00h30 (fluide v18)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 00h45 (échanges v19)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -2187,7 +2189,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     window.scrollTo(0,0);
     if (typeof renderBadge === 'function') renderBadge();
     if (t === 'auj') renderToday();
-    const slot = t === 'general' ? '#impSlotG' : t === 'reglages' ? '#impSlotR' : t === 'plan' ? '#impSlotP' : '#impSlotC';
+    const slot = t === 'general' ? '#impSlotP' : t === 'reglages' ? '#impSlotR' : t === 'plan' ? '#impSlotP' : '#impSlotC';
     $(slot).appendChild($('#cwImport'));
     if (t === 'plan') { plStage = ''; renderCompose(); }
     if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); }
@@ -3240,7 +3242,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const prev = sel.value;
     if (!trame || !mineV || !wid || !doctors[wid]) {
       sel.innerHTML = '<option value="">'+(wid ? '—' : "Choisissez d'abord un confrère")+'</option>';
-      go.disabled = true; chk.textContent = ''; return;
+      go.disabled = true; chk.textContent = ''; swSteps(); return;
     }
     const opt = t => '<option value="'+esc(vacVal(t))+'">'+esc(vacLabel(t))+'</option>';
     const theirs = swVacs(wid).filter(t=>!blockedFor(me, t, mineV) && !blockedFor(wid, mineV, t));
@@ -3249,30 +3251,59 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     let h = '';
     if (same.length) h += '<optgroup label="Même créneau">'+same.map(opt).join('')+'</optgroup>';
     if (other.length) h += '<optgroup label="Autres créneaux">'+other.map(opt).join('')+'</optgroup>';
-    sel.innerHTML = h || '<option value="">Aucune vacation compatible</option>';
+    sel.innerHTML = h ? '<option value="">Choisir…</option>'+h : '<option value="">Aucune vacation compatible</option>';
     if (theirs.some(t=>vacVal(t) === prev)) sel.value = prev;
     const tv = parseVac(sel.value);
     go.disabled = !tv || !canWrite;
-    chk.textContent = tv
+    chk.textContent = !tv && theirs.length ? 'Choisissez la vacation contre laquelle échanger.' : tv
       ? "Après l'échange : vous faites "+vacLabel(tv)+", "+dLabel(wid)+" fait "+vacLabel(mineV)+"."
       : dLabel(wid)+" n'a aucune vacation compatible avec la vôtre (indisponibilité, garde, repos ou déjà sur cette vacation).";
+    swSteps();
   }
 
+  /* parcours guidé : 1) ma vacation, 2) avec qui, 3) contre quelle vacation (les listes déroulantes servent de mémoire) */
+  function swSteps(){
+    const box = $('#swSteps'); if (!box) return;
+    const mine = $('#swMine'), wsel = $('#swWith'), th = $('#swTheirs'), ast = swMode === 'ast', what = ast ? 'astreinte' : 'vacation';
+    const opts = sel => [...sel.options].filter(o=>o.value);
+    const b = (k, o, on) => '<button type="button" class="swopt" data-swk="'+k+'" data-v="'+esc(o.value)+'" aria-pressed="'+on+'">'+esc(o.textContent)+'</button>';
+    let h = '<p class="swst"><b>1</b> Ma '+what+' à échanger</p>';
+    const om = opts(mine);
+    h += om.length ? '<div class="swlist">'+om.map(o=>b('m', o, o.value === mine.value)).join('')+'</div>' : '<p class="empty" style="border:0">'+esc(mine.options[0] ? mine.options[0].textContent : '')+'</p>';
+    if (mine.value) {
+      h += '<p class="swst"><b>2</b> Avec qui ?</p><div class="swchips">'+opts(wsel).map(o=>b('w', o, o.value === wsel.value)).join('')+'</div>';
+      if (wsel.value) {
+        h += '<p class="swst"><b>3</b> Contre quelle '+what+' de '+esc(dLabel(wsel.value))+' ?</p>';
+        const kids = [...th.children];
+        if (!opts(th).length) h += '<p class="empty" style="border:0">'+esc(kids[0] ? kids[0].textContent : 'Aucune vacation compatible')+'</p>';
+        else h += '<div class="swlist">'+kids.map(k=>k.tagName === 'OPTGROUP' ? '<p class="swgrp">'+esc(k.label)+'</p>'+[...k.children].map(o=>b('t', o, o.value === th.value)).join('') : '').join('')+'</div>';
+      }
+    }
+    box.innerHTML = h;
+  }
+  $('#swSteps').addEventListener('click', e=>{
+    const o = e.target.closest('[data-swk]'); if (!o) return;
+    const sel = o.dataset.swk === 'm' ? $('#swMine') : o.dataset.swk === 'w' ? $('#swWith') : $('#swTheirs');
+    sel.value = sel.value === o.dataset.v && o.dataset.swk !== 't' ? sel.value : o.dataset.v;
+    if (o.dataset.swk === 'm') { $('#swWith').value = $('#swWith').value; }
+    sel.dispatchEvent(new Event('change', {bubbles: true}));
+    if (o.dataset.swk === 't') { const g = $('#swGo'); try { g.scrollIntoView({block: 'nearest', behavior: 'smooth'}); } catch(err) {} }
+  });
   function renderSwapForm(){
     const mine = doctors[me] ? swVacs(me) : [];
     const others = sortedDocs().filter(d=>d.id !== me);
     document.querySelectorAll('[data-swmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.swmode === swMode)));
-    $('#swForm h2').textContent = swMode === 'ast' ? 'Échanger deux astreintes' : 'Échanger deux vacations';
-    $('#swJump').textContent = swMode === 'ast' ? 'Échanger deux astreintes ↓' : 'Échanger deux vacations ↓';
+    $('#swForm h2').textContent = swMode === 'ast' ? 'Demander un échange d’astreinte' : 'Demander un échange de semaine';
+    $('#swJump').textContent = swMode === 'ast' ? 'Demander un échange d’astreinte ↓' : 'Demander un échange de semaine ↓';
     const sig = swMode+'|'+(trame ? 1 : 0)+'|'+mine.map(v=>vacVal(v)+(busy(me,v.date,v.part) ? '!' : '')).join(',')+'|'+others.map(d=>d.id+d.label).join(',');
     if (sig !== swSig) {
       swSig = sig;
       const pm = $('#swMine').value, pw = $('#swWith').value;
       $('#swMine').innerHTML = mine.length
-        ? mine.map(v=>'<option value="'+esc(vacVal(v))+'">'+esc(vacLabel(v))+(busy(me,v.date,v.part) ? ' (indisponible)' : '')+'</option>').join('')
+        ? '<option value="">Choisir…</option>' + mine.map(v=>'<option value="'+esc(vacVal(v))+'">'+esc(vacLabel(v))+(busy(me,v.date,v.part) ? ' (indisponible)' : '')+'</option>').join('')
         : '<option value="">'+(trame ? (swMode === 'ast' ? 'Aucune astreinte à venir sur votre fiche' : 'Aucune vacation à venir sur votre fiche') : 'Trame du service non chargée')+'</option>';
       $('#swWith').innerHTML = '<option value="">Choisir un confrère…</option>' + others.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('');
-      if (mine.some(v=>vacVal(v) === pm)) $('#swMine').value = pm;
+      if (mine.some(v=>vacVal(v) === pm)) $('#swMine').value = pm; else if (mine.length) $('#swMine').value = '';
       if (pw && others.some(d=>d.id === pw)) $('#swWith').value = pw;
     }
     fillTheirs();
@@ -3280,6 +3311,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   document.querySelectorAll('[data-swmode]').forEach(b=>b.addEventListener('click', ()=>{ swMode = b.dataset.swmode; swSig = ''; renderSwapForm(); renderSwaps(); }));
   $('#swMine').addEventListener('change', fillTheirs);
   $('#swWith').addEventListener('change', fillTheirs);
+  $('#swTheirs').addEventListener('change', fillTheirs);
   $('#swJump').addEventListener('click', ()=>{ $('#swForm').scrollIntoView({block:'start'}); });
   $('#conflicts').addEventListener('click', e=>{
     const b = e.target.closest('[data-vac]'); if (!b) return;
