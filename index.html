@@ -442,7 +442,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astgo{min-height:64px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:10px 16px;border:0;border-radius:14px;font-size:17px;font-weight:800;color:#fff;text-align:left}
 .astgo small{font-weight:500;font-size:13px;opacity:.95}
 .astmode{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.astmode span.on{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}.astmode button{flex:1;min-height:40px}.pll em.auto{background:#E4F1FF;color:#1B5FA8}.pll em.man{background:#F1EAF9;color:#6A3FA0}
-.astbar{background:var(--card,var(--bg));border:1px solid var(--line,#d9e0e3);border-radius:14px;padding:10px}.astpair{display:flex;gap:8px}.astbtn{flex:1;min-height:44px;border:1px solid var(--line,#c9d3d7);background:transparent;color:inherit;border-radius:10px;font:600 15px var(--font-body);display:flex;align-items:center;justify-content:center;gap:8px}.astbtn[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.astbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.ko{background:#C62828}.dot.ok{background:#1E7B4B}.aststat{margin:0;font-size:13px;color:var(--muted)}.aststat.ko{color:#C62828}.aststat.ok{color:#1E7B4B}.astbtn.big{min-height:64px;font-size:17px;flex-direction:column;gap:2px}.astbtn.go{width:100%}.astback{align-self:flex-start;min-height:36px;padding:0 10px}.astbar .astbtn.go{margin-top:2px}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
+.astbar{background:var(--card,var(--bg));border:1px solid var(--line,#d9e0e3);border-radius:14px;padding:10px}.astpair{display:flex;gap:8px}.astbtn{flex:1;min-height:44px;border:1px solid var(--line,#c9d3d7);background:transparent;color:inherit;border-radius:10px;font:600 15px var(--font-body);display:flex;align-items:center;justify-content:center;gap:8px}.astbtn[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.astbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.ko{background:#C62828}.dot.ok{background:#1E7B4B}.aststat{margin:0;font-size:13px;color:var(--muted)}.aststat.ko{color:#C62828}.aststat.ok{color:#1E7B4B}.genrow{min-height:36px;padding:0 10px;white-space:nowrap}.genrow[aria-pressed=false]{color:#C62828;border-color:#C62828}.astrow{gap:8px}.astbtn.big{min-height:64px;font-size:17px;flex-direction:column;gap:2px}.astbtn.go{width:100%}.astback{align-self:flex-start;min-height:36px;padding:0 10px}.astbar .astbtn.go{margin-top:2px}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
 .astgo.ko{background:#C62828}.astgo.ok{background:#1E7B4B}
 .astmiss{min-height:48px;text-align:left}
 .astrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -770,7 +770,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 22h00 (départ v8)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 22h15 (relecture v9)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1572,7 +1572,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const days = [...Array(6)].map((_,i)=>addDays(plStart,i));
     $('#plLabel').textContent = plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
     document.querySelectorAll('[data-plmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plmode === plMode)));
-    $('#plCard').hidden = !plStage; $('#plManBox').hidden = plStage !== 'man'; grid.hidden = plStage !== 'man'; if (plStage !== 'man') { grid.innerHTML = ''; return; }
+    $('#plCard').hidden = plStage !== 'auto' && plStage !== 'man'; $('#plManBox').hidden = plStage !== 'man'; grid.hidden = plStage !== 'man'; if (plStage !== 'man') { grid.innerHTML = ''; return; }
     $('#plDays').hidden = plMode === 'ast'; $('#plCopy').hidden = plMode === 'ast';
     document.querySelectorAll('[data-plscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plscope === plScope)));
     const dn = ['lundi','mardi','mercredi','jeudi','vendredi','samedi'];
@@ -1704,7 +1704,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   $('#plPrev').addEventListener('click', ()=>{ plStart = addDays(plStart, plMode === 'ast' ? -42 : -7); renderCompose(); });
   $('#plNext').addEventListener('click', ()=>{ plStart = addDays(plStart, plMode === 'ast' ? 42 : 7); renderCompose(); });
-  document.querySelectorAll('[data-plmode]').forEach(b=>b.addEventListener('click', ()=>{ plMode = b.dataset.plmode; if (plStage === 'man') plStage = 'auto'; renderCompose(); }));
+  document.querySelectorAll('[data-plmode]').forEach(b=>b.addEventListener('click', ()=>{ plMode = b.dataset.plmode; renderCompose(); }));
   $('#plJump').addEventListener('change', e=>{ if (e.target.value) { const d = parse(e.target.value); plStart = mondayOf(d); plDay = Math.min((d.getDay()+6)%7, 5); renderCompose(); } });
   document.querySelectorAll('[data-plscope]').forEach(b=>b.addEventListener('click', ()=>{ plScope = b.dataset.plscope; renderCompose(); }));
   const MISS_VIEWERS = ['rayann','rm','rim','im'];
@@ -1716,11 +1716,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const months = astMonths(), miss = astMissing(months), allOk = !miss.length, dis = canWrite ? '' : ' disabled';
     box.hidden = false;
     const stat = allOk ? 'Tout le monde a renseigné ses indisponibilités' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
-    const back = '<button type="button" class="ghost astback" data-plstage="">‹ Retour</button>';
-    if (!plStage) box.innerHTML = '<div class="astpair"><button type="button" class="astbtn big" data-plstage="auto">⚡ Assignation automatique</button><button type="button" class="astbtn big" data-plstage="man">✋ Assignation manuelle</button></div>';
+    const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' ? '' : 'how')+'">‹ Retour</button>';
+    if (!plStage) box.innerHTML = '<p class="aststat">Que voulez-vous créer ?</p><div class="astpair"><button type="button" class="astbtn big" data-plpick="week">📅 Semaine</button><button type="button" class="astbtn big" data-plpick="ast">🔔 Astreinte</button></div>';
+    else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · comment l’assigner ?</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="auto">⚡ Assignation automatique</button><button type="button" class="astbtn big" data-plstage="man">✋ Assignation manuelle</button></div>';
     else if (plStage === 'man') box.innerHTML = back;
     else box.innerHTML = back + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
-      + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p>'
+      + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p><p class="aststat">Vous pourrez relire et confirmer chaque vacation avant l’enregistrement.</p>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
   /* ---------- qui n'a pas renseigné ses indisponibilités ---------- */
@@ -1744,7 +1745,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#astShL').innerHTML = h;
     $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Assigner quand même</button>' : '';
   }
-  $('#astBarBox').addEventListener('click', e=>{ const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
+  $('#astBarBox').addEventListener('click', e=>{ const pk = e.target.closest('[data-plpick]'); if (pk) { plMode = pk.dataset.plpick; plStage = 'how'; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
   $('#astSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-astx]')) return closeMiss();
     const ex = e.target.closest('[data-astexcl]'); if (ex) { if (await setDocField(ex.dataset.astexcl, {noAst: true})) renderMiss(); return; }
@@ -1833,22 +1834,33 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#genShT').textContent = title;
     $('#genShS').textContent = writes.length+' modification'+(writes.length > 1 ? 's' : '')+' · rien n’est enregistré tant que vous n’avez pas confirmé.';
     const nm = a => a.length ? a.map(dLabel).join(', ') : '—';
-    const seen = new Set(), rows = [];
-    writes.forEach(w=>{
-      const pt = findPost(w.poste), sam = isSam(pt), sig = w.k+'|'+w.poste+'|'+(pt && pt.journee ? 'J' : w.part); if (seen.has(sig)) return; seen.add(sig);
+    const seen = new Map(), rows = [];
+    writes.forEach((w, wi)=>{
+      w.on = true;
+      const pt = findPost(w.poste), sam = isSam(pt), sig = w.k+'|'+w.poste+'|'+(pt && pt.journee ? 'J' : w.part);
+      if (seen.has(sig)) { seen.get(sig).idx.push(wi); return; }
       const d = new Intl.DateTimeFormat('fr-FR',{weekday:'short', day:'numeric', month:'numeric'}).format(parse(w.k));
       const lab = sam ? 'Astreinte' : postName(w.poste, w.k)+(pt && pt.journee ? '' : ' · '+PART_TXT[w.part]);
-      rows.push('<div class="astrow"><span><b>'+esc(d)+'</b> · '+esc(lab)+'<br><small>'+(w.before.length && !sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(nm(w.before))+' → ' : '')+'<b>'+esc(nm(w.after))+'</b></small></span></div>');
+      const r = {idx: [wi], html: '<span><b>'+esc(d)+'</b> · '+esc(lab)+'<br><small>'+(w.before.length && !sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(nm(w.before))+' → ' : '')+'<b>'+esc(nm(w.after))+'</b></small></span>'};
+      seen.set(sig, r); rows.push(r);
     });
-    $('#genShL').innerHTML = (warn ? '<p class="plwhy">⚠ '+esc(warn)+'</p>' : '')+rows.join('');
-    $('#genShF').innerHTML = '<button type="button" class="primary" data-genok="1">✓ Confirmer et enregistrer</button>';
+    genRows = rows;
+    $('#genShL').innerHTML = (warn ? '<p class="plwhy">⚠ '+esc(warn)+'</p>' : '')+'<p class="hint">Relisez chaque vacation : touchez « Accepté » pour la refuser.</p>'+rows.map((r,ri)=>'<div class="astrow">'+r.html+'<button type="button" class="ghost genrow" data-genrow="'+ri+'" aria-pressed="true">✓ Accepté</button></div>').join('');
+    genCount();
     $('#genSheet').hidden = false;
+  }
+  let genRows = [];
+  function genCount(){
+    const n = genRows.filter(r=>genPending && genPending[r.idx[0]].on).length;
+    $('#genShF').innerHTML = '<button type="button" class="primary" data-genok="1"'+(n ? '' : ' disabled')+'>✓ Confirmer '+n+' vacation'+(n > 1 ? 's' : '')+'</button>';
   }
   function genClose(){ $('#genSheet').hidden = true; genPending = null; }
   $('#genSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-genx]')) return genClose();
+    const gr = e.target.closest('[data-genrow]');
+    if (gr && genPending) { const r = genRows[Number(gr.dataset.genrow)], on = !genPending[r.idx[0]].on; r.idx.forEach(i=>{ genPending[i].on = on; }); gr.setAttribute('aria-pressed', String(on)); gr.textContent = on ? '✓ Accepté' : '✗ Refusé'; genCount(); return; }
     if (!e.target.closest('[data-genok]') || !genPending) return;
-    const ws = genPending; genClose();
+    const ws = genPending.filter(w=>w.on); genClose();
     let ok = true;
     for (const w of ws) { w.val.t = Date.now(); ok = (await setOverride(w.k, w.kk, w.val)) && ok; if (!ok) break; }
     plStage = 'man'; renderCompose();
