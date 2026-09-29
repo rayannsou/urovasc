@@ -442,7 +442,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astgo{min-height:64px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:10px 16px;border:0;border-radius:14px;font-size:17px;font-weight:800;color:#fff;text-align:left}
 .astgo small{font-weight:500;font-size:13px;opacity:.95}
 .astmode{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.astmode span.on{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}.astmode button{flex:1;min-height:40px}.pll em.auto{background:#E4F1FF;color:#1B5FA8}.pll em.man{background:#F1EAF9;color:#6A3FA0}
-.astgo.man{background:#17465A}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
+.astbar{background:var(--card,var(--bg));border:1px solid var(--line,#d9e0e3);border-radius:14px;padding:10px}.astpair{display:flex;gap:8px}.astbtn{flex:1;min-height:44px;border:1px solid var(--line,#c9d3d7);background:transparent;color:inherit;border-radius:10px;font:600 15px var(--font-body);display:flex;align-items:center;justify-content:center;gap:8px}.astbtn[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.astbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.ko{background:#C62828}.dot.ok{background:#1E7B4B}.aststat{margin:0;font-size:13px;color:var(--muted)}.aststat.ko{color:#C62828}.aststat.ok{color:#1E7B4B}.astgo.man{background:#17465A}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
 .astgo.ko{background:#C62828}.astgo.ok{background:#1E7B4B}
 .astmiss{min-height:48px;text-align:left}
 .astrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -538,6 +538,14 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <div class="sheet-h"><div><h3 id="astShT">Indisponibilités non renseignées</h3><p id="astShS" class="hint"></p></div><button type="button" class="ghost" data-astx>Fermer</button></div>
             <div id="astShL" class="sheet-l"></div>
             <div id="astShF"></div>
+          </div>
+        </div>
+        <div id="genSheet" class="sheet" hidden>
+          <div class="sheet-bg" data-genx></div>
+          <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="genShT">
+            <div class="sheet-h"><div><h3 id="genShT">Confirmer le planning</h3><p id="genShS" class="hint"></p></div><button type="button" class="ghost" data-genx>Annuler</button></div>
+            <div id="genShL" class="sheet-l"></div>
+            <div id="genShF"></div>
           </div>
         </div>
         <div id="plSheet" class="sheet" hidden>
@@ -762,7 +770,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 21h15 (auto/manuel v5)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 21h45 (sobre v7)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1707,10 +1715,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!trame || (ast && !ap)) { box.hidden = true; box.innerHTML = ''; return; }
     const months = astMonths(), miss = astMissing(months), allOk = !miss.length, dis = canWrite ? '' : ' disabled';
     box.hidden = false;
-    const stat = allOk ? '✓ Tout le monde a renseigné ses indisponibilités ('+months.map(monthLbl).join(', ')+')' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
-    box.innerHTML = '<button type="button" class="astgo '+(allOk ? 'ok' : 'ko')+'" data-astassign="1"'+dis+'><span>⚡ Assigner automatiquement</span><small>'+(ast ? 'Générer le planning d’astreinte' : 'Générer le planning de la semaine')+' · '+stat+'</small></button>'
-      + '<button type="button" class="astgo man" data-astmanual="1" aria-pressed="'+plManual+'"><span>✋ Assigner manuellement</span><small>'+(plManual ? 'Ouvert · touchez pour masquer' : 'Choisir les noms vous-même, '+(ast ? 'samedi par samedi' : 'vacation par vacation'))+'</small></button>'
-      + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">👥 Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
+    const stat = allOk ? 'Tout le monde a renseigné ses indisponibilités' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
+    box.innerHTML = '<div class="astpair"><button type="button" class="astbtn" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Automatiquement</button>'
+      + '<button type="button" class="astbtn" data-astmanual="1" aria-pressed="'+plManual+'">Manuellement</button></div>'
+      + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+(ast ? 'Astreintes' : 'Semaine')+' · '+stat+'</p>'
+      + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
   /* ---------- qui n'a pas renseigné ses indisponibilités ---------- */
   let missForce = false;
@@ -1754,18 +1763,18 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const months = astMonths(), miss = astMissing(months);
     if (miss.length && !force) return openMiss(true);
     const sats = astSats().map(key), cnt = astCounts(), pool = sortedDocs().filter(d=>!d.noAst);
-    let last = (vacWho(ap.id, key(addDays(parse(sats[0]),-7)), 'M') || {who:[]}).who, done = 0, skipped = 0;
+    let last = (vacWho(ap.id, key(addDays(parse(sats[0]),-7)), 'M') || {who:[]}).who, done = 0, skipped = 0; const writes = [];
     for (const k of sats) {
       const v = vacWho(ap.id, k, 'M');
       if (v && v.who.length) { last = v.who; continue; }
       const cands = pool.filter(d=>!reasonFor(d.id, k, 'M'));
       cands.sort((a,b)=>((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
       const pick = cands[0]; if (!pick) { skipped++; continue; }
-      if (!(await setOverride(k, ap.id+'_M', {w:[pick.id], t: Date.now(), a: 1}))) return;
+      writes.push({k, kk: ap.id+'_M', val: {w:[pick.id], t: 0, a: 1}, poste: ap.id, part: 'M', before: [], after: [pick.id]});
       cnt[pick.id] = (cnt[pick.id]||0) + 1; last = [pick.id]; done++;
     }
-    plManual = true; renderCompose();
-    notify(done ? done+' astreinte'+(done > 1 ? 's assignées' : ' assignée')+(skipped ? ' · '+skipped+' samedi'+(skipped > 1 ? 's' : '')+' sans personne disponible' : '')+'. Vous pouvez encore les modifier.' : (skipped ? 'Personne de disponible sur les samedis restants.' : 'Tous les samedis affichés ont déjà une astreinte.'), !done && !!skipped);
+    if (!writes.length) { plManual = true; renderCompose(); return notify(skipped ? 'Personne de disponible sur les samedis restants.' : 'Tous les samedis affichés ont déjà une astreinte.', !!skipped); }
+    genOpen('Astreintes proposées', writes, skipped ? skipped+' samedi'+(skipped > 1 ? 's' : '')+' sans personne disponible' : '');
   }
   /* ---------- génération automatique de la semaine : 1) la trame, 2) les indisponibilités ---------- */
   async function plWeekGen(force){
@@ -1775,7 +1784,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (miss.length && !force) return openMiss(true);
     const posts = trame.postes.filter(p=>!p.info && !isSam(p)), docs = sortedDocs();
     const load = {};
-    let done = 0, holes = 0, ous = 0;
+    let done = 0, holes = 0, ous = 0; const writes = [];
     for (let i = 0; i < 5; i++) {
       const k = key(addDays(plStart, i));
       for (const part of PARTS) {
@@ -1807,16 +1816,42 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           while (res.length < need && eligible.length) { const id = eligible.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; }
           if (res.length < need) holes++;
           if (v.ou && !res.length) continue;
-          let ok = true;
-          for (const pt of slotParts(p.id, part)) ok = (await setOverride(k, p.id+'_'+pt, {w: res, t: Date.now(), a: 1})) && ok;
-          if (!ok) return;
+          for (const pt of slotParts(p.id, part)) writes.push({k, kk: p.id+'_'+pt, val: {w: res, t: 0, a: 1}, poste: p.id, part: pt, before: v.who.slice(), after: res.slice(), ou: !!v.ou});
           done++;
         }
       }
     }
-    plManual = true; renderCompose();
-    notify(done ? done+' vacation'+(done > 1 ? 's' : '')+' ajustée'+(done > 1 ? 's' : '')+' d’après les indisponibilités'+(holes ? ' · '+holes+' place'+(holes > 1 ? 's' : '')+' sans remplaçant disponible' : '')+'. Le reste suit la trame.' : (holes ? 'Certaines places n’ont pas de remplaçant disponible.' : 'La trame convient déjà : personne d’indisponible cette semaine.'), !done && !!holes);
+    if (!writes.length) { plManual = true; renderCompose(); return notify(holes ? 'Certaines places n’ont pas de remplaçant disponible.' : 'La trame convient déjà : personne d’indisponible cette semaine.', !!holes); }
+    genOpen('Semaine proposée', writes, holes ? holes+' place'+(holes > 1 ? 's' : '')+' sans remplaçant disponible' : '');
   }
+  /* ---------- page de confirmation avant d'enregistrer une génération automatique ---------- */
+  let genPending = null;
+  function genOpen(title, writes, warn){
+    genPending = writes;
+    $('#genShT').textContent = title;
+    $('#genShS').textContent = writes.length+' modification'+(writes.length > 1 ? 's' : '')+' · rien n’est enregistré tant que vous n’avez pas confirmé.';
+    const nm = a => a.length ? a.map(dLabel).join(', ') : '—';
+    const seen = new Set(), rows = [];
+    writes.forEach(w=>{
+      const pt = findPost(w.poste), sam = isSam(pt), sig = w.k+'|'+w.poste+'|'+(pt && pt.journee ? 'J' : w.part); if (seen.has(sig)) return; seen.add(sig);
+      const d = new Intl.DateTimeFormat('fr-FR',{weekday:'short', day:'numeric', month:'numeric'}).format(parse(w.k));
+      const lab = sam ? 'Astreinte' : postName(w.poste, w.k)+(pt && pt.journee ? '' : ' · '+PART_TXT[w.part]);
+      rows.push('<div class="astrow"><span><b>'+esc(d)+'</b> · '+esc(lab)+'<br><small>'+(w.before.length && !sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(nm(w.before))+' → ' : '')+'<b>'+esc(nm(w.after))+'</b></small></span></div>');
+    });
+    $('#genShL').innerHTML = (warn ? '<p class="plwhy">⚠ '+esc(warn)+'</p>' : '')+rows.join('');
+    $('#genShF').innerHTML = '<button type="button" class="primary" data-genok="1">✓ Confirmer et enregistrer</button>';
+    $('#genSheet').hidden = false;
+  }
+  function genClose(){ $('#genSheet').hidden = true; genPending = null; }
+  $('#genSheet').addEventListener('click', async e=>{
+    if (e.target.closest('[data-genx]')) return genClose();
+    if (!e.target.closest('[data-genok]') || !genPending) return;
+    const ws = genPending; genClose();
+    let ok = true;
+    for (const w of ws) { w.val.t = Date.now(); ok = (await setOverride(w.k, w.kk, w.val)) && ok; if (!ok) break; }
+    plManual = true; renderCompose();
+    if (ok) notify(ws.length+' modification'+(ws.length > 1 ? 's enregistrées' : ' enregistrée')+'. Vous pouvez encore les corriger à la main.');
+  });
   async function plToggleUn(spec){
     const a = spec.split('|'), id = a[a.length-1], doc = doctors[id]; if (!doc) return;
     let patch = {}, on;
