@@ -276,6 +276,28 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .dnote b{font-weight:600}
 .notelist{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
 .cwr.empty{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 12px}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{flex:1;border:0;border-radius:0;background:var(--surface);color:var(--muted);font-weight:600;min-height:44px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.dayseg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.dayseg button{flex:1 0 auto;min-width:54px;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1.15;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:4px 8px}
+.dayseg button small{font-size:12px;color:var(--muted)}
+.dayseg button[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.dayseg button[aria-selected=true] small{color:var(--accent-ink)}
+.plcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.plcard h3{font:700 16px/1.2 var(--font-display);display:flex;align-items:center;gap:8px}
+.plcard h3 i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.plr{background:var(--bg);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.plr.cf{background:var(--red-soft)}
+.pll{font:600 12px/1.2 var(--font-body);color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.pll em{font-style:normal;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 6px}
+.plc{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.plc .pch{display:inline-flex;align-items:center;gap:2px;background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:2px 4px 2px 10px;font-weight:600;font-size:14px}
+.plc .pch.bad{background:var(--red-soft);border-color:var(--red-line);color:var(--red)}
+.plc .pch button{border:0;background:none;min-width:30px;min-height:30px;padding:0;color:inherit;font-size:18px;line-height:1}
+.plc input{flex:1 1 120px;min-width:0;min-height:40px}
+.plc select{flex:0 1 120px;min-height:40px}
+.plwhy{font-size:12px;color:var(--red);font-weight:600}
 .cwr.empty select{flex:1 1 180px;max-width:280px;min-height:40px}
 .cwr input[type=text]{min-height:40px}
 
@@ -351,6 +373,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   <nav class="tabs" role="tablist" aria-label="Vues du planning">
     <button type="button" role="tab" id="tab-auj" aria-selected="true" data-tab="auj"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15.5" r="1.6"/></svg><span class="tl">Ma semaine</span><span class="ts">Ma semaine</span></button>
     <button type="button" role="tab" id="tab-general" aria-selected="false" data-tab="general"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 10h18M9 4v17M15 10v11"/></svg><span class="tl">Planning général</span><span class="ts">Planning</span><span id="gBadge" class="badge red" hidden></span></button>
+    <button type="button" role="tab" id="tab-plan" aria-selected="false" data-tab="plan"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M12 9v8M8 13h8"/></svg><span class="tl">Créer un planning</span><span class="ts">Créer</span></button>
     <button type="button" role="tab" id="tab-indispos" aria-selected="false" data-tab="indispos"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span class="tl">Mes indisponibilités</span><span class="ts">Indispos</span></button>
     <button type="button" role="tab" id="tab-echanges" aria-selected="false" data-tab="echanges"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15l-3.5-3.5M20 16H5l3.5 3.5"/></svg><span class="tl">Échanges</span><span class="ts">Échanges</span><span id="swapBadge" class="badge" hidden></span></button>
     <button type="button" role="tab" id="tab-reglages" aria-selected="false" data-tab="reglages"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg><span class="tl">Réglages</span><span class="ts">Réglages</span></button>
@@ -387,6 +410,27 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       </div>
     </section>
 
+    <section id="view-plan" aria-labelledby="tab-plan" hidden>
+      <div class="col">
+        <div class="card">
+          <h2>Créer un planning</h2>
+          <div class="weekbar">
+            <button type="button" id="plPrev" aria-label="Semaine précédente">‹</button>
+            <h2 id="plLabel"></h2>
+            <button type="button" id="plNext" aria-label="Semaine suivante">›</button>
+          </div>
+          <div class="f jump"><label for="plJump">Aller à une semaine</label><input type="date" id="plJump"></div>
+          <div class="seg" role="group" aria-label="Portée de la modification">
+            <button type="button" data-plscope="once" aria-pressed="true">Une seule fois</button>
+            <button type="button" data-plscope="always" aria-pressed="false">Toujours</button>
+          </div>
+          <p id="plHint" class="hint"></p>
+          <div class="dayseg" id="plDays" role="tablist" aria-label="Jour"></div>
+        </div>
+        <div id="plGrid" class="col"></div>
+        <datalist id="plDocs"></datalist>
+      </div>
+    </section>
     <section id="view-creer" aria-labelledby="tab-creer" hidden>
       <div class="col">
         <button type="button" class="ghost backreg" id="backReg">‹ Retour aux réglages</button>
@@ -819,18 +863,25 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const blocks = [];
     for (let r=0; r<Math.min(aoa.length, 10); r++) {
       const hs = [];
-      (aoa[r] || []).forEach((v,c)=>{ const g = gnorm(S(v).replace(/\s+/g,' ')); const m = g.match(/^(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})$/); if (m) hs.push({c, j:JOURS.indexOf(m[1]), n:Number(m[2])}); else if (/^samedi\b/.test(g) && hs.length) hs.push({c, j:5, n:0}); });
+      (aoa[r] || []).forEach((v,c)=>{ const g = gnorm(S(v).replace(/\s+/g,' ')); const m = g.match(/^(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})(?:\s*[\/.-]\s*(\d{1,2})(?:\s*[\/.-]\s*(\d{2,4}))?|\s+([a-z]+)(?:\s+(\d{4}))?)?$/); const mo = m ? (m[3] ? Number(m[3]) : (m[5] ? MOIS_ALIAS.findIndex(al=>al.includes(m[5]))+1 : 0)) : 0, yy = m ? Number(m[4] || m[6] || 0) : 0; if (m && (!m[5] || mo)) hs.push({c, j:JOURS.indexOf(m[1]), n:Number(m[2]), mo, yr: yy < 100 && yy ? 2000+yy : yy}); else if (/^samedi\b/.test(g) && hs.length) hs.push({c, j:5, n:0}); });
       let cur = null;
       hs.forEach(h=>{ if (h.j === 0 || !cur) { cur = {hr:r, bl:[]}; blocks.push(cur); } cur.bl.push(h); });
     }
     const good = blocks.filter(b=>b.bl.filter(h=>h.j < 5).length >= 5 && b.bl[0].c >= 1);
     if (!good.length) return null;
     good.sort((x,y)=>x.bl[0].c - y.bl[0].c);
-    let first = guessMonday(good[0].bl[0].n, opts.ref);
+    const ownMonday = h=>{
+      if (!h.mo) return null;
+      const ref = opts.ref || new Date(), ys = h.yr ? [h.yr] : [ref.getFullYear()-1, ref.getFullYear(), ref.getFullYear()+1];
+      let best = null, bd = 1e18;
+      ys.forEach(y=>{ const d = new Date(y, h.mo-1, h.n); if (d.getMonth() === h.mo-1 && d.getDay() === 1) { const df = Math.abs(d - ref); if (df < bd) { bd = df; best = d; } } });
+      return best;
+    };
+    let first = ownMonday(good[0].bl[0]) || guessMonday(good[0].bl[0].n, opts.ref);
     if (opts.monday) first = opts.monday;
     if (!first) return null;
     const weeks = good.map((b,i)=>{
-      const mon = new Date(first.getFullYear(), first.getMonth(), first.getDate()+7*i);
+      const mon = (i && ownMonday(b.bl[0])) || new Date(first.getFullYear(), first.getMonth(), first.getDate()+7*i);
       const dates = [0,1,2,3,4].map(k=>ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+k)));
       const sat = ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+5));
       return {monday: ymd(mon), dates, sat, cells:{}, absences:[], notes:[], bl:b.bl, hr:b.hr, lc:b.bl[0].c-1, hasSat:false};
@@ -881,7 +932,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     let mi = -1;
     words.forEach(w=>{ MOIS_ALIAS.forEach((al,i)=>{ if (mi < 0 && al.includes(w)) mi = i; }); });
     if (mi < 0) return null;
-    const ym = t.match(/\b(20\d\d)\b/);
+    const ym = t.match(/\b(20\d\d)\b/) || t.match(/[a-z]\s*(\d{2})\b/) && [0, '20'+t.match(/[a-z]\s*(\d{2})\b/)[1]];
     const now = new Date(); let y;
     if (ym) y = Number(ym[1]);
     else if (yearDef) y = yearDef;
@@ -1217,6 +1268,97 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     renderRenMe(); renderHello(); renderPostes(); renderPicker(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
+
+  /* ---------- onglet Créer un planning ---------- */
+  let plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
+  const plNorm = t => normS(String(t || '')).replace(/\s+/g,' ');
+  function plFind(txt){
+    const t = plNorm(txt); if (!t) return null;
+    const docs = sortedDocs();
+    let m = docs.filter(d=>plNorm(d.label) === t || d.id === t);
+    if (m.length !== 1) m = docs.filter(d=>plNorm(d.label).startsWith(t));
+    return m.length === 1 ? m[0] : null;
+  }
+  function renderCompose(){
+    const grid = $('#plGrid'); if (!grid) return;
+    const a = document.activeElement;
+    if (a && a.matches && a.matches('#plGrid input') && a.value) return;
+    $('#plDocs').innerHTML = sortedDocs().map(d=>'<option value="'+esc(d.label)+'"></option>').join('');
+    const days = [...Array(6)].map((_,i)=>addDays(plStart,i));
+    $('#plLabel').textContent = fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
+    document.querySelectorAll('[data-plscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plscope === plScope)));
+    const dn = ['lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+    $('#plHint').textContent = plScope === 'once'
+      ? 'Une seule fois : la modification ne concerne que la date choisie ('+dn[plDay]+' '+fmtShort.format(days[plDay])+').'
+      : 'Toujours : la vacation est répétée chaque '+dn[plDay]+', à partir de la trame. Les dates déjà modifiées à la main gardent leur exception.';
+    const hasSat = trame && trame.postes.some(p=>isSam(p));
+    const nd = hasSat ? 6 : 5;
+    if (plDay >= nd) plDay = 0;
+    $('#plDays').innerHTML = days.slice(0,nd).map((d,i)=>'<button type="button" role="tab" data-plday="'+i+'" aria-selected="'+(i === plDay)+'"><span>'+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'short'}).format(d).replace('.',''))+'</span><small>'+d.getDate()+'</small></button>').join('');
+    if (!trame || !trame.postes.length) { grid.innerHTML = '<p class="empty">'+(loaded ? 'Les postes du service ne sont pas encore chargés.' : 'Chargement…')+'</p>'; return; }
+    const k = key(days[plDay]), dis = canWrite ? '' : ' disabled', docs = sortedDocs();
+    const posts = trame.postes.filter(p=>!p.info && okDay(p, plDay));
+    grid.innerHTML = posts.map(p=>{
+      const parts = p.journee ? ['M'] : partsOf(p);
+      const rows = parts.map(part=>{
+        const v = vacWho(p.id, k, part), who = v ? v.who : [], slot = p.id+'|'+k+'|'+part;
+        const ov = overrides[k] && overrides[k][p.id+'_'+part];
+        let bad = 0;
+        const chips = who.map(id=>{ const r = v && v.ou ? '' : reasonFor(id,k,part); if (r) bad++; return '<span class="pch'+(r ? ' bad' : '')+'">'+esc(dLabel(id))+'<button type="button" data-plx="'+esc(slot+'|'+id)+'" aria-label="Retirer '+esc(dLabel(id))+'"'+dis+'>×</button></span>'; }).join('');
+        const why = who.filter(id=>!(v && v.ou) && reasonFor(id,k,part)).map(id=>esc(dLabel(id))+' : '+esc(reasonFor(id,k,part))).join(' · ');
+        const tag = ov ? '<em>cette date</em>' : (who.length ? '<em>toujours</em>' : '');
+        return '<div class="plr'+(bad ? ' cf' : '')+'"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Samedi matin' : part === 'M' ? 'Matin' : 'Après-midi')+(v && v.ou ? ' · à confirmer' : '')+'</span>'+tag+'</div>'
+          + '<div class="plc">'+chips
+          + '<input type="text" list="plDocs" data-pli="'+esc(slot)+'" placeholder="+ écrire un nom…" autocomplete="off" autocapitalize="characters" aria-label="Ajouter un médecin, '+esc(p.label)+'"'+dis+'>'
+          + '<select data-pls="'+esc(slot)+'" aria-label="Choisir un médecin, '+esc(p.label)+'"'+dis+'><option value="">▾ Liste</option>'+docs.filter(d=>!who.includes(d.id)).map(d=>{ const r = reasonFor(d.id,k,part); return '<option value="'+esc(d.id)+'">'+esc(dLabel(d.id))+(r ? ' ⚠ '+esc(r) : '')+'</option>'; }).join('')+'</select></div>'
+          + (why ? '<p class="plwhy">⚠ '+why+'</p>' : '')+'</div>';
+      }).join('');
+      return '<section class="plcard"><h3><i style="background:'+posteColor(p.id)+'"></i>'+esc(postName(p.id,k))+'</h3>'+rows+'</section>';
+    }).join('') || '<p class="empty">Aucun poste ce jour-là.</p>';
+  }
+  async function plApply(poste, date, part, arr, added){
+    if (plScope === 'once') return writeWho(poste, date, part, arr, added, 'Enregistré pour cette date seulement.');
+    const dow = (parse(date).getDay()+6)%7;
+    const ok = await saveTrame(t=>{
+      slotParts(poste, part).forEach(pt=>{
+        const kk = tk(poste, dow, pt), prev = t.cases[kk] || {};
+        if (!arr.length && !prev.texte) delete t.cases[kk];
+        else t.cases[kk] = Object.assign(prev.texte ? {texte: prev.texte} : {}, {who: arr.slice()});
+      });
+    });
+    if (!ok) return;
+    await revertSlot(poste, date, part);
+    const r = added ? reasonFor(added, date, part) : '';
+    if (r) notify('⚠ '+dLabel(added)+' n’est pas disponible : '+r+', '+fmtShort.format(parse(date))+'.', true);
+    else notify('Enregistré : chaque '+['lundi','mardi','mercredi','jeudi','vendredi','samedi'][dow]+'.');
+  }
+  function plAdd(slot, id){
+    const a = slot.split('|'), cur = whoOf(a[0],a[1],a[2]);
+    if (cur.includes(id)) return notify(dLabel(id)+' est déjà sur cette vacation.', true);
+    cur.push(id); plApply(a[0],a[1],a[2],cur,id);
+  }
+  $('#plPrev').addEventListener('click', ()=>{ plStart = addDays(plStart,-7); renderCompose(); });
+  $('#plNext').addEventListener('click', ()=>{ plStart = addDays(plStart,7); renderCompose(); });
+  $('#plJump').addEventListener('change', e=>{ if (e.target.value) { const d = parse(e.target.value); plStart = mondayOf(d); plDay = Math.min((d.getDay()+6)%7, 5); renderCompose(); } });
+  document.querySelectorAll('[data-plscope]').forEach(b=>b.addEventListener('click', ()=>{ plScope = b.dataset.plscope; renderCompose(); }));
+  $('#plDays').addEventListener('click', e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); });
+  $('#plGrid').addEventListener('change', e=>{
+    const sel = e.target.closest('select[data-pls]');
+    if (sel) { if (sel.value) plAdd(sel.dataset.pls, sel.value); return; }
+    const inp = e.target.closest('input[data-pli]');
+    if (inp && inp.value.trim()) {
+      const d = plFind(inp.value);
+      if (!d) { notify('« '+inp.value.trim()+' » : médecin introuvable. Choisissez dans la liste ou ajoutez-le dans Réglages.', true); return; }
+      inp.value = ''; plAdd(inp.dataset.pli, d.id);
+    }
+  });
+  $('#plGrid').addEventListener('keydown', e=>{ if (e.key === 'Enter' && e.target.matches('input[data-pli]')) { e.preventDefault(); e.target.blur(); } });
+  $('#plGrid').addEventListener('click', e=>{
+    const x = e.target.closest('[data-plx]'); if (!x) return;
+    const a = x.dataset.plx.split('|');
+    plApply(a[0],a[1],a[2],whoOf(a[0],a[1],a[2]).filter(id=>id !== a[3]), null);
+  });
+
   /* ---------- interactions ---------- */
   $('#who').addEventListener('change', e=>{
     me = e.target.value;
@@ -1226,7 +1368,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
   function showTab(t){
     document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected', String(x.dataset.tab === t)));
-    ['auj','moi','general','creer','indispos','echanges','reglages'].forEach(v=>{ $('#view-'+v).hidden = v !== t; });
+    ['auj','moi','general','plan','creer','indispos','echanges','reglages'].forEach(v=>{ $('#view-'+v).hidden = v !== t; });
     const hl = t === 'creer' ? 'reglages' : t === 'moi' ? 'auj' : t;
     document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected', String(x.dataset.tab === hl)));
     window.scrollTo(0,0);
@@ -1234,6 +1376,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (t === 'auj') renderToday();
     const slot = t === 'general' ? '#impSlotG' : t === 'reglages' ? '#impSlotR' : '#impSlotC';
     $(slot).appendChild($('#cwImport'));
+    if (t === 'plan') renderCompose();
     if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); }
   }
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
@@ -1522,7 +1665,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
 
   /* ---------- vue Trame ---------- */
-  function renderTrame(){ renderTrameCore(); renderGNotes(); renderCreate(); }
+  function renderTrame(){ renderTrameCore(); renderGNotes(); renderCreate(); renderCompose(); }
   function renderTrameCore(){
     const keys = [...Array(6)].map((_,i)=>addDays(weekStart,i));
     const wrap = $('#trameWrap');
@@ -1820,6 +1963,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + '<div class="xa"><button type="button" class="primary" id="xlApply"'+(filled && canWrite ? '' : ' disabled')+'>Importer '+pl.weeks.length+' semaine'+(pl.weeks.length > 1 ? 's' : '')+'</button><button type="button" class="ghost" id="xlCancel">Annuler</button></div></div>';
   }
   async function readFile(file){ let buf; try { buf = await file.arrayBuffer(); } catch(e) { return notify('Fichier illisible.', true); } return readBuffer(buf); }
+  const GKEY = "AIzaSyCv7F339zZWjVR9AS3FjQ0yi9IqEMHZv-8";
   async function readLink(url, tabs){
     const m = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(url || '');
     if (!m) return notify('Lien Google Sheets non reconnu.', true);
@@ -1840,11 +1984,29 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         }
         return readBuffer(null, out);
       }
+      /* API Google Sheets : liste tous les onglets et lit leurs valeurs (le nom de l'onglet = le mois) */
+      let apiMsg = '';
+      if (GKEY) {
+        try {
+          const mr = await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+m[1]+'?fields=sheets.properties.title&key='+GKEY);
+          if (mr.ok) {
+            const titles = ((await mr.json()).sheets || []).map(x=>x.properties.title);
+            const q = titles.map(t=>'ranges='+encodeURIComponent("'"+t.replace(/'/g,"''")+"'")).join('&');
+            const vr = await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+m[1]+'/values:batchGet?'+q+'&key='+GKEY);
+            if (vr.ok) {
+              const vals = (await vr.json()).valueRanges || [], out = X.utils.book_new();
+              titles.forEach((t,i)=>X.utils.book_append_sheet(out, X.utils.aoa_to_sheet((vals[i] && vals[i].values) || []), t.slice(0,31)));
+              return readBuffer(null, out);
+            }
+          }
+          apiMsg = mr.status === 403 || mr.status === 404 ? "Pour lire tous les onglets depuis un lien, il faut activer « Google Sheets API » (une seule fois) dans le projet Google Cloud planning-uro. " : '';
+        } catch(e) {}
+      }
       let buf = null;
       try { const r = await fetch(base+'/export?format=xlsx'); if (r.ok) { buf = await r.arrayBuffer(); if (new Uint8Array(buf.slice(0,2))[0] !== 0x50) buf = null; } } catch(e) { buf = null; }
       if (buf) return readBuffer(buf);
       const t = await csvOf('gid=0'); const w1 = X.read(t, {type:'string'});
-      setTimeout(()=>notify("Seul le premier onglet a pu être lu. Indiquez le nom de l'onglet (ex. oct 26) pour lire un autre mois."), 400);
+      setTimeout(()=>notify(apiMsg+"Seul le premier onglet a pu être lu. Indiquez le nom de l'onglet (ex. oct 26), ou importez le .xlsx."), 400);
       return readBuffer(null, w1);
     } catch(e) { return notify(fail, true); }
   }
