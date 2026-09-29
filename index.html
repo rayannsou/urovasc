@@ -339,6 +339,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .plopt[aria-pressed=true] .tk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .plopt.warn:not([aria-pressed=true]){background:var(--red-soft);border-color:var(--red-line)}
 .plopt .lt{display:flex;flex-direction:column;gap:2px}
+.pch.closed{background:var(--bg);color:var(--muted);border:1px dashed var(--line);font-weight:600}
 .plsg.alt{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
 .plsg.na{opacity:.5;text-decoration:line-through}
 .plsg{min-height:44px;border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700;border-radius:999px;padding:0 14px}
@@ -1476,10 +1477,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         const why = who.filter(id=>!(v && v.ou) && reasonFor(id,k,part)).map(id=>esc(dLabel(id))+' : '+esc(reasonFor(id,k,part))).join(' · ');
         const tag = ov ? '<em>cette date</em>' : (who.length ? '<em>toujours</em>' : '');
         const top = plSuggest(p.id, part, who, k), sug = top.concat(docs.map(d=>d.id).filter(id=>!who.includes(id) && !top.includes(id)));
+        const closed = !!v && !who.length && /^ferm/i.test(v.texte || '');
+        if (closed) return '<div class="plr"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Samedi matin' : part === 'M' ? 'Matin' : 'Après-midi')+'</span>'+tag+'</div><div class="plc"><span class="pch closed">🔒 Vacation fermée</span><button type="button" class="pladd" data-plclose="'+esc(slot+'|0')+'"'+dis+'>Rouvrir</button></div></div>';
         return '<div class="plr'+(bad ? ' cf' : '')+'"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Samedi matin' : part === 'M' ? 'Matin' : 'Après-midi')+(v && v.ou ? ' · à confirmer' : '')+'</span>'+tag+'</div>'
           + '<div class="plc">'+chips
           + sug.map(id=>'<button type="button" class="plsg'+(top.includes(id) ? '' : ' alt')+(reasonFor(id,k,part) ? ' na' : '')+'" data-plsg="'+esc(slot+'|'+id)+'"'+dis+'>'+(top.includes(id) ? '＋ ' : '')+esc(dLabel(id))+'</button>').join('')
-          + '<button type="button" class="pladd" data-plopen="'+esc(slot)+'"'+dis+'>'+(sug.length || who.length ? '＋ Nouveau nom' : '＋ Ajouter un médecin')+'</button></div>'
+          + '<button type="button" class="pladd" data-plopen="'+esc(slot)+'"'+dis+'>'+(sug.length || who.length ? '＋ Nouveau nom' : '＋ Ajouter un médecin')+'</button><button type="button" class="pladd" data-plclose="'+esc(slot+'|1')+'"'+dis+'>🔒 Fermer la vacation</button></div>'
           + (why ? '<p class="plwhy">⚠ '+why+'</p>' : '')+'</div>';
       }).join('');
       return '<section class="plcard"><h3><i style="background:'+posteColor(p.id)+'"></i>'+esc(postName(p.id,k))+'</h3>'+rows+'</section>';
@@ -1492,7 +1495,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       slotParts(poste, part).forEach(pt=>{
         const kk = tk(poste, dow, pt), prev = t.cases[kk] || {};
         if (!arr.length && !prev.texte) delete t.cases[kk];
-        else t.cases[kk] = Object.assign(prev.texte ? {texte: prev.texte} : {}, {who: arr.slice()});
+        else t.cases[kk] = Object.assign(prev.texte && !/^ferm/i.test(prev.texte) ? {texte: prev.texte} : {}, {who: arr.slice()});
       });
     });
     if (!ok) return;
@@ -1500,6 +1503,29 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const r = added ? reasonFor(added, date, part) : '';
     if (r) notify('⚠ '+dLabel(added)+' n’est pas disponible : '+r+', '+fmtShort.format(parse(date))+'.', true);
     else notify('Enregistré : chaque '+['lundi','mardi','mercredi','jeudi','vendredi','samedi'][dow]+'.');
+  }
+  async function plClose(slot, close){
+    const a = slot.split('|'), poste = a[0], date = a[1], part = a[2];
+    const dow = (parse(date).getDay()+6)%7;
+    if (plScope === 'once') {
+      const ok = close ? await writeText(poste, date, part, 'fermé') : await (async ()=>{
+        const c = trame.cases[tk(poste, dow, part)];
+        if (c && /^ferm/i.test(c.texte || '')) { let r = true; for (const pt of slotParts(poste, part)) r = (await setOverride(date, poste+'_'+pt, {w: [], t: Date.now()})) && r; return r; }
+        return revertSlot(poste, date, part);
+      })();
+      if (ok) notify(close ? 'Vacation fermée pour cette date.' : 'Vacation rouverte pour cette date.');
+      return;
+    }
+    const ok = await saveTrame(t=>{
+      slotParts(poste, part).forEach(pt=>{
+        const kk = tk(poste, dow, pt), prev = t.cases[kk] || {};
+        if (close) t.cases[kk] = {who: [], texte: 'fermé'};
+        else if (/^ferm/i.test(prev.texte || '')) delete t.cases[kk];
+      });
+    });
+    if (!ok) return;
+    await revertSlot(poste, date, part);
+    notify(close ? 'Vacation fermée : chaque '+['lundi','mardi','mercredi','jeudi','vendredi','samedi'][dow]+'.' : 'Vacation rouverte : chaque '+['lundi','mardi','mercredi','jeudi','vendredi','samedi'][dow]+'.');
   }
   function plSuggest(poste, part, who, k){
     const cnt = {};
@@ -1562,6 +1588,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   document.addEventListener('keydown', e=>{ if (e.key === 'Escape' && plSheet) closeSheet(); });
   $('#plGrid').addEventListener('click', e=>{
     const o = e.target.closest('[data-plopen]'); if (o) return openSheet(o.dataset.plopen);
+    const cl = e.target.closest('[data-plclose]'); if (cl) { const a = cl.dataset.plclose.split('|'); plClose(a[0]+'|'+a[1]+'|'+a[2], a[3] === '1'); return; }
     const g = e.target.closest('[data-plsg]'); if (g) { const a = g.dataset.plsg.split('|'); plAdd(a[0]+'|'+a[1]+'|'+a[2], a[3]); }
   });
   let plX = 0, plY = 0;
@@ -2518,7 +2545,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     for (const pt of slotParts(poste, part)) {
       const ov = overrides[date] && overrides[date][poste+'_'+pt];
       const val = {w: arr, t: Date.now()};
-      if (ov && ov.x) val.x = ov.x;
+      if (ov && ov.x && !/^ferm/i.test(ov.x)) val.x = ov.x;
       const st = ov && ov.s ? ov.s.filter(id=>arr.includes(id)) : []; if (st.length) val.s = st;
       ok = (await setOverride(date, poste+'_'+pt, val)) && ok;
     }
