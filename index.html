@@ -683,6 +683,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     <section id="view-echanges" aria-labelledby="tab-echanges" hidden>
       <p id="swEmpty" class="empty" hidden></p>
       <div id="swBody" class="grid2" hidden>
+        <div class="col" style="grid-column:1/-1"><div class="subtabs" role="group" aria-label="Type d’échange"><button type="button" data-swmode="week" aria-pressed="true">📅 Semaine</button><button type="button" data-swmode="ast" aria-pressed="false">🔔 Astreinte</button></div></div>
         <div class="col">
           <button type="button" class="ghost" id="swJump">Échanger deux vacations ↓</button>
           <div id="swLists" class="col"></div>
@@ -691,9 +692,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <form id="swForm" class="card">
             <h2>Échanger deux vacations</h2>
             <p class="hint">L'échange est immédiat, sans validation du confrère. Il apparaît dans l'onglet Échanges de chacun et peut être annulé par l'un ou l'autre.</p>
-            <div id="swPick" class="swpick" role="group" aria-label="Type d’échange"><button type="button" data-swmode="week"><span>📅 Échange en semaine</span><small>du lundi au vendredi</small></button><button type="button" data-swmode="ast"><span>🔔 Échange d’astreinte</span><small>samedi matin</small></button></div>
-            <div id="swStep" hidden><button type="button" class="ghost" id="swBack">‹ Changer de type d’échange</button><p class="hint" id="swModeTxt"></p></div>
-            <fieldset data-edit id="swSet" hidden>
+            <fieldset data-edit id="swSet">
               <div class="f"><label for="swMine">Ma vacation</label><select id="swMine"></select></div>
               <div class="f"><label for="swWith">Échanger avec</label><select id="swWith"></select></div>
               <div class="f"><label for="swTheirs">Contre sa vacation</label><select id="swTheirs"></select></div>
@@ -2791,17 +2790,18 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       return;
     }
     empty.hidden = true; body.hidden = false;
-    const all = Object.values(swaps).filter(x=>x.status === 'conclu').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    const isAstX = x => isSam(findPost(x.poste)) || isSam(findPost(x.poste2));
+    const all = Object.values(swaps).filter(x=>x.status === 'conclu' && (swMode === 'ast' ? isAstX(x) : !isAstX(x))).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     const involved = x => x.from === me || x.to === me;
     const mine = all.filter(x=>involved(x) && upcomingX(x));
     const rest = all.filter(x=>!mine.includes(x)).slice(0,10);
     const sec = (title, items) => items.length ? '<section class="card sec"><h2>'+title+'</h2>'+items.join('')+'</section>' : '';
     const html = sec('Vos échanges à venir', mine.map(x=>xCard(x, involved(x))))
       + sec("Derniers échanges de l'équipe", rest.map(x=>xCard(x, false)));
-    $('#swLists').innerHTML = html || '<p class="empty">Aucun échange enregistré pour le moment.</p>';
+    $('#swLists').innerHTML = html || '<p class="empty">'+(swMode === 'ast' ? 'Aucun échange d’astreinte enregistré pour le moment.' : 'Aucun échange enregistré pour le moment.')+'</p>';
   }
 
-  let swMode = null;
+  let swMode = 'week';
   const swVacs = id => myVacations(id).filter(v=>{ const ps = findPost(v.poste); return swMode === 'ast' ? isSam(ps) : !isSam(ps); });
   const swModeFor = val => { const v = parseVac(val); return v && isSam(findPost(v.poste)) ? 'ast' : 'week'; };
   function fillTheirs(){
@@ -2829,10 +2829,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
 
   function renderSwapForm(){
-    const mine = doctors[me] && swMode ? swVacs(me) : [];
+    const mine = doctors[me] ? swVacs(me) : [];
     const others = sortedDocs().filter(d=>d.id !== me);
-    $('#swPick').hidden = !!swMode; $('#swStep').hidden = !swMode; $('#swSet').hidden = !swMode;
-    $('#swModeTxt').textContent = swMode === 'ast' ? '🔔 Échange d’astreinte (samedi matin)' : swMode === 'week' ? '📅 Échange en semaine (lundi – vendredi)' : '';
+    document.querySelectorAll('[data-swmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.swmode === swMode)));
+    $('#swForm h2').textContent = swMode === 'ast' ? 'Échanger deux astreintes' : 'Échanger deux vacations';
+    $('#swJump').textContent = swMode === 'ast' ? 'Échanger deux astreintes ↓' : 'Échanger deux vacations ↓';
     const sig = swMode+'|'+(trame ? 1 : 0)+'|'+mine.map(v=>vacVal(v)+(busy(me,v.date,v.part) ? '!' : '')).join(',')+'|'+others.map(d=>d.id+d.label).join(',');
     if (sig !== swSig) {
       swSig = sig;
@@ -2846,8 +2847,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     }
     fillTheirs();
   }
-  document.querySelectorAll('[data-swmode]').forEach(b=>b.addEventListener('click', ()=>{ swMode = b.dataset.swmode; swSig = ''; renderSwapForm(); }));
-  $('#swBack').addEventListener('click', ()=>{ swMode = null; swSig = ''; renderSwapForm(); });
+  document.querySelectorAll('[data-swmode]').forEach(b=>b.addEventListener('click', ()=>{ swMode = b.dataset.swmode; swSig = ''; renderSwapForm(); renderSwaps(); }));
   $('#swMine').addEventListener('change', fillTheirs);
   $('#swWith').addEventListener('change', fillTheirs);
   $('#swJump').addEventListener('click', ()=>{ $('#swForm').scrollIntoView({block:'start'}); });
