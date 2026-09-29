@@ -320,7 +320,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .seg button{flex:1;border:0;border-radius:0;background:var(--surface);color:var(--muted);font-weight:600;min-height:44px}
 .seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
 .dayseg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
-.dayseg button{flex:1 0 auto;min-width:54px;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1.15;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:4px 8px}
+.dayseg button{flex:1 1 0;min-width:44px;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1.15;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:4px 2px}
 .dayseg button small{font-size:12px;color:var(--muted)}
 .dayseg button[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .dayseg button[aria-selected=true] small{color:var(--accent-ink)}
@@ -341,7 +341,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .plopt .lt{display:flex;flex-direction:column;gap:2px}
 .pch.closed{background:var(--bg);color:var(--muted);border:1px dashed var(--line);font-weight:600}
 .plsg.alt{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
-.plsg.na{opacity:.5;text-decoration:line-through}
+.plsg.na,.plsg.alt.na{background:var(--red-soft);border-color:var(--red-line);color:var(--red);text-decoration:line-through;text-decoration-thickness:2px;font-weight:700}
+.plast{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;width:100%;border:1.5px dashed var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:12px;padding:6px 14px;font-weight:700;text-align:left}
+.plast small{font-weight:500;color:var(--ink)}
+.plcard.ast{border:1.5px solid var(--accent)}
+.acn{display:inline-block;min-width:20px;height:20px;line-height:20px;margin-left:8px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 11px/20px var(--font-mono);text-align:center}
+.plsg.na .acn{background:var(--red);color:#fff;text-decoration:none}
+.plone{font-size:12px;color:var(--muted);margin:-4px 0 0}
 .plsg{min-height:44px;border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700;border-radius:999px;padding:0 14px}
 .pladd{min-height:44px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-weight:700;border-radius:999px;padding:0 16px}
 .plcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
@@ -1467,25 +1473,30 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     let nFill = 0, nAll = 0;
     posts.forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ nAll++; const v = vacWho(p.id,k,part); if (v && (v.who.length || v.texte)) nFill++; }));
     $('#plSum').textContent = nFill+' / '+nAll+' vacations remplies ce jour';
-    grid.innerHTML = posts.map(p=>{
+    const astP = trame.postes.find(isSam), kSat = key(days[5]);
+    const astShort = (astP && plDay !== 5) ? (()=>{ const v = vacWho(astP.id, kSat, 'M'), w = v && v.who.length ? v.who.map(dLabel).join(', ') : ''; return '<button type="button" class="plast" data-plday="5"><span>🔔 Astreinte du '+esc(fmtShort.format(days[5]))+'<br><small>'+(w ? esc(w) : 'personne pour le moment')+'</small></span><span>'+(w ? 'Modifier ›' : 'Choisir ›')+'</span></button>'; })() : '';
+    const AC = astCounts();
+    grid.innerHTML = astShort + posts.map(p=>{
       const parts = p.journee ? ['M'] : partsOf(p);
       const rows = parts.map(part=>{
         const v = vacWho(p.id, k, part), who = v ? v.who : [], slot = p.id+'|'+k+'|'+part;
         const ov = overrides[k] && overrides[k][p.id+'_'+part];
         let bad = 0;
-        const chips = who.map(id=>{ const r = v && v.ou ? '' : reasonFor(id,k,part); if (r) bad++; return '<span class="pch'+(r ? ' bad' : '')+'">'+esc(dLabel(id))+'<button type="button" data-plx="'+esc(slot+'|'+id)+'" aria-label="Retirer '+esc(dLabel(id))+'"'+dis+'>×</button></span>'; }).join('');
+        const cn = id => isSam(p) ? '<b class="acn" aria-label="'+(AC[id]||0)+' astreinte'+((AC[id]||0) > 1 ? 's' : '')+'">'+(AC[id]||0)+'</b>' : '';
+        const chips = who.map(id=>{ const r = v && v.ou ? '' : reasonFor(id,k,part); if (r) bad++; return '<span class="pch'+(r ? ' bad' : '')+'">'+esc(dLabel(id))+cn(id)+'<button type="button" data-plx="'+esc(slot+'|'+id)+'" aria-label="Retirer '+esc(dLabel(id))+'"'+dis+'>×</button></span>'; }).join('');
         const why = who.filter(id=>!(v && v.ou) && reasonFor(id,k,part)).map(id=>esc(dLabel(id))+' : '+esc(reasonFor(id,k,part))).join(' · ');
         const tag = ov ? '<em>cette date</em>' : (who.length ? '<em>toujours</em>' : '');
-        const top = plSuggest(p.id, part, who, k), sug = top.concat(docs.map(d=>d.id).filter(id=>!who.includes(id) && !top.includes(id)));
+        const top = isSam(p) ? [] : plSuggest(p.id, part, who, k), sug = top.concat(docs.map(d=>d.id).filter(id=>!who.includes(id) && !top.includes(id)));
+        if (isSam(p)) sug.sort((a,b)=>(AC[a]||0)-(AC[b]||0));
         const closed = !!v && !who.length && /^ferm/i.test(v.texte || '');
         if (closed) return '<div class="plr"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Samedi matin' : part === 'M' ? 'Matin' : 'Après-midi')+'</span>'+tag+'</div><div class="plc"><span class="pch closed">🔒 Vacation fermée</span><button type="button" class="pladd" data-plclose="'+esc(slot+'|0')+'"'+dis+'>Rouvrir</button></div></div>';
         return '<div class="plr'+(bad ? ' cf' : '')+'"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Samedi matin' : part === 'M' ? 'Matin' : 'Après-midi')+(v && v.ou ? ' · à confirmer' : '')+'</span>'+tag+'</div>'
           + '<div class="plc">'+chips
-          + sug.map(id=>'<button type="button" class="plsg'+(top.includes(id) ? '' : ' alt')+(reasonFor(id,k,part) ? ' na' : '')+'" data-plsg="'+esc(slot+'|'+id)+'"'+dis+'>'+(top.includes(id) ? '＋ ' : '')+esc(dLabel(id))+'</button>').join('')
+          + sug.map(id=>'<button type="button" class="plsg'+(top.includes(id) ? '' : ' alt')+(reasonFor(id,k,part) ? ' na' : '')+'" data-plsg="'+esc(slot+'|'+id)+'"'+dis+'>'+(top.includes(id) ? '＋ ' : '')+esc(dLabel(id))+cn(id)+'</button>').join('')
           + '<button type="button" class="pladd" data-plopen="'+esc(slot)+'"'+dis+'>'+(sug.length || who.length ? '＋ Nouveau nom' : '＋ Ajouter un médecin')+'</button><button type="button" class="pladd" data-plclose="'+esc(slot+'|1')+'"'+dis+'>🔒 Fermer la vacation</button></div>'
           + (why ? '<p class="plwhy">⚠ '+why+'</p>' : '')+'</div>';
       }).join('');
-      return '<section class="plcard"><h3><i style="background:'+posteColor(p.id)+'"></i>'+esc(postName(p.id,k))+'</h3>'+rows+'</section>';
+      return '<section class="plcard'+(isSam(p) ? ' ast' : '')+'"><h3><i style="background:'+posteColor(p.id)+'"></i>'+esc(postName(p.id,k))+'</h3>'+(isSam(p) ? '<p class="plone">Une seule personne · le chiffre = astreintes déjà prévues · classé du moins au plus chargé · noms barrés en rouge = indisponibles.</p>' : '')+rows+'</section>';
     }).join('') || '<p class="empty">Aucun poste ce jour-là.</p>';
   }
   async function plApply(poste, date, part, arr, added){
@@ -1527,6 +1538,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     await revertSlot(poste, date, part);
     notify(close ? 'Vacation fermée : chaque '+['lundi','mardi','mercredi','jeudi','vendredi','samedi'][dow]+'.' : 'Vacation rouverte : chaque '+['lundi','mardi','mercredi','jeudi','vendredi','samedi'][dow]+'.');
   }
+  /* nombre d'astreintes par médecin, sur toutes les dates connues du planning */
+  function astCounts(){
+    const c = {}, ap = trame && trame.postes.find(isSam); if (!ap) return c;
+    Object.keys(overrides).forEach(d=>{ if (!isDate(d) || (parse(d).getDay()+6)%7 !== 5) return; const v = vacWho(ap.id, d, 'M'); if (v) v.who.forEach(id=>{ c[id] = (c[id] || 0) + 1; }); });
+    return c;
+  }
   function plSuggest(poste, part, who, k){
     const cnt = {};
     Object.keys(overrides).forEach(d=>{ const o = overrides[d][poste+'_'+part]; if (o) o.w.forEach(id=>{ cnt[id] = (cnt[id] || 0) + 1; }); });
@@ -1535,14 +1552,17 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   function plAdd(slot, id){
     const a = slot.split('|'), cur = whoOf(a[0],a[1],a[2]);
-    if (cur.includes(id)) return notify(dLabel(id)+' est déjà sur cette vacation.', true);
+    if (cur.includes(id)) return notify(dLabel(id)+' est déjà '+(isSam(findPost(a[0])) ? 'd’astreinte' : 'sur cette vacation')+'.', true);
+    if (isSam(findPost(a[0]))) { cur.length = 0; }
     cur.push(id); plApply(a[0],a[1],a[2],cur,id);
   }
   $('#plPrev').addEventListener('click', ()=>{ plStart = addDays(plStart,-7); renderCompose(); });
   $('#plNext').addEventListener('click', ()=>{ plStart = addDays(plStart,7); renderCompose(); });
   $('#plJump').addEventListener('change', e=>{ if (e.target.value) { const d = parse(e.target.value); plStart = mondayOf(d); plDay = Math.min((d.getDay()+6)%7, 5); renderCompose(); } });
   document.querySelectorAll('[data-plscope]').forEach(b=>b.addEventListener('click', ()=>{ plScope = b.dataset.plscope; renderCompose(); }));
-  $('#plDays').addEventListener('click', e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); });
+  const plDayClick = e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} };
+  $('#plDays').addEventListener('click', plDayClick);
+  $('#plGrid') && $('#plGrid').addEventListener('click', e=>{ if (e.target.closest('.plast')) plDayClick(e); });
   function openSheet(slot){ plSheet = slot; $('#plSheet').hidden = false; $('#plShQ').value = ''; renderSheet(); setTimeout(()=>{ try { $('#plShQ').focus(); } catch(e) {} }, 60); }
   function closeSheet(){ plSheet = null; $('#plSheet').hidden = true; renderCompose(); }
   function renderSheet(){
@@ -2475,12 +2495,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const box = $('#gAlert'), b = $('#gBadge');
     if (!trame) { box.hidden = true; box.innerHTML = ''; b.hidden = true; return; }
     const m0 = mondayOf(new Date());
-    const soon = conflictsBetween(m0, addDays(m0, 8*7-1)).length;
+    const soon = me ? conflictsBetween(m0, addDays(m0, 8*7-1)).filter(c=>c.id === me).length : 0;
     b.hidden = !soon; b.textContent = soon; b.setAttribute('aria-label', soon+' conflit'+(soon > 1 ? 's' : '')+' dans les 8 prochaines semaines');
-    const wk = conflictsBetween(weekStart, addDays(weekStart,4));
+    const wk = me ? conflictsBetween(weekStart, addDays(weekStart,4)).filter(c=>c.id === me) : [];
     if (!wk.length) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
-    box.innerHTML = '<p><strong>⚠ '+wk.length+' conflit'+(wk.length > 1 ? 's' : '')+' cette semaine</strong> : un médecin est affecté alors qu’il n’est pas disponible.</p><ul class="cf">'
+    box.innerHTML = '<p><strong>⚠ '+wk.length+' conflit'+(wk.length > 1 ? 's' : '')+' cette semaine</strong> pour vous : vous êtes affecté(e) alors que vous n’êtes pas disponible.</p><ul class="cf">'
       + wk.slice(0,10).map(c=>'<li><span><strong>'+esc(dLabel(c.id))+'</strong> · '+esc(postName(c.poste,c.date))+', '+esc(fmtShort.format(parse(c.date)))+' '+PART_TXT[c.part]+' : '+esc(c.reason)+'</span><button type="button" data-goto="'+esc(c.poste+'|'+c.date+'|'+c.part)+'">Modifier</button></li>').join('')
       + '</ul>' + (wk.length > 10 ? '<p class="hint">et '+(wk.length-10)+' autre'+(wk.length-10 > 1 ? 's' : '')+'</p>' : '');
   }
