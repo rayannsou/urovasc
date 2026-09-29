@@ -577,7 +577,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       <div id="inBody" class="grid2" hidden>
         <div class="col">
           <div class="card">
-            <div class="subtabs" role="group" aria-label="Type d’indisponibilité"><button type="button" data-inmode="week" aria-pressed="true">📅 Semaine</button><button type="button" data-inmode="sat" aria-pressed="false">☀️ Samedi</button></div>
+            <div class="subtabs" role="group" aria-label="Type d’indisponibilité"><button type="button" data-inmode="week" aria-pressed="true">📅 Semaine</button><button type="button" data-inmode="sat" aria-pressed="false">🔔 Astreinte</button></div>
             <div class="weekbar">
               <button type="button" id="iwPrev" aria-label="Semaine précédente">‹</button>
               <h2 id="iwLabel"></h2>
@@ -1285,7 +1285,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
     const days = [...Array(7)].map((_,i)=>addDays(myWeek,i));
     const lab = fmtDM.format(days[0])+' – '+fmtDM.format(days[6])+' '+days[6].getFullYear();
-    $('#mwLabel').textContent = lab; $('#iwLabel').textContent = inMode === 'sat' ? 'Samedis · dès le '+fmtDM.format(addDays(myWeek,5)) : lab;
+    $('#mwLabel').textContent = lab; $('#iwLabel').textContent = inMode === 'sat' ? 'Astreintes (samedis) · dès le '+fmtDM.format(addDays(myWeek,5)) : lab;
     document.querySelectorAll('[data-inmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.inmode === inMode)));
     $('#iwJump').closest('.f').hidden = inMode === 'sat';
     const IND = {J:'Indisponible toute la journée', M:'Indisponible le matin', AM:"Indisponible l'après-midi"};
@@ -1312,7 +1312,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     }).join('');
 
     /* onglet Mes indisponibilités : menu déroulant par jour */
-    const inList = inMode === 'sat' ? [...Array(8)].map((_,j)=>[addDays(myWeek,5+7*j),5]) : [0,1,2,3,4].map(j=>[days[j],j]);
+    const inList = inMode === 'sat' ? [...Array(8)].map((_,j)=>[addDays(myWeek,5+7*j),5]) : [0,1,2,3,4,5].map(j=>[days[j],j]);
     $('#myDays').innerHTML = inList.map(([d,i])=>{
       const k = key(d), inf = dayInfo(doc,k), own = doc.days[k] || '';
       let body = '';
