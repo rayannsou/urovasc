@@ -1878,6 +1878,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const isSam = p => !!(p && p.samedi);
   const okDay = (p, i) => isSam(p) ? i === 5 : i < 5;
   const partsOf = p => isSam(p) ? ['M'] : PARTS;
+  /* OFF affiché : marqués OFF dans la trame + médecins ni postés ni indisponibles ce jour-là (lundi à vendredi) */
+  function offList(dow, dk, part){
+    const out = [], l = trame && trame.off && trame.off[dow+'_'+part];
+    if (Array.isArray(l)) l.forEach(id=>{ if (!out.includes(id)) out.push(id); });
+    if (!trame || dow > 4 || !loaded) return out;
+    const busy = new Set();
+    trame.postes.forEach(p=>{ if (p.info || !okDay(p, dow)) return; const v = vacWho(p.id, dk, part); if (v) v.who.forEach(id=>busy.add(id)); });
+    sortedDocs().forEach(d=>{ if (!busy.has(d.id) && !dayInfo(d, dk)[part] && !out.includes(d.id)) out.push(d.id); });
+    return out;
+  }
   const PART_TXT = {M:'matin', AM:'après-midi'};
   const DOWFULL = ['lundi','mardi','mercredi','jeudi','vendredi'];
   const ABREV = {interventionnel:'interv.', diagnostique:'diag.'};
@@ -2059,7 +2069,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         L += '</div>';
       });
       if (!any) L += '<p class="empty">Aucune vacation ce jour-là.</p>';
-      const offs = PARTS.map(part=>{ const l = trame.off[gDay+'_'+part]; return Array.isArray(l) && l.length ? (part === 'M' ? 'matin' : 'après-midi')+' : '+l.map(dLabel).join(', ') : ''; }).filter(Boolean);
+      const offs = PARTS.map(part=>{ const l = offList(gDay, dk, part); return l.length ? (part === 'M' ? 'matin' : 'après-midi')+' : '+l.map(dLabel).join(', ') : ''; }).filter(Boolean);
       if (offs.length) L += '<p class="poff">OFF · '+esc(offs.join(' · '))+'</p>';
       const ab = PARTS.map(part=>({part, g: absAt(dk, part)}));
       if (ab.some(x=>Object.keys(x.g).length)) {
@@ -2117,10 +2127,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
       }).join('')).join('') + '</tr>';
     });
-    h += (Object.keys(trame.off || {}).length ? '<tr><th class="who" scope="row">OFF</th>' + keys.map((d,i)=>PARTS.map(part=>{
-      const l = trame.off[i+'_'+part];
-      return '<td class="v'+(part === 'AM' ? ' end' : '')+'">'+(Array.isArray(l) ? l.map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('') : '')+'</td>';
-    }).join('')).join('') + '</tr>' : '') + '</tbody></table>';
+    h += ('<tr><th class="who" scope="row">OFF</th>' + keys.map((d,i)=>PARTS.map(part=>{
+      if (i === 5 && part === 'AM') return '';
+      const l = offList(i, key(d), part);
+      return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
+    }).join('')).join('') + '</tr>') + '</tbody></table>';
     wrap.innerHTML = h;
     renderGAlert(); renderEditor();
   }
