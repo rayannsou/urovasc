@@ -775,6 +775,27 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
+<div id="instBox" class="instbox" hidden role="dialog" aria-label="Installer l’application">
+  <button type="button" id="instX" aria-label="Fermer">×</button>
+  <strong>Installer sur votre iPhone</strong>
+  <ol><li>Touchez <b>Partager</b> <span aria-hidden="true">⬆︎</span> en bas de Safari</li><li>Puis <b>« Sur l’écran d’accueil »</b></li><li>Puis <b>Ajouter</b></li></ol>
+  <p>L’icône « Planning » s’ouvrira comme une vraie application.</p>
+</div>
+<style>.instbox{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:60;background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 28px rgba(0,0,0,.28);font-size:14px;line-height:1.4}.instbox ol{margin:6px 0 4px;padding-left:20px}.instbox p{margin:4px 0 0;opacity:.9}.instbox #instX{position:absolute;top:4px;right:6px;min-width:44px;min-height:44px;background:none;border:0;color:inherit;font-size:24px}</style>
+<script>
+(function(){try{
+  var ua=navigator.userAgent||'', ios=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  var standalone=window.navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  var safari=/Safari/.test(ua)&&!/CriOS|FxiOS|EdgiOS|Instagram|FBAN|FBAV|Line\//.test(ua);
+  var seen=false; try{ seen=localStorage.getItem('planning-inst')==='1'; }catch(e){}
+  if(!ios||standalone||seen)return;
+  var box=document.getElementById('instBox'); if(!box)return;
+  if(!safari){ box.querySelector('strong').textContent='Ouvrez ce lien dans Safari'; box.querySelector('ol').innerHTML='<li>Touchez <b>⋯</b> ou <b>Partager</b></li><li>Puis <b>« Ouvrir dans Safari »</b></li><li>Ensuite : Partager → <b>Sur l’écran d’accueil</b></li>'; }
+  setTimeout(function(){ box.hidden=false; },1800);
+  document.getElementById('instX').addEventListener('click',function(){ box.hidden=true; try{localStorage.setItem('planning-inst','1');}catch(e){} });
+}catch(e){}})();
+</script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 /* Lecture du planning mensuel du service (une feuille par semaine). Sans dépendance : reçoit la bibliothèque XLSX. */
