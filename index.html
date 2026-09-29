@@ -789,7 +789,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 00h45 (échanges v19)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 01h00 (dates v20)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -3270,7 +3270,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     let h = '<p class="swst"><b>1</b> Ma '+what+' à échanger</p>';
     const om = opts(mine);
     h += om.length ? '<div class="swlist">'+om.map(o=>b('m', o, o.value === mine.value)).join('')+'</div>' : '<p class="empty" style="border:0">'+esc(mine.options[0] ? mine.options[0].textContent : '')+'</p>';
-    if (mine.value) {
+    if (mine.value && ast) {
+      const mineV = parseVac(mine.value), c = [];
+      if (mineV) sortedDocs().filter(d=>d.id !== me).forEach(d=>swVacs(d.id).filter(t=>!blockedFor(me, t, mineV) && !blockedFor(d.id, mineV, t)).forEach(t=>c.push({id: d.id, t})));
+      c.sort((x,y)=>(x.t.date < y.t.date ? -1 : x.t.date > y.t.date ? 1 : 0));
+      h += '<p class="swst"><b>2</b> Dates possibles pour l’échange</p>';
+      h += c.length ? '<div class="swlist">'+c.map(x=>'<button type="button" class="swopt" data-swk="a" data-w="'+esc(x.id)+'" data-v="'+esc(vacVal(x.t))+'" aria-pressed="'+(wsel.value === x.id && th.value === vacVal(x.t))+'"><b>'+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'long', day:'numeric', month:'long'}).format(parse(x.t.date)).replace(/^./, ch=>ch.toUpperCase()))+'</b> · '+esc(dLabel(x.id))+'</button>').join('')+'</div>' : '<p class="empty" style="border:0">Aucune astreinte échangeable pour le moment : chacun est indisponible sur votre date, ou vous l’êtes sur les leurs.</p>';
+    } else if (mine.value) {
       h += '<p class="swst"><b>2</b> Avec qui ?</p><div class="swchips">'+opts(wsel).map(o=>b('w', o, o.value === wsel.value)).join('')+'</div>';
       if (wsel.value) {
         h += '<p class="swst"><b>3</b> Contre quelle '+what+' de '+esc(dLabel(wsel.value))+' ?</p>';
@@ -3283,6 +3289,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   $('#swSteps').addEventListener('click', e=>{
     const o = e.target.closest('[data-swk]'); if (!o) return;
+    if (o.dataset.swk === 'a') { const ws = $('#swWith'); ws.value = o.dataset.w; ws.dispatchEvent(new Event('change', {bubbles: true})); const ts = $('#swTheirs'); ts.value = o.dataset.v; ts.dispatchEvent(new Event('change', {bubbles: true})); try { $('#swGo').scrollIntoView({block: 'nearest', behavior: 'smooth'}); } catch(err) {} return; }
     const sel = o.dataset.swk === 'm' ? $('#swMine') : o.dataset.swk === 'w' ? $('#swWith') : $('#swTheirs');
     sel.value = sel.value === o.dataset.v && o.dataset.swk !== 't' ? sel.value : o.dataset.v;
     if (o.dataset.swk === 'm') { $('#swWith').value = $('#swWith').value; }
