@@ -442,7 +442,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astgo{min-height:64px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:10px 16px;border:0;border-radius:14px;font-size:17px;font-weight:800;color:#fff;text-align:left}
 .astgo small{font-weight:500;font-size:13px;opacity:.95}
 .astmode{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.astmode span.on{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}.astmode button{flex:1;min-height:40px}.pll em.auto{background:#E4F1FF;color:#1B5FA8}.pll em.man{background:#F1EAF9;color:#6A3FA0}
-.astbar{background:var(--card,var(--bg));border:1px solid var(--line,#d9e0e3);border-radius:14px;padding:10px}.astpair{display:flex;gap:8px}.astbtn{flex:1;min-height:44px;border:1px solid var(--line,#c9d3d7);background:transparent;color:inherit;border-radius:10px;font:600 15px var(--font-body);display:flex;align-items:center;justify-content:center;gap:8px}.astbtn[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.astbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.ko{background:#C62828}.dot.ok{background:#1E7B4B}.aststat{margin:0;font-size:13px;color:var(--muted)}.aststat.ko{color:#C62828}.aststat.ok{color:#1E7B4B}.astgo.man{background:#17465A}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
+.astbar{background:var(--card,var(--bg));border:1px solid var(--line,#d9e0e3);border-radius:14px;padding:10px}.astpair{display:flex;gap:8px}.astbtn{flex:1;min-height:44px;border:1px solid var(--line,#c9d3d7);background:transparent;color:inherit;border-radius:10px;font:600 15px var(--font-body);display:flex;align-items:center;justify-content:center;gap:8px}.astbtn[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.astbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.ko{background:#C62828}.dot.ok{background:#1E7B4B}.aststat{margin:0;font-size:13px;color:var(--muted)}.aststat.ko{color:#C62828}.aststat.ok{color:#1E7B4B}.astbtn.big{min-height:64px;font-size:17px;flex-direction:column;gap:2px}.astbtn.go{width:100%}.astback{align-self:flex-start;min-height:36px;padding:0 10px}.astbar .astbtn.go{margin-top:2px}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
 .astgo.ko{background:#C62828}.astgo.ok{background:#1E7B4B}
 .astmiss{min-height:48px;text-align:left}
 .astrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -512,7 +512,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     <section id="view-plan" aria-labelledby="tab-plan" hidden>
       <div class="col">
         <div id="astBarBox" class="astbar" hidden></div>
-        <div class="card">
+        <div class="card" id="plCard">
           <h2>Créer un planning</h2>
           <div class="subtabs" role="group" aria-label="Type de planning"><button type="button" data-plmode="week" aria-pressed="true">📅 Semaine normale</button><button type="button" data-plmode="ast" aria-pressed="false">🔔 Astreintes</button></div>
           <div class="weekbar">
@@ -770,7 +770,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 21h45 (sobre v7)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 22h00 (départ v8)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1555,7 +1555,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
 
   /* ---------- onglet Créer un planning ---------- */
-  let plUnOpen = false, plManual = false, plMode = 'week', plSheet = null, plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
+  let plUnOpen = false, plStage = '', plMode = 'week', plSheet = null, plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
   const plNorm = t => normS(String(t || '')).replace(/\s+/g,' ');
   function plFind(txt){
     const t = plNorm(txt); if (!t) return null;
@@ -1572,7 +1572,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const days = [...Array(6)].map((_,i)=>addDays(plStart,i));
     $('#plLabel').textContent = plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
     document.querySelectorAll('[data-plmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plmode === plMode)));
-    $('#plManBox').hidden = !plManual; grid.hidden = !plManual; if (!plManual) { grid.innerHTML = ''; return; }
+    $('#plCard').hidden = !plStage; $('#plManBox').hidden = plStage !== 'man'; grid.hidden = plStage !== 'man'; if (plStage !== 'man') { grid.innerHTML = ''; return; }
     $('#plDays').hidden = plMode === 'ast'; $('#plCopy').hidden = plMode === 'ast';
     document.querySelectorAll('[data-plscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plscope === plScope)));
     const dn = ['lundi','mardi','mercredi','jeudi','vendredi','samedi'];
@@ -1704,7 +1704,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   $('#plPrev').addEventListener('click', ()=>{ plStart = addDays(plStart, plMode === 'ast' ? -42 : -7); renderCompose(); });
   $('#plNext').addEventListener('click', ()=>{ plStart = addDays(plStart, plMode === 'ast' ? 42 : 7); renderCompose(); });
-  document.querySelectorAll('[data-plmode]').forEach(b=>b.addEventListener('click', ()=>{ plMode = b.dataset.plmode; plManual = false; renderCompose(); }));
+  document.querySelectorAll('[data-plmode]').forEach(b=>b.addEventListener('click', ()=>{ plMode = b.dataset.plmode; if (plStage === 'man') plStage = 'auto'; renderCompose(); }));
   $('#plJump').addEventListener('change', e=>{ if (e.target.value) { const d = parse(e.target.value); plStart = mondayOf(d); plDay = Math.min((d.getDay()+6)%7, 5); renderCompose(); } });
   document.querySelectorAll('[data-plscope]').forEach(b=>b.addEventListener('click', ()=>{ plScope = b.dataset.plscope; renderCompose(); }));
   const MISS_VIEWERS = ['rayann','rm','rim','im'];
@@ -1716,9 +1716,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const months = astMonths(), miss = astMissing(months), allOk = !miss.length, dis = canWrite ? '' : ' disabled';
     box.hidden = false;
     const stat = allOk ? 'Tout le monde a renseigné ses indisponibilités' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
-    box.innerHTML = '<div class="astpair"><button type="button" class="astbtn" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Automatiquement</button>'
-      + '<button type="button" class="astbtn" data-astmanual="1" aria-pressed="'+plManual+'">Manuellement</button></div>'
-      + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+(ast ? 'Astreintes' : 'Semaine')+' · '+stat+'</p>'
+    const back = '<button type="button" class="ghost astback" data-plstage="">‹ Retour</button>';
+    if (!plStage) box.innerHTML = '<div class="astpair"><button type="button" class="astbtn big" data-plstage="auto">⚡ Assignation automatique</button><button type="button" class="astbtn big" data-plstage="man">✋ Assignation manuelle</button></div>';
+    else if (plStage === 'man') box.innerHTML = back;
+    else box.innerHTML = back + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
+      + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
   /* ---------- qui n'a pas renseigné ses indisponibilités ---------- */
@@ -1742,7 +1744,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#astShL').innerHTML = h;
     $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Assigner quand même</button>' : '';
   }
-  $('#astBarBox').addEventListener('click', e=>{ if (e.target.closest('[data-astmanual]')) { plManual = !plManual; renderCompose(); if (plManual) { try { $('#plManBox').scrollIntoView({behavior:'smooth', block:'start'}); } catch(err) {} } return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
+  $('#astBarBox').addEventListener('click', e=>{ const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
   $('#astSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-astx]')) return closeMiss();
     const ex = e.target.closest('[data-astexcl]'); if (ex) { if (await setDocField(ex.dataset.astexcl, {noAst: true})) renderMiss(); return; }
@@ -1773,7 +1775,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       writes.push({k, kk: ap.id+'_M', val: {w:[pick.id], t: 0, a: 1}, poste: ap.id, part: 'M', before: [], after: [pick.id]});
       cnt[pick.id] = (cnt[pick.id]||0) + 1; last = [pick.id]; done++;
     }
-    if (!writes.length) { plManual = true; renderCompose(); return notify(skipped ? 'Personne de disponible sur les samedis restants.' : 'Tous les samedis affichés ont déjà une astreinte.', !!skipped); }
+    if (!writes.length) { plStage = 'man'; renderCompose(); return notify(skipped ? 'Personne de disponible sur les samedis restants.' : 'Tous les samedis affichés ont déjà une astreinte.', !!skipped); }
     genOpen('Astreintes proposées', writes, skipped ? skipped+' samedi'+(skipped > 1 ? 's' : '')+' sans personne disponible' : '');
   }
   /* ---------- génération automatique de la semaine : 1) la trame, 2) les indisponibilités ---------- */
@@ -1821,7 +1823,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         }
       }
     }
-    if (!writes.length) { plManual = true; renderCompose(); return notify(holes ? 'Certaines places n’ont pas de remplaçant disponible.' : 'La trame convient déjà : personne d’indisponible cette semaine.', !!holes); }
+    if (!writes.length) { plStage = 'man'; renderCompose(); return notify(holes ? 'Certaines places n’ont pas de remplaçant disponible.' : 'La trame convient déjà : personne d’indisponible cette semaine.', !!holes); }
     genOpen('Semaine proposée', writes, holes ? holes+' place'+(holes > 1 ? 's' : '')+' sans remplaçant disponible' : '');
   }
   /* ---------- page de confirmation avant d'enregistrer une génération automatique ---------- */
@@ -1849,7 +1851,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const ws = genPending; genClose();
     let ok = true;
     for (const w of ws) { w.val.t = Date.now(); ok = (await setOverride(w.k, w.kk, w.val)) && ok; if (!ok) break; }
-    plManual = true; renderCompose();
+    plStage = 'man'; renderCompose();
     if (ok) notify(ws.length+' modification'+(ws.length > 1 ? 's enregistrées' : ' enregistrée')+'. Vous pouvez encore les corriger à la main.');
   });
   async function plToggleUn(spec){
