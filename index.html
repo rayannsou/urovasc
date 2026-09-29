@@ -354,7 +354,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
 .subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
 .gastrow{padding:12px 14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
-.swraw{display:none!important}.swst{margin:14px 0 6px;font-weight:700;font-size:15px}.swst b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);margin-right:8px;font-size:13px}.swlist{display:flex;flex-direction:column;gap:6px}.swchips{display:flex;flex-wrap:wrap;gap:6px}.swopt{min-height:46px;text-align:left;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 12px;font-weight:600}.swchips .swopt{border-radius:999px;text-align:center}.swopt[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.swgrp{margin:8px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.swraw{display:none!important}.tag.wait{background:var(--accent-soft);color:var(--accent)}.tag.no{background:var(--red-soft);color:var(--red)}.sw-a{display:flex;gap:8px;flex-wrap:wrap}.swst{margin:14px 0 6px;font-weight:700;font-size:15px}.swst b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);margin-right:8px;font-size:13px}.swlist{display:flex;flex-direction:column;gap:6px}.swchips{display:flex;flex-wrap:wrap;gap:6px}.swopt{min-height:46px;text-align:left;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 12px;font-weight:600}.swchips .swopt{border-radius:999px;text-align:center}.swopt[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.swgrp{margin:8px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 @media(max-width:700px){#swBody .swmodecol{order:-2}#swBody .swformcol{order:-1}#swJump{display:none}}
 .subtabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent)}
 .plun{padding:10px 14px}
@@ -743,13 +743,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <form id="swForm" class="card">
             <h2>Échanger deux vacations</h2>
             <div id="swSteps"></div>
-            <p class="hint">L'échange est immédiat, sans validation du confrère. Il apparaît dans l'onglet Échanges de chacun et peut être annulé par l'un ou l'autre.</p>
+            <p class="hint">Votre confrère reçoit la demande et doit l’accepter : l’échange n’est appliqué au planning qu’à ce moment-là. Vous pouvez annuler la demande tant qu’il n’a pas répondu.</p>
             <fieldset data-edit id="swSet">
               <div class="f swraw"><label for="swMine">Ma vacation</label><select id="swMine"></select></div>
               <div class="f swraw"><label for="swWith">Échanger avec</label><select id="swWith"></select></div>
               <div class="f swraw"><label for="swTheirs">Contre sa vacation</label><select id="swTheirs"></select></div>
               <p id="swCheck" class="hint" aria-live="polite"></p>
-              <button type="submit" class="primary" id="swGo" disabled>Échanger</button>
+              <button type="submit" class="primary" id="swGo" disabled>Envoyer la demande</button>
             </fieldset>
           </form>
         </div>
@@ -785,7 +785,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 01h30 (off v22)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 01h45 (validation v23)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -3188,24 +3188,32 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + '</ul>' + (extra > 0 ? '<p class="hint">et '+extra+' autre'+(extra > 1 ? 's' : '')+'</p>' : '');
   }
 
-  /* ---------- échanges de vacations (immédiats, sans validation) ---------- */
+  /* ---------- échanges de vacations (demande, puis validation par le confrère) ---------- */
   function loadSeen(){ try { return new Set(JSON.parse(localStorage.getItem('planning-seen') || '[]')); } catch(e) { return new Set(); } }
   function saveSeen(s){ try { localStorage.setItem('planning-seen', JSON.stringify([...s].slice(-200))); } catch(e) {} }
   const upcomingX = x => { const t = key(new Date()); return x.date >= t || x.date2 >= t; };
-  const newForMe = () => { const seen = loadSeen(); return me ? Object.values(swaps).filter(x=>x.status === 'conclu' && x.to === me && x.from !== me && upcomingX(x) && !seen.has(x.id)) : []; };
+  const toValidate = () => me ? Object.values(swaps).filter(x=>x.status === 'attente' && x.to === me && upcomingX(x)) : [];
+  const answered = () => { const seen = loadSeen(); return me ? Object.values(swaps).filter(x=>(x.status === 'refuse' || (x.status === 'conclu' && (x.updatedAt||0) - (x.createdAt||0) > 1500)) && x.from === me && x.to !== me && upcomingX(x) && !seen.has(x.id)) : []; };
+  const newForMe = () => toValidate().concat(answered());
   function renderBadge(){
     const list = newForMe(), b = $('#swapBadge');
-    if (!$('#view-echanges').hidden && list.length) { const s = loadSeen(); list.forEach(x=>s.add(x.id)); saveSeen(s); b.hidden = true; return; }
-    b.hidden = !list.length; b.textContent = list.length; b.setAttribute('aria-label', list.length+' nouvel échange à connaître');
+    if (!$('#view-echanges').hidden) { const a = answered(); if (a.length) { const s = loadSeen(); a.forEach(x=>s.add(x.id)); saveSeen(s); } }
+    const n = !$('#view-echanges').hidden ? toValidate().length : list.length;
+    b.hidden = !n; b.textContent = n; b.setAttribute('aria-label', n+' échange'+(n > 1 ? 's' : '')+' à traiter ou à connaître');
   }
 
   function xCard(x, canUndo){
     const dis = canWrite ? '' : ' disabled';
-    const concerned = x.to === me && x.from !== me;
-    let h = '<article class="xsw" data-id="'+esc(x.id)+'"><div class="sw-h"><strong>'+esc(dLabel(x.from))+'</strong> ⇄ <strong>'+esc(dLabel(x.to))+'</strong>'+(concerned ? '<span class="tag">Vous êtes concerné</span>' : '')+'</div>';
+    const toMe = x.to === me && x.from !== me, fromMe = x.from === me;
+    const tag = x.status === 'attente' ? (toMe ? '<span class="tag">À valider par vous</span>' : '<span class="tag wait">En attente de '+esc(dLabel(x.to))+'</span>')
+      : x.status === 'refuse' ? '<span class="tag no">Refusé par '+esc(dLabel(x.to))+'</span>'
+      : (toMe ? '<span class="tag">Vous êtes concerné</span>' : '');
+    let h = '<article class="xsw" data-id="'+esc(x.id)+'"><div class="sw-h"><strong>'+esc(dLabel(x.from))+'</strong> ⇄ <strong>'+esc(dLabel(x.to))+'</strong>'+tag+'</div>';
     h += '<div class="sw-m">'+esc(dLabel(x.from))+' cède : '+esc(vacLabel({poste:x.poste, date:x.date, part:x.part}))+'</div>';
     h += '<div class="sw-m">'+esc(dLabel(x.to))+' cède : '+esc(vacLabel({poste:x.poste2, date:x.date2, part:x.part2}))+'</div>';
-    if (canUndo) h += '<div class="sw-a"><button type="button" data-act="undo"'+(pendingUndo === x.id ? ' class="danger"' : '')+dis+'>'+(pendingUndo === x.id ? "Confirmer l'annulation" : 'Annuler cet échange')+'</button></div>';
+    if (x.status === 'attente' && toMe) h += '<div class="sw-a"><button type="button" class="primary" data-act="accept"'+dis+'>✓ Accepter</button><button type="button" data-act="refuse"'+dis+'>✗ Refuser</button></div>';
+    else if (x.status === 'attente' && fromMe) h += '<div class="sw-a"><button type="button" data-act="cancelreq"'+dis+'>Annuler la demande</button></div>';
+    else if (x.status === 'conclu' && canUndo) h += '<div class="sw-a"><button type="button" data-act="undo"'+(pendingUndo === x.id ? ' class="danger"' : '')+dis+'>'+(pendingUndo === x.id ? "Confirmer l'annulation" : 'Annuler cet échange')+'</button></div>';
     return h + '</article>';
   }
 
@@ -3218,12 +3226,18 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     }
     empty.hidden = true; body.hidden = false;
     const isAstX = x => isSam(findPost(x.poste)) || isSam(findPost(x.poste2));
-    const all = Object.values(swaps).filter(x=>x.status === 'conclu' && (swMode === 'ast' ? isAstX(x) : !isAstX(x))).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    const inMode = x => swMode === 'ast' ? isAstX(x) : !isAstX(x);
+    const all = Object.values(swaps).filter(x=>x.status === 'conclu' && inMode(x)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     const involved = x => x.from === me || x.to === me;
+    const cut = Date.now() - 7*864e5;
+    const inbox = Object.values(swaps).filter(x=>x.status === 'attente' && x.to === me && upcomingX(x) && inMode(x)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    const outbox = Object.values(swaps).filter(x=>x.from === me && inMode(x) && ((x.status === 'attente' && upcomingX(x)) || (x.status === 'refuse' && (x.updatedAt||0) > cut))).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     const mine = all.filter(x=>involved(x) && upcomingX(x));
     const rest = all.filter(x=>!mine.includes(x)).slice(0,10);
     const sec = (title, items) => items.length ? '<section class="card sec"><h2>'+title+'</h2>'+items.join('')+'</section>' : '';
-    const html = sec('Vos échanges à venir', mine.map(x=>xCard(x, involved(x))))
+    const html = sec('À valider par vous ('+inbox.length+')', inbox.map(x=>xCard(x, false)))
+      + sec('Vos demandes envoyées', outbox.map(x=>xCard(x, false)))
+      + sec('Vos échanges à venir', mine.map(x=>xCard(x, involved(x))))
       + sec("Derniers échanges de l'équipe", rest.map(x=>xCard(x, false)));
     $('#swLists').innerHTML = html || '<p class="empty">'+(swMode === 'ast' ? 'Aucun échange d’astreinte enregistré pour le moment.' : 'Aucun échange enregistré pour le moment.')+'</p>';
   }
@@ -3330,16 +3344,35 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!w1 || !w1.who.includes(me)) return notify("Vous n'êtes plus affecté à votre vacation.", true);
     if (!w2 || !w2.who.includes(wid)) return notify(dLabel(wid)+" n'est plus affecté à cette vacation.", true);
     if (blockedFor(me, tv, mineV) || blockedFor(wid, mineV, tv)) return notify('Cet échange crée un conflit de planning.', true);
+    if (Object.values(swaps).some(x=>x.status === 'attente' && x.from === me && x.poste === mineV.poste && x.date === mineV.date && x.part === mineV.part)) return notify('Une demande est déjà en attente pour cette vacation.', true);
     if (!db || !canWrite) return notify('Lecture seule : vous ne pouvez pas échanger.', true);
     try {
-      await db.collection('echanges').add({from: me, to: wid, poste: mineV.poste, date: mineV.date, part: mineV.part, poste2: tv.poste, date2: tv.date, part2: tv.part, status:'conclu', createdAt: Date.now(), updatedAt: Date.now()});
-      notify('Échange enregistré, la trame est à jour.');
+      await db.collection('echanges').add({from: me, to: wid, poste: mineV.poste, date: mineV.date, part: mineV.part, poste2: tv.poste, date2: tv.date, part2: tv.part, status:'attente', createdAt: Date.now(), updatedAt: Date.now()});
+      notify('Demande envoyée à '+dLabel(wid)+' : l’échange sera appliqué dès qu’il/elle aura accepté.');
     } catch(err) { handleErr(err); }
   });
 
   $('#swLists').addEventListener('click', async e=>{
-    const b = e.target.closest('[data-act="undo"]'); if (!b) return;
-    const card = b.closest('[data-id]'); if (!card) return;
+    const q = e.target.closest('[data-act]'); if (!q) return;
+    const card0 = q.closest('[data-id]'); if (!card0) return;
+    const act = q.dataset.act, x0 = swaps[card0.dataset.id];
+    if (act === 'accept' || act === 'refuse' || act === 'cancelreq') {
+      if (!x0 || x0.status !== 'attente') return notify('Cette demande a déjà été traitée.', true);
+      if (!db || !canWrite) return notify('Lecture seule : impossible de répondre.', true);
+      if (act === 'accept') {
+        const A = {poste: x0.poste, date: x0.date, part: x0.part}, B = {poste: x0.poste2, date: x0.date2, part: x0.part2};
+        const w1 = vacWho(A.poste, A.date, A.part), w2 = vacWho(B.poste, B.date, B.part);
+        if (!w1 || !w1.who.includes(x0.from) || !w2 || !w2.who.includes(x0.to)) return notify('Le planning a changé : cette demande n’est plus possible.', true);
+        if (blockedFor(x0.from, B, A) || blockedFor(x0.to, A, B)) return notify('Cet échange crée maintenant un conflit de planning (indisponibilité, garde ou vacation déjà prise).', true);
+      }
+      try {
+        await db.doc('echanges/'+x0.id).update({status: act === 'accept' ? 'conclu' : act === 'refuse' ? 'refuse' : 'annule', updatedAt: Date.now()});
+        notify(act === 'accept' ? 'Échange accepté : le planning est à jour.' : act === 'refuse' ? 'Demande refusée.' : 'Demande annulée.');
+      } catch(err) { handleErr(err); }
+      return;
+    }
+    if (act !== 'undo') return;
+    const b = q, card = card0;
     const id = card.dataset.id;
     if (pendingUndo !== id) {
       pendingUndo = id; clearTimeout(undoTimer);
