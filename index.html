@@ -434,6 +434,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .goprof{align-self:flex-end;min-height:44px;background:var(--surface);color:var(--accent);border:1px solid var(--line);border-radius:12px;padding:8px 16px;font-weight:700}
 .mpbox{display:flex;flex-direction:column;gap:8px}.mpbox label{font-weight:700;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
 .mp .renme{background:var(--surface);color:var(--accent);border:1px solid var(--line);align-self:flex-start}
+.swpick{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.swpick button{min-height:72px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;text-align:left;padding:10px 16px;border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:14px;font-size:16px;font-weight:700}
+.swpick button small{font-weight:500;color:var(--ink);font-size:13px}
 </style>
 
 <div class="wrap">
@@ -688,7 +691,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <form id="swForm" class="card">
             <h2>Échanger deux vacations</h2>
             <p class="hint">L'échange est immédiat, sans validation du confrère. Il apparaît dans l'onglet Échanges de chacun et peut être annulé par l'un ou l'autre.</p>
-            <fieldset data-edit id="swSet">
+            <div id="swPick" class="swpick" role="group" aria-label="Type d’échange"><button type="button" data-swmode="week"><span>📅 Échange en semaine</span><small>du lundi au vendredi</small></button><button type="button" data-swmode="ast"><span>🔔 Échange d’astreinte</span><small>samedi matin</small></button></div>
+            <div id="swStep" hidden><button type="button" class="ghost" id="swBack">‹ Changer de type d’échange</button><p class="hint" id="swModeTxt"></p></div>
+            <fieldset data-edit id="swSet" hidden>
               <div class="f"><label for="swMine">Ma vacation</label><select id="swMine"></select></div>
               <div class="f"><label for="swWith">Échanger avec</label><select id="swWith"></select></div>
               <div class="f"><label for="swTheirs">Contre sa vacation</label><select id="swTheirs"></select></div>
@@ -1780,7 +1785,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       return;
     }
     const sw = e.target.closest('[data-cfx]');
-    if (sw) { cfScope = undefined; $('#cfSheet').hidden = true; showTab('echanges'); renderSwapForm(); $('#swMine').value = sw.dataset.cfx; fillTheirs(); return; }
+    if (sw) { cfScope = undefined; $('#cfSheet').hidden = true; swMode = swModeFor(sw.dataset.cfx); swSig = ''; showTab('echanges'); renderSwapForm(); $('#swMine').value = sw.dataset.cfx; fillTheirs(); return; }
     const vw = e.target.closest('[data-cfs]');
     if (vw) { const d = parse(vw.dataset.cfs); cfScope = undefined; $('#cfSheet').hidden = true; weekStart = mondayOf(d); gDay = -1; showTab('general'); renderGLabel(); renderTeam(); renderTrame(); }
   });
@@ -2796,6 +2801,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#swLists').innerHTML = html || '<p class="empty">Aucun échange enregistré pour le moment.</p>';
   }
 
+  let swMode = null;
+  const swVacs = id => myVacations(id).filter(v=>{ const ps = findPost(v.poste); return swMode === 'ast' ? isSam(ps) : !isSam(ps); });
+  const swModeFor = val => { const v = parseVac(val); return v && isSam(findPost(v.poste)) ? 'ast' : 'week'; };
   function fillTheirs(){
     const sel = $('#swTheirs'), go = $('#swGo'), chk = $('#swCheck');
     const mineV = parseVac($('#swMine').value), wid = $('#swWith').value;
@@ -2805,7 +2813,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       go.disabled = true; chk.textContent = ''; return;
     }
     const opt = t => '<option value="'+esc(vacVal(t))+'">'+esc(vacLabel(t))+'</option>';
-    const theirs = myVacations(wid).filter(t=>!blockedFor(me, t, mineV) && !blockedFor(wid, mineV, t));
+    const theirs = swVacs(wid).filter(t=>!blockedFor(me, t, mineV) && !blockedFor(wid, mineV, t));
     const sameSlot = t => t.date === mineV.date && t.part === mineV.part;
     const same = theirs.filter(sameSlot), other = theirs.filter(t=>!sameSlot(t));
     let h = '';
@@ -2821,27 +2829,31 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
 
   function renderSwapForm(){
-    const mine = doctors[me] ? myVacations(me) : [];
+    const mine = doctors[me] && swMode ? swVacs(me) : [];
     const others = sortedDocs().filter(d=>d.id !== me);
-    const sig = (trame ? 1 : 0)+'|'+mine.map(v=>vacVal(v)+(busy(me,v.date,v.part) ? '!' : '')).join(',')+'|'+others.map(d=>d.id+d.label).join(',');
+    $('#swPick').hidden = !!swMode; $('#swStep').hidden = !swMode; $('#swSet').hidden = !swMode;
+    $('#swModeTxt').textContent = swMode === 'ast' ? '🔔 Échange d’astreinte (samedi matin)' : swMode === 'week' ? '📅 Échange en semaine (lundi – vendredi)' : '';
+    const sig = swMode+'|'+(trame ? 1 : 0)+'|'+mine.map(v=>vacVal(v)+(busy(me,v.date,v.part) ? '!' : '')).join(',')+'|'+others.map(d=>d.id+d.label).join(',');
     if (sig !== swSig) {
       swSig = sig;
       const pm = $('#swMine').value, pw = $('#swWith').value;
       $('#swMine').innerHTML = mine.length
         ? mine.map(v=>'<option value="'+esc(vacVal(v))+'">'+esc(vacLabel(v))+(busy(me,v.date,v.part) ? ' (indisponible)' : '')+'</option>').join('')
-        : '<option value="">'+(trame ? 'Aucune vacation à venir sur votre fiche' : 'Trame du service non chargée')+'</option>';
+        : '<option value="">'+(trame ? (swMode === 'ast' ? 'Aucune astreinte à venir sur votre fiche' : 'Aucune vacation à venir sur votre fiche') : 'Trame du service non chargée')+'</option>';
       $('#swWith').innerHTML = '<option value="">Choisir un confrère…</option>' + others.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('');
       if (mine.some(v=>vacVal(v) === pm)) $('#swMine').value = pm;
       if (pw && others.some(d=>d.id === pw)) $('#swWith').value = pw;
     }
     fillTheirs();
   }
+  document.querySelectorAll('[data-swmode]').forEach(b=>b.addEventListener('click', ()=>{ swMode = b.dataset.swmode; swSig = ''; renderSwapForm(); }));
+  $('#swBack').addEventListener('click', ()=>{ swMode = null; swSig = ''; renderSwapForm(); });
   $('#swMine').addEventListener('change', fillTheirs);
   $('#swWith').addEventListener('change', fillTheirs);
   $('#swJump').addEventListener('click', ()=>{ $('#swForm').scrollIntoView({block:'start'}); });
   $('#conflicts').addEventListener('click', e=>{
     const b = e.target.closest('[data-vac]'); if (!b) return;
-    showTab('echanges'); renderSwapForm();
+    swMode = swModeFor(b.dataset.vac); swSig = ''; showTab('echanges'); renderSwapForm();
     $('#swMine').value = b.dataset.vac; fillTheirs();
     $('#swForm').scrollIntoView({block:'start'});
   });
