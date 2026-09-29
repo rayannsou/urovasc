@@ -411,10 +411,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <input type="file" id="xlFile" accept=".xlsx,.xls,.csv" class="visually-hidden">
             <button type="button" class="ghost" id="xlModel">Télécharger le modèle (semaine affichée)</button>
             <div style="display:flex;margin-top:12px;gap:8px;flex-wrap:wrap">
-              <input type="url" id="gsLink" inputmode="url" placeholder="Ou collez un lien Google Sheets…" aria-label="Lien Google Sheets" style="flex:1 1 220px;min-width:0">
+              <input type="url" id="gsLink" inputmode="url" placeholder="Ou collez un lien Google Sheets…" aria-label="Lien Google Sheets" style="flex:1 1 100%;min-width:0">
+              <input type="text" id="gsTab" placeholder="Onglet(s), ex. oct 26 (facultatif)" aria-label="Nom des onglets" style="flex:1 1 180px;min-width:0">
               <button type="button" class="ghost" id="gsGo">Importer le lien</button>
             </div>
-            <p class="hint" style="margin-top:6px">Le classeur doit être partagé en « Toute personne disposant du lien ». Toutes les feuilles sont lues.</p>
+            <p class="hint" style="margin-top:6px">Le classeur doit être partagé en « Toute personne disposant du lien ». Indiquez le nom de l’onglet (le mois, ex. « oct 26 ») ; plusieurs onglets : séparez par une virgule. Sans nom d’onglet, l’appli tente de lire tout le classeur.</p>
           </fieldset>
           <div id="xlPreview" hidden></div>
         </div>
@@ -814,36 +815,41 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     opts = opts || {};
     if (!aoa || !aoa.length) return null;
     const S = v => v == null ? '' : String(v).trim();
-    let hr = -1, heads = [];
-    for (let r=0; r<Math.min(aoa.length, 6) && hr < 0; r++) {
+    /* blocs de semaine : chaque « lundi » ouvre un bloc, avec sa propre ligne d'en-tête et sa propre colonne de libellés */
+    const blocks = [];
+    for (let r=0; r<Math.min(aoa.length, 10); r++) {
       const hs = [];
-      (aoa[r] || []).forEach((v,c)=>{ const g = gnorm(S(v)); const m = g.match(/^(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})$/); if (m) hs.push({c, j:JOURS.indexOf(m[1]), n:Number(m[2])}); else if (/^samedi\b/.test(g) && hs.length) hs.push({c, j:5, n:0}); });
-      if (hs.filter(h=>h.j < 5).length >= 5) { hr = r; heads = hs; }
+      (aoa[r] || []).forEach((v,c)=>{ const g = gnorm(S(v).replace(/\s+/g,' ')); const m = g.match(/^(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})$/); if (m) hs.push({c, j:JOURS.indexOf(m[1]), n:Number(m[2])}); else if (/^samedi\b/.test(g) && hs.length) hs.push({c, j:5, n:0}); });
+      let cur = null;
+      hs.forEach(h=>{ if (h.j === 0 || !cur) { cur = {hr:r, bl:[]}; blocks.push(cur); } cur.bl.push(h); });
     }
-    if (hr < 0) return null;
-    /* semaines : une nouvelle semaine commence à chaque « lundi » */
-    const blocks = []; heads.forEach(h=>{ if (h.j === 0 || !blocks.length) blocks.push([]); blocks[blocks.length-1].push(h); });
-    let first = guessMonday(blocks[0][0].n, opts.ref);
+    const good = blocks.filter(b=>b.bl.filter(h=>h.j < 5).length >= 5 && b.bl[0].c >= 1);
+    if (!good.length) return null;
+    good.sort((x,y)=>x.bl[0].c - y.bl[0].c);
+    let first = guessMonday(good[0].bl[0].n, opts.ref);
     if (opts.monday) first = opts.monday;
     if (!first) return null;
-    const weeks = blocks.map((bl,i)=>{
+    const weeks = good.map((b,i)=>{
       const mon = new Date(first.getFullYear(), first.getMonth(), first.getDate()+7*i);
       const dates = [0,1,2,3,4].map(k=>ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+k)));
       const sat = ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+5));
-      return {monday: ymd(mon), dates, sat, cells:{}, absences:[], notes:[], bl, hasSat:false};
+      return {monday: ymd(mon), dates, sat, cells:{}, absences:[], notes:[], bl:b.bl, hr:b.hr, lc:b.bl[0].c-1, hasSat:false};
     });
     const byLabel = {}; POSTES_MOIS.forEach(p=>{ byLabel[gnorm(p.label)] = p.id; });
-    const alias = {'echo':'echo','bloc':'bloc','bloc urgences':'bloc-urg','consultation':'consultation','irm':'irm','scanner ext':'scanner-ext','scanner rdc / ri':'scanner-rdc','scanner urg':'scanner-urg','scanner sa':'scanner-sa','echo sa':'echo-sa','scanner photonique xa':'scanner-xa','rcp':'rcp','cours fac':'cours','formation':'formation','recherche':'recherche','administratif':'admin','astreinte':'astreinte'};
+    const alias = {'echo':'echo','bloc':'bloc','bloc urgences':'bloc-urg','consultation':'consultation','irm':'irm','scanner ext':'scanner-ext','scanner rdc / ri':'scanner-rdc','scanner urg':'scanner-urg','scanner sa':'scanner-sa','echo sa':'echo-sa','scanner photonique xa':'scanner-xa','scanner lyric (xa)':'scanner-xa','scanner lyric xa':'scanner-xa','rcp':'rcp','cours fac':'cours','formation':'formation','recherche':'recherche','administratif':'admin','astreinte':'astreinte'};
     Object.keys(alias).forEach(k=>{ byLabel[k] = alias[k]; });
     let total = 0;
-    for (let r=hr+1; r<aoa.length; r++) {
-      const row = aoa[r] || [], lab = gnorm(S(row[0]));
-      let poste = null, abs = null;
-      if (byLabel[lab]) poste = byLabel[lab];
-      else if (ABS_ROWS[lab]) abs = ABS_ROWS[lab];
-      else if (!lab) abs = 'Absent(e)';
-      else continue;
-      weeks.forEach(w=>{
+    weeks.forEach(w=>{
+      for (let r=w.hr+1; r<aoa.length; r++) {
+        const row = aoa[r] || [], lab = gnorm(S(row[w.lc]).replace(/\s+/g,' '));
+        /* ligne « M / AM » sous l'en-tête : ignorée */
+        const vals = []; w.bl.forEach(h=>(h.j === 5 ? [0] : [0,1]).forEach(k=>{ const t = S(row[h.c+k]); if (t) vals.push(t); }));
+        if (!lab && vals.length && vals.every(t=>/^(m|am)$/i.test(t)) && r <= w.hr+2) continue;
+        let poste = null, abs = null;
+        if (byLabel[lab]) poste = byLabel[lab];
+        else if (ABS_ROWS[lab]) abs = ABS_ROWS[lab];
+        else if (!lab) abs = 'Absent(e)';
+        else continue;
         w.bl.forEach(h=>{
           ['M','AM'].forEach((part,k)=>{
             if (h.j === 5 && (k > 0 || poste !== 'astreinte')) return;
@@ -862,8 +868,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             }
           });
         });
-      });
-    }
+      }
+    });
     if (!total) return null;
     return weeks.map(w=>({monday:w.monday, dates:w.hasSat ? w.dates.concat([w.sat]) : w.dates, cells:Object.values(w.cells), absences:w.absences, notes:w.notes}));
   }
@@ -1063,12 +1069,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const k = key(d), inf = dayInfo(doc,k), own = doc.days[k] || '';
       let body = '';
       if (own === 'G') body += '<span class="none-txt">Repos de garde posé le '+esc(fmtShort.format(addDays(d,1)))+'</span>';
-      else if (inf.kind === 'R') body += '<span class="st st-r" style="align-self:flex-start">Repos de garde (après la garde de la veille)</span>';
+      else if (inf.kind === 'R') body += '<span class="none-txt">Posé automatiquement après la garde de la veille. Pour le retirer, modifiez la garde.</span>';
       const cf = dayVacs(me,k).filter(v=>reasonFor(me,k,v.part));
       body += cf.map(v=>'<div class="vac bad"><span class="vp">'+v.part+'</span><span>'+esc(postName(v.poste,k))+' <small>vous y êtes affecté(e) : à échanger</small></span></div>').join('');
       const head = '<label class="dr-date" for="ds-'+k+'">'+dateTxt(d,k)+'</label>'
-        + '<select id="ds-'+k+'" class="dr-sel'+(own === 'G' ? ' sel-G' : own ? ' sel-I' : '')+'" data-k="'+k+'"'+(canWrite ? '' : ' disabled')+'>'
-        + (own === 'A' ? opts.concat([['A','Astreinte (samedi matin)']]) : opts).map(o=>'<option value="'+o[0]+'"'+(o[0] === own ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>';
+        + '<select id="ds-'+k+'" class="dr-sel'+(own === 'G' ? ' sel-G' : (own || inf.kind === 'R') ? ' sel-I' : '')+'" data-k="'+k+'"'+(canWrite && inf.kind !== 'R' ? '' : ' disabled')+'>'
+        + (inf.kind === 'R' ? [['R','Indisponible · Off lendemain de garde (auto)']] : own === 'A' ? opts.concat([['A','Astreinte (samedi matin)']]) : opts).map(o=>'<option value="'+o[0]+'"'+(o[0] === own || o[0] === 'R' ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>';
       return rowWrap(d,i,k,head,body);
     }).join('');
   }
@@ -1814,26 +1820,40 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + '<div class="xa"><button type="button" class="primary" id="xlApply"'+(filled && canWrite ? '' : ' disabled')+'>Importer '+pl.weeks.length+' semaine'+(pl.weeks.length > 1 ? 's' : '')+'</button><button type="button" class="ghost" id="xlCancel">Annuler</button></div></div>';
   }
   async function readFile(file){ let buf; try { buf = await file.arrayBuffer(); } catch(e) { return notify('Fichier illisible.', true); } return readBuffer(buf); }
-  async function readLink(url){
+  async function readLink(url, tabs){
     const m = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(url || '');
     if (!m) return notify('Lien Google Sheets non reconnu.', true);
-    let buf;
+    const X = window.XLSX; if (!X) return notify("La lecture des fichiers Excel n'est pas disponible dans cette vue.", true);
+    const base = 'https://docs.google.com/spreadsheets/d/'+m[1];
+    const gid = (/[?#&]gid=(\d+)/.exec(url) || [])[1];
+    const names = (tabs || '').split(/[,;]+/).map(t=>t.trim()).filter(Boolean);
+    const fail = "Impossible de lire ce lien. Vérifiez qu'il est partagé « Toute personne disposant du lien » et que le nom de l'onglet est exact (ex. oct 26). Sinon, téléchargez le .xlsx (Fichier → Télécharger) et importez-le.";
+    const csvOf = async (q)=>{ const r = await fetch(base+'/gviz/tq?tqx=out:csv&'+q); if (!r.ok) throw new Error('http '+r.status); const t = await r.text(); if (/^\s*<(!doctype|html)/i.test(t)) throw new Error('html'); return t; };
     try {
-      const r = await fetch('https://docs.google.com/spreadsheets/d/'+m[1]+'/export?format=xlsx');
-      if (!r.ok) throw new Error('http '+r.status);
-      buf = await r.arrayBuffer();
-      if (new Uint8Array(buf.slice(0,2))[0] !== 0x50) throw new Error('not xlsx');
-    } catch(e) {
-      return notify("Impossible de lire ce lien. Vérifiez qu'il est partagé « Toute personne disposant du lien », sinon téléchargez le .xlsx (Fichier → Télécharger) et importez-le.", true);
-    }
-    return readBuffer(buf);
+      if (names.length || gid) {
+        const out = X.utils.book_new();
+        const list = names.length ? names : [null];
+        for (const n of list) {
+          const t = await csvOf(n ? 'sheet='+encodeURIComponent(n) : 'gid='+gid);
+          const w1 = X.read(t, {type:'string'});
+          X.utils.book_append_sheet(out, w1.Sheets[w1.SheetNames[0]], (n || 'gid '+gid).slice(0,31));
+        }
+        return readBuffer(null, out);
+      }
+      let buf = null;
+      try { const r = await fetch(base+'/export?format=xlsx'); if (r.ok) { buf = await r.arrayBuffer(); if (new Uint8Array(buf.slice(0,2))[0] !== 0x50) buf = null; } } catch(e) { buf = null; }
+      if (buf) return readBuffer(buf);
+      const t = await csvOf('gid=0'); const w1 = X.read(t, {type:'string'});
+      setTimeout(()=>notify("Seul le premier onglet a pu être lu. Indiquez le nom de l'onglet (ex. oct 26) pour lire un autre mois."), 400);
+      return readBuffer(null, w1);
+    } catch(e) { return notify(fail, true); }
   }
-  async function readBuffer(buf){
+  async function readBuffer(buf, wb0){
     const X = window.XLSX;
     if (!X) return notify("La lecture des fichiers Excel n'est pas disponible dans cette vue.", true);
     if (!trame || !trame.postes.length) return notify('Les postes du service doivent être chargés.', true);
     try {
-      const wb = X.read(new Uint8Array(buf), {type:'array', cellDates:true});
+      const wb = wb0 || X.read(new Uint8Array(buf), {type:'array', cellDates:true});
       let weeks = PP.parseWorkbook(X, wb), ignored = [];
       const report = weeks.report || {ok:[], skip:[]}; weeks = weeks.slice();
       /* feuilles au format simple (modèle) : chacune lue séparément */
@@ -1934,7 +1954,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     try { await dl.save({filename: 'planning-semaine-'+key(days[0])+'.xlsx', data: new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}); notify('Modèle enregistré.'); }
     catch(e) { if (!e || e.code !== 'declined') notify("Impossible d'enregistrer le fichier ici.", true); }
   }
-  $('#gsGo').addEventListener('click', ()=>{ const v = $('#gsLink').value.trim(); if (v) readLink(v); else notify('Collez un lien Google Sheets.', true); });
+  $('#gsGo').addEventListener('click', ()=>{ const v = $('#gsLink').value.trim(); if (v) readLink(v, $('#gsTab').value); else notify('Collez un lien Google Sheets.', true); });
   $('#xlFile').addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
   $('#xlModel').addEventListener('click', downloadModel);
   $('#xlPreview').addEventListener('click', e=>{
