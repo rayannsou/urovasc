@@ -254,6 +254,8 @@ select,input[type=date],input[type=text],input[type=time]{font-size:16px}
 .pw{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:0}
 .pw .ch{font-size:14px;padding:2px 9px}
 .pw .cap{width:100%}
+.cat{display:block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);width:100%;margin-top:2px}
+.pabs{border-left-color:var(--muted)!important}
 .poff{font-size:13px;color:var(--muted);padding:2px 4px}
 @media (max-width:700px){
   body{padding-inline:14px;padding-block:14px calc(96px + env(safe-area-inset-bottom))}
@@ -1102,6 +1104,19 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     return {kind:null, M:null, AM:null};
   }
 
+  const ABS_CATS = ['Off','Repos de garde','Congés annuels','Absent(e)','Indisponible'];
+  /* absents d'une demi-journée, groupés par catégorie : {cat:[ids]} */
+  function absAt(dk, part){
+    const out = {};
+    sortedDocs().forEach(d=>{
+      const inf = dayInfo(d, dk)[part]; if (!inf || inf === 'G' || inf === 'A') return;
+      let cat = inf === 'R' ? 'Repos de garde' : ((d.abs && d.abs[dk+'_'+part]) || 'Indisponible');
+      if (ABS_CATS.indexOf(cat) < 0) cat = 'Absent(e)';
+      (out[cat] = out[cat] || []).push(d.id);
+    });
+    return out;
+  }
+
   let toastTimer = 0;
   function notify(msg, isErr){
     const t = $('#toast');
@@ -1907,6 +1922,15 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       if (!any) L += '<p class="empty">Aucune vacation ce jour-là.</p>';
       const offs = PARTS.map(part=>{ const l = trame.off[gDay+'_'+part]; return Array.isArray(l) && l.length ? (part === 'M' ? 'matin' : 'après-midi')+' : '+l.map(dLabel).join(', ') : ''; }).filter(Boolean);
       if (offs.length) L += '<p class="poff">OFF · '+esc(offs.join(' · '))+'</p>';
+      const ab = PARTS.map(part=>({part, g: absAt(dk, part)}));
+      if (ab.some(x=>Object.keys(x.g).length)) {
+        L += '<div class="prow pabs"><div class="pname">Absences</div>';
+        ab.forEach(x=>{
+          const cs = ABS_CATS.filter(c=>x.g[c]);
+          L += '<div class="pcell"><span class="pp">'+(x.part === 'M' ? 'Matin' : 'Après-midi')+'</span><span class="pw">'+(cs.length ? cs.map(c=>'<span class="cat">'+esc(c)+'</span>'+x.g[c].map(id=>'<span class="ch'+(id === me ? ' me' : '')+'"'+chipSty(id, '')+'>'+esc(dLabel(id))+'</span>').join('')).join('') : '<span class="muted">—</span>')+'</span></div>';
+        });
+        L += '</div>';
+      }
       L += '</div>';
       wrap.innerHTML = L;
       renderGAlert(); renderEditor(); return;
@@ -1944,6 +1968,15 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         });
       });
       h += '</tr>';
+    });
+    const wk = keys.map((d,i)=>PARTS.map(part=>i === 5 && part === 'AM' ? {} : absAt(key(d), part)));
+    ABS_CATS.forEach(c=>{
+      if (!wk.some(r=>r.some(g=>g[c]))) return;
+      h += '<tr class="absrow"><th class="who" scope="row">'+esc(c)+'</th>' + keys.map((d,i)=>PARTS.map((part,pi)=>{
+        if (i === 5 && part === 'AM') return '';
+        const l = wk[i][pi][c] || [];
+        return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
+      }).join('')).join('') + '</tr>';
     });
     h += (Object.keys(trame.off || {}).length ? '<tr><th class="who" scope="row">OFF</th>' + keys.map((d,i)=>PARTS.map(part=>{
       const l = trame.off[i+'_'+part];
@@ -2253,7 +2286,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         const ref = db.doc('medecins/'+id), snap = await ref.get();
         if (!snap.exists) await ref.set({label: plan.fresh[id], order: ++order, days: {}});
       }
-      const abs = {};
+      const abs = {}, cats = {};
       for (const w of plan.weeks) {
         const byDate = {}; w.dates.forEach(d=>{ byDate[d] = {}; });
         w.cells.forEach(c=>{
@@ -2272,7 +2305,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           if (items.length) await db.doc('notes/'+d).set({items});
           else if (notesBy[d] && notesBy[d].length) await db.doc('notes/'+d).delete();
         }
-        w.absences.forEach(a=>{ if (!a.id) return; abs[a.id] = abs[a.id] || {}; abs[a.id][a.date] = abs[a.id][a.date] || {}; abs[a.id][a.date][a.part] = true; });
+        w.absences.forEach(a=>{ if (!a.id) return; abs[a.id] = abs[a.id] || {}; abs[a.id][a.date] = abs[a.id][a.date] || {}; abs[a.id][a.date][a.part] = true; cats[a.id] = cats[a.id] || {}; cats[a.id][a.date+'_'+a.part] = (a.note === 'Congés' ? 'Congés annuels' : (a.note || 'Absent(e)')); });
       }
       for (const id of Object.keys(abs)) {
         const cur = (doctors[id] && doctors[id].days) || {}, patch = {};
@@ -2281,7 +2314,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           const p = abs[id][d]; if (c === 'J' || c === 'M') p.M = true; if (c === 'J' || c === 'AM') p.AM = true;
           patch[d] = p.M && p.AM ? 'J' : p.M ? 'M' : 'AM';
         });
-        if (Object.keys(patch).length) await db.doc('medecins/'+id).update({days: patch});
+        if (Object.keys(patch).length) await db.doc('medecins/'+id).update({days: patch, abs: cats[id] || {}});
       }
       return true;
     } catch(e) { handleErr(e); return false; }
@@ -2885,7 +2918,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}};
       });
       doctors = next; loaded = true; renderAll();
     }, err=>{
