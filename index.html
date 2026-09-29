@@ -431,6 +431,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 :root[data-theme=dark] .top .renme{background:var(--surface);color:var(--accent)}
 :root[data-theme=dark] input,:root[data-theme=dark] select,:root[data-theme=dark] textarea{background:var(--surface);color:var(--ink);border-color:var(--line)}
 :root[data-theme=dark] .primary{background:var(--accent);color:var(--accent-ink)}
+.goprof{align-self:flex-end;min-height:44px;background:var(--surface);color:var(--accent);border:1px solid var(--line);border-radius:12px;padding:8px 16px;font-weight:700}
+.mpbox{display:flex;flex-direction:column;gap:8px}.mpbox label{font-weight:700;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+.mp .renme{background:var(--surface);color:var(--accent);border:1px solid var(--line);align-self:flex-start}
 </style>
 
 <div class="wrap">
@@ -441,12 +444,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       <h1 id="hiTitle">Bonjour,</h1>
       <p class="sub" id="hiSub">Choisissez votre nom pour voir votre semaine.</p>
     </div>
-    <div class="who-box">
-      <label for="who">Je suis</label>
-      <select id="who"><option value="">Chargement…</option></select>
-      <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
-      <form id="renForm" class="renform" hidden><input type="text" id="renInput" maxlength="24" autocomplete="off" aria-label="Votre prénom"><button type="submit" class="primary">Enregistrer</button><button type="button" id="renCancel" class="ghost">Annuler</button></form>
-    </div>
+    <button type="button" id="goProfile" class="goprof" hidden>Choisir mon nom ›</button>
   </header>
 
   <div id="notice" class="notice" hidden></div>
@@ -705,6 +703,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
     <section id="view-reglages" aria-labelledby="tab-reglages" hidden>
       <div class="col">
+        <div class="card mp">
+          <h2>Mon profil</h2>
+          <p class="hint">Choisissez votre nom : l’accueil vous dira « Bonjour » avec votre nom et affichera votre semaine.</p>
+    <div class="who-box mpbox">
+      <label for="who">Je suis</label>
+      <select id="who"><option value="">Chargement…</option></select>
+      <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
+      <form id="renForm" class="renform" hidden><input type="text" id="renInput" maxlength="24" autocomplete="off" aria-label="Votre prénom"><button type="submit" class="primary">Enregistrer</button><button type="button" id="renCancel" class="ghost">Annuler</button></form>
+    </div>
+        </div>
         <div class="card">
           <h2>Écran d’accueil</h2>
           <p class="hint" id="instHint">Ajoutez le planning sur l’écran d’accueil de votre téléphone pour l’ouvrir comme une application.</p>
@@ -1272,7 +1280,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   function renderMe(){
     const doc = doctors[me];
     const msg = !loaded ? 'Chargement du planning partagé…'
-      : (sortedDocs().length ? 'Choisissez votre nom en haut de la page pour voir votre planning.'
+      : (sortedDocs().length ? 'Choisissez votre nom dans Réglages pour voir votre planning.'
       : "La liste des médecins est vide. Ouvrez « Médecins » en bas de page pour ajouter les noms.");
     [['#meEmpty','#meBody'],['#inEmpty','#inBody']].forEach(a=>{ $(a[0]).hidden = !!doc; $(a[0]).textContent = msg; $(a[1]).hidden = !doc; });
     if (!doc) return;
@@ -1346,7 +1354,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const ds = fmtLong.format(n);
     $('#hiDate').textContent = ds.charAt(0).toUpperCase()+ds.slice(1);
     $('#hiTitle').innerHTML = d ? hello+', <em>'+esc(d.label)+'</em>' : hello+',';
-    $('#hiSub').textContent = d ? todaySummary() : (loaded && sortedDocs().length ? 'Choisissez votre nom pour voir votre semaine.' : 'Chargement du planning…');
+    $('#goProfile').hidden = !!d || !(loaded && sortedDocs().length);
+    $('#hiSub').textContent = d ? todaySummary() : (loaded && sortedDocs().length ? 'Choisissez votre nom dans Réglages pour voir votre semaine.' : 'Chargement du planning…');
   }
   function renderToday(){
     if (typeof cfScope !== 'undefined' && cfScope !== undefined) renderConf();
@@ -1354,7 +1363,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const doc = doctors[me], empty = $('#auEmpty'), box = $('#auBody');
     if (!doc) {
       box.hidden = true; empty.hidden = false;
-      empty.textContent = !loaded ? 'Chargement du planning partagé…' : (sortedDocs().length ? 'Choisissez votre nom en haut de la page : vous verrez ici où vous êtes aujourd’hui.' : 'La liste des médecins est vide.');
+      empty.textContent = !loaded ? 'Chargement du planning partagé…' : (sortedDocs().length ? 'Choisissez votre nom dans Réglages : vous verrez ici où vous êtes aujourd’hui.' : 'La liste des médecins est vide.');
       return;
     }
     empty.hidden = true; box.hidden = false;
@@ -1778,6 +1787,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   $('#auBody').addEventListener('keydown', e=>{ const co = e.target.closest && e.target.closest('[data-cfo]'); if (co && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openConf(co.dataset.cfo); } });
 
   /* ---------- interactions ---------- */
+  $('#goProfile').addEventListener('click', ()=>showTab('reglages'));
   $('#who').addEventListener('change', e=>{
     me = e.target.value;
     try { localStorage.setItem('planning-me', me); } catch(err) {}
@@ -2772,7 +2782,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const empty = $('#swEmpty'), body = $('#swBody');
     if (!doctors[me]) {
       body.hidden = true; empty.hidden = false;
-      empty.textContent = !loaded ? 'Chargement du planning partagé…' : 'Choisissez votre nom en haut de la page pour échanger des vacations.';
+      empty.textContent = !loaded ? 'Chargement du planning partagé…' : 'Choisissez votre nom dans Réglages pour échanger des vacations.';
       return;
     }
     empty.hidden = true; body.hidden = false;
