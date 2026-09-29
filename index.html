@@ -706,6 +706,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     <section id="view-reglages" aria-labelledby="tab-reglages" hidden>
       <div class="col">
         <div class="card">
+          <h2>Écran d’accueil</h2>
+          <p class="hint" id="instHint">Ajoutez le planning sur l’écran d’accueil de votre téléphone pour l’ouvrir comme une application.</p>
+          <button type="button" class="primary" id="instBtn">📲 Ajouter à l’écran d’accueil</button>
+        </div>
+        <div class="card">
           <h2>Apparence</h2>
           <p class="hint">Choisissez le mode clair ou sombre, ou laissez l’appareil décider.</p>
           <div class="thm" role="group" aria-label="Mode d’affichage"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Clair</button><button type="button" data-theme-set="dark">Sombre</button></div>
@@ -788,8 +793,19 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   var standalone=window.navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
   var safari=/Safari/.test(ua)&&!/CriOS|FxiOS|EdgiOS|Instagram|FBAN|FBAV|Line\//.test(ua);
   var seen=false; try{ seen=localStorage.getItem('planning-inst')==='1'; }catch(e){}
+  var box=document.getElementById('instBox'), btn=document.getElementById('instBtn'), hint=document.getElementById('instHint'), dp=null;
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); dp=e; });
+  function fix(){ if(!box)return; if(ios&&!safari){ box.querySelector('strong').textContent='Ouvrez ce lien dans Safari'; box.querySelector('ol').innerHTML='<li>Touchez <b>⋯</b> ou <b>Partager</b></li><li>Puis <b>« Ouvrir dans Safari »</b></li><li>Ensuite : Partager → <b>Sur l’écran d’accueil</b></li>'; } }
+  if(btn){
+    if(standalone){ btn.disabled=true; btn.textContent='✓ Déjà installée sur cet appareil'; }
+    btn.addEventListener('click',function(){
+      if(dp){ dp.prompt(); return; }
+      if(!box)return;
+      if(ios){ fix(); box.hidden=false; }
+      else { box.querySelector('strong').textContent='Installer l’application'; box.querySelector('ol').innerHTML='<li>Ouvrez le menu du navigateur (<b>⋮</b> ou <b>Partager</b>)</li><li>Puis <b>« Ajouter à l’écran d’accueil »</b> ou <b>« Installer l’application »</b></li>'; box.hidden=false; }
+    });
+  }
   if(!ios||standalone||seen)return;
-  var box=document.getElementById('instBox'); if(!box)return;
   if(!safari){ box.querySelector('strong').textContent='Ouvrez ce lien dans Safari'; box.querySelector('ol').innerHTML='<li>Touchez <b>⋯</b> ou <b>Partager</b></li><li>Puis <b>« Ouvrir dans Safari »</b></li><li>Ensuite : Partager → <b>Sur l’écran d’accueil</b></li>'; }
   setTimeout(function(){ box.hidden=false; },1800);
   document.getElementById('instX').addEventListener('click',function(){ box.hidden=true; try{localStorage.setItem('planning-inst','1');}catch(e){} });
