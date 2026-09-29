@@ -442,6 +442,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astgo{min-height:64px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:10px 16px;border:0;border-radius:14px;font-size:17px;font-weight:800;color:#fff;text-align:left}
 .astgo small{font-weight:500;font-size:13px;opacity:.95}
 .astmode{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.astmode span.on{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}.astmode button{flex:1;min-height:40px}.pll em.auto{background:#E4F1FF;color:#1B5FA8}.pll em.man{background:#F1EAF9;color:#6A3FA0}
+.astgo.man{background:#17465A}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
 .astgo.ko{background:#C62828}.astgo.ok{background:#1E7B4B}
 .astmiss{min-height:48px;text-align:left}
 .astrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -520,6 +521,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <button type="button" id="plNext" aria-label="Semaine suivante">›</button>
           </div>
           <div class="f jump"><label for="plJump">Aller à une semaine</label><input type="date" id="plJump"></div>
+          <div id="plManBox">
           <div class="seg" role="group" aria-label="Portée de la modification">
             <button type="button" data-plscope="once" aria-pressed="true">Une seule fois</button>
             <button type="button" data-plscope="always" aria-pressed="false">Toujours</button>
@@ -527,6 +529,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <p id="plHint" class="hint"></p>
           <div class="plbar"><button type="button" class="ghost" id="plCopy">Copier la semaine précédente</button><span id="plSum" class="hint"></span></div>
           <div class="dayseg" id="plDays" role="tablist" aria-label="Jour"></div>
+          </div>
         </div>
         <div id="plGrid" class="col"></div>
         <div id="astSheet" class="sheet" hidden>
@@ -759,7 +762,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 21h00 (génération v4)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 21h15 (auto/manuel v5)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1544,7 +1547,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
 
   /* ---------- onglet Créer un planning ---------- */
-  let plUnOpen = false, plMode = 'week', plSheet = null, plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
+  let plUnOpen = false, plManual = false, plMode = 'week', plSheet = null, plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
   const plNorm = t => normS(String(t || '')).replace(/\s+/g,' ');
   function plFind(txt){
     const t = plNorm(txt); if (!t) return null;
@@ -1561,6 +1564,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const days = [...Array(6)].map((_,i)=>addDays(plStart,i));
     $('#plLabel').textContent = plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
     document.querySelectorAll('[data-plmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plmode === plMode)));
+    $('#plManBox').hidden = !plManual; grid.hidden = !plManual; if (!plManual) { grid.innerHTML = ''; return; }
     $('#plDays').hidden = plMode === 'ast'; $('#plCopy').hidden = plMode === 'ast';
     document.querySelectorAll('[data-plscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plscope === plScope)));
     const dn = ['lundi','mardi','mercredi','jeudi','vendredi','samedi'];
@@ -1692,7 +1696,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   $('#plPrev').addEventListener('click', ()=>{ plStart = addDays(plStart, plMode === 'ast' ? -42 : -7); renderCompose(); });
   $('#plNext').addEventListener('click', ()=>{ plStart = addDays(plStart, plMode === 'ast' ? 42 : 7); renderCompose(); });
-  document.querySelectorAll('[data-plmode]').forEach(b=>b.addEventListener('click', ()=>{ plMode = b.dataset.plmode; renderCompose(); }));
+  document.querySelectorAll('[data-plmode]').forEach(b=>b.addEventListener('click', ()=>{ plMode = b.dataset.plmode; plManual = false; renderCompose(); }));
   $('#plJump').addEventListener('change', e=>{ if (e.target.value) { const d = parse(e.target.value); plStart = mondayOf(d); plDay = Math.min((d.getDay()+6)%7, 5); renderCompose(); } });
   document.querySelectorAll('[data-plscope]').forEach(b=>b.addEventListener('click', ()=>{ plScope = b.dataset.plscope; renderCompose(); }));
   const MISS_VIEWERS = ['rayann','rm','rim','im'];
@@ -1703,8 +1707,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!trame || (ast && !ap)) { box.hidden = true; box.innerHTML = ''; return; }
     const months = astMonths(), miss = astMissing(months), allOk = !miss.length, dis = canWrite ? '' : ' disabled';
     box.hidden = false;
-    box.innerHTML = '<button type="button" class="astgo '+(allOk ? 'ok' : 'ko')+'" data-astassign="1"'+dis+'><span>'+(ast ? '🔔 Générer le planning d’astreinte' : '📅 Générer le planning de la semaine')+'</span><small>'+(allOk ? '✓ Tout le monde a renseigné ses indisponibilités ('+months.map(monthLbl).join(', ')+')' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités')+'</small></button>'
-      + '<div class="astmode"><span class="on">⚡ Assigné automatiquement</span><button type="button" class="ghost" data-astmanual="1">✋ Assigner manuellement</button></div>'
+    const stat = allOk ? '✓ Tout le monde a renseigné ses indisponibilités ('+months.map(monthLbl).join(', ')+')' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
+    box.innerHTML = '<button type="button" class="astgo '+(allOk ? 'ok' : 'ko')+'" data-astassign="1"'+dis+'><span>⚡ Assigner automatiquement</span><small>'+(ast ? 'Générer le planning d’astreinte' : 'Générer le planning de la semaine')+' · '+stat+'</small></button>'
+      + '<button type="button" class="astgo man" data-astmanual="1" aria-pressed="'+plManual+'"><span>✋ Assigner manuellement</span><small>'+(plManual ? 'Ouvert · touchez pour masquer' : 'Choisir les noms vous-même, '+(ast ? 'samedi par samedi' : 'vacation par vacation'))+'</small></button>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">👥 Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
   /* ---------- qui n'a pas renseigné ses indisponibilités ---------- */
@@ -1728,7 +1733,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#astShL').innerHTML = h;
     $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Assigner quand même</button>' : '';
   }
-  $('#astBarBox').addEventListener('click', e=>{ if (e.target.closest('[data-astmanual]')) { notify(plMode === 'ast' ? 'Touchez un nom sous chaque samedi pour assigner à la main.' : 'Touchez un nom (ou « ＋ Nouveau nom ») dans chaque vacation pour assigner à la main.'); try { $('#plGrid').scrollIntoView({behavior:'smooth', block:'start'}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
+  $('#astBarBox').addEventListener('click', e=>{ if (e.target.closest('[data-astmanual]')) { plManual = !plManual; renderCompose(); if (plManual) { try { $('#plManBox').scrollIntoView({behavior:'smooth', block:'start'}); } catch(err) {} } return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
   $('#astSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-astx]')) return closeMiss();
     const ex = e.target.closest('[data-astexcl]'); if (ex) { if (await setDocField(ex.dataset.astexcl, {noAst: true})) renderMiss(); return; }
@@ -1759,7 +1764,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       if (!(await setOverride(k, ap.id+'_M', {w:[pick.id], t: Date.now(), a: 1}))) return;
       cnt[pick.id] = (cnt[pick.id]||0) + 1; last = [pick.id]; done++;
     }
-    renderCompose();
+    plManual = true; renderCompose();
     notify(done ? done+' astreinte'+(done > 1 ? 's assignées' : ' assignée')+(skipped ? ' · '+skipped+' samedi'+(skipped > 1 ? 's' : '')+' sans personne disponible' : '')+'. Vous pouvez encore les modifier.' : (skipped ? 'Personne de disponible sur les samedis restants.' : 'Tous les samedis affichés ont déjà une astreinte.'), !done && !!skipped);
   }
   /* ---------- génération automatique de la semaine : 1) la trame, 2) les indisponibilités ---------- */
@@ -1809,7 +1814,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         }
       }
     }
-    renderCompose();
+    plManual = true; renderCompose();
     notify(done ? done+' vacation'+(done > 1 ? 's' : '')+' ajustée'+(done > 1 ? 's' : '')+' d’après les indisponibilités'+(holes ? ' · '+holes+' place'+(holes > 1 ? 's' : '')+' sans remplaçant disponible' : '')+'. Le reste suit la trame.' : (holes ? 'Certaines places n’ont pas de remplaçant disponible.' : 'La trame convient déjà : personne d’indisponible cette semaine.'), !done && !!holes);
   }
   async function plToggleUn(spec){
