@@ -442,7 +442,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astgo{min-height:64px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:10px 16px;border:0;border-radius:14px;font-size:17px;font-weight:800;color:#fff;text-align:left}
 .astgo small{font-weight:500;font-size:13px;opacity:.95}
 .astmode{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.astmode span.on{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}.astmode button{flex:1;min-height:40px}.pll em.auto{background:#E4F1FF;color:#1B5FA8}.pll em.man{background:#F1EAF9;color:#6A3FA0}
-.astbar{background:var(--card,var(--bg));border:1px solid var(--line,#d9e0e3);border-radius:14px;padding:10px}.astpair{display:flex;gap:8px}.astbtn{flex:1;min-height:44px;border:1px solid var(--line,#c9d3d7);background:transparent;color:inherit;border-radius:10px;font:600 15px var(--font-body);display:flex;align-items:center;justify-content:center;gap:8px}.astbtn[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.astbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.ko{background:#C62828}.dot.ok{background:#1E7B4B}.aststat{margin:0;font-size:13px;color:var(--muted)}.aststat.ko{color:#C62828}.aststat.ok{color:#1E7B4B}.genrow{min-height:36px;padding:0 10px;white-space:nowrap}.genrow[aria-pressed=false]{color:#C62828;border-color:#C62828}.astrow{gap:8px}#cwImport[data-src=xl] .srcg,#cwImport[data-src=gs] .srcx{display:none!important}
+.astbar{background:var(--card,var(--bg));border:1px solid var(--line,#d9e0e3);border-radius:14px;padding:10px}.astpair{display:flex;gap:8px}.astbtn{flex:1;min-height:44px;border:1px solid var(--line,#c9d3d7);background:transparent;color:inherit;border-radius:10px;font:600 15px var(--font-body);display:flex;align-items:center;justify-content:center;gap:8px}.astbtn[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.astbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.ko{background:#C62828}.dot.ok{background:#1E7B4B}.aststat{margin:0;font-size:13px;color:var(--muted)}.aststat.ko{color:#C62828}.aststat.ok{color:#1E7B4B}.genstep h4{margin:0 0 6px;font-size:18px}.genrow{min-height:36px;padding:0 10px;white-space:nowrap}.genrow[aria-pressed=false]{color:#C62828;border-color:#C62828}.astrow{gap:8px}#cwImport[data-src=xl] .srcg,#cwImport[data-src=gs] .srcx{display:none!important}
 .astcol{display:flex;flex-direction:column;gap:8px}.astbtn.big{min-height:64px;font-size:17px;flex-direction:column;gap:2px}.astbtn.go{width:100%}.astback{align-self:flex-start;min-height:36px;padding:0 10px}.astbar .astbtn.go{margin-top:2px}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
 .astgo.ko{background:#C62828}.astgo.ok{background:#1E7B4B}
 .astmiss{min-height:48px;text-align:left}
@@ -772,7 +772,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 23h45 (accueil v15)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 00h00 (pas à pas v16)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1837,37 +1837,66 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     genOpen('Semaine proposée', writes, holes ? holes+' place'+(holes > 1 ? 's' : '')+' sans remplaçant disponible' : '');
   }
   /* ---------- page de confirmation avant d'enregistrer une génération automatique ---------- */
-  let genPending = null;
+  let genPending = null, genRows = [], genStep = -1, genWarn = '';
+  const genNm = a => a.length ? a.map(dLabel).join(', ') : '—';
   function genOpen(title, writes, warn){
-    genPending = writes;
+    genPending = writes; genWarn = warn || ''; genStep = -1;
     $('#genShT').textContent = title;
-    $('#genShS').textContent = writes.length+' modification'+(writes.length > 1 ? 's' : '')+' · rien n’est enregistré tant que vous n’avez pas confirmé.';
-    const nm = a => a.length ? a.map(dLabel).join(', ') : '—';
-    const seen = new Map(), rows = [];
+    const seen = new Map(); genRows = [];
     writes.forEach((w, wi)=>{
       w.on = true;
       const pt = findPost(w.poste), sam = isSam(pt), sig = w.k+'|'+w.poste+'|'+(pt && pt.journee ? 'J' : w.part);
       if (seen.has(sig)) { seen.get(sig).idx.push(wi); return; }
       const d = new Intl.DateTimeFormat('fr-FR',{weekday:'short', day:'numeric', month:'numeric'}).format(parse(w.k));
       const lab = sam ? 'Astreinte' : postName(w.poste, w.k)+(pt && pt.journee ? '' : ' · '+PART_TXT[w.part]);
-      const r = {idx: [wi], html: '<span><b>'+esc(d)+'</b> · '+esc(lab)+'<br><small>'+(w.before.length && !sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(nm(w.before))+' → ' : '')+'<b>'+esc(nm(w.after))+'</b></small></span>'};
-      seen.set(sig, r); rows.push(r);
+      const r = {idx: [wi], d, lab, sam, w};
+      seen.set(sig, r); genRows.push(r);
     });
-    genRows = rows;
-    $('#genShL').innerHTML = (warn ? '<p class="plwhy">⚠ '+esc(warn)+'</p>' : '')+'<p class="hint">Relisez chaque vacation : touchez « Accepté » pour la refuser.</p>'+rows.map((r,ri)=>'<div class="astrow">'+r.html+'<button type="button" class="ghost genrow" data-genrow="'+ri+'" aria-pressed="true">✓ Accepté</button></div>').join('');
-    genCount();
+    genRender();
     $('#genSheet').hidden = false;
   }
-  let genRows = [];
+  function genAfter(r){ return genPending[r.idx[0]].after; }
+  function genRowHtml(r){ const w = genPending[r.idx[0]]; return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>'+(w.before.length && !r.sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(genNm(w.before))+' → ' : '')+'<b>'+esc(genNm(w.after))+'</b></small></span>'; }
   function genCount(){
-    const n = genRows.filter(r=>genPending && genPending[r.idx[0]].on).length;
-    $('#genShF').innerHTML = '<button type="button" class="primary" data-genok="1"'+(n ? '' : ' disabled')+'>✓ Confirmer '+n+' vacation'+(n > 1 ? 's' : '')+'</button>';
+    const n = genRows.filter(r=>genPending[r.idx[0]].on).length;
+    return '<button type="button" class="primary" data-genok="1"'+(n ? '' : ' disabled')+'>✓ Confirmer '+n+' vacation'+(n > 1 ? 's' : '')+'</button>';
+  }
+  function genRender(){
+    const n = genRows.length;
+    if (genStep >= 0 && genStep < n) {
+      const r = genRows[genStep], w = genPending[r.idx[0]], cur = w.after, dis = canWrite ? '' : ' disabled';
+      $('#genShS').textContent = 'Vacation '+(genStep+1)+' sur '+n+' · rien n’est enregistré tant que vous n’avez pas confirmé à la fin.';
+      const docs = sortedDocs(), reason = id => reasonFor(id, w.k, w.part);
+      $('#genShL').innerHTML = (genWarn && genStep === 0 ? '<p class="plwhy">⚠ '+esc(genWarn)+'</p>' : '')
+        + '<div class="genstep"><h4>'+esc(r.d)+' · '+esc(r.lab)+'</h4>'
+        + (w.before.length && !r.sam ? '<p class="hint">'+(w.ou ? 'À confirmer dans la trame : ' : 'Dans la trame : ')+esc(genNm(w.before))+'</p>' : '')
+        + '<p class="hint">Proposition :</p><div class="plc">'+docs.map(d=>'<button type="button" class="plsg'+(cur.includes(d.id) ? '' : ' alt')+(reason(d.id) ? ' na' : '')+'" data-genpick="'+esc(d.id)+'" aria-pressed="'+cur.includes(d.id)+'"'+dis+'>'+(cur.includes(d.id) ? '✓ ' : '')+esc(d.label)+'</button>').join('')+'</div>'
+        + (cur.some(id=>reason(id)) ? '<p class="plwhy">⚠ '+cur.filter(id=>reason(id)).map(id=>esc(dLabel(id))+' : '+esc(reason(id))).join(' · ')+'</p>' : '')
+        + '<p class="hint">Touchez un nom pour le changer'+(r.sam ? '' : ' (plusieurs possibles)')+'.</p></div>';
+      $('#genShF').innerHTML = '<div class="astpair"><button type="button" class="astbtn" data-gennext="0">✗ Refuser</button><button type="button" class="astbtn primary" data-gennext="1">✓ Valider</button></div>'
+        + '<div class="astpair"><button type="button" class="ghost astbtn" data-genprev="1"'+(genStep ? '' : ' disabled')+'>‹ Précédente</button><button type="button" class="ghost astbtn" data-genlist="1">Voir la liste</button></div>';
+      return;
+    }
+    $('#genShS').textContent = n+' vacation'+(n > 1 ? 's' : '')+' proposée'+(n > 1 ? 's' : '')+' · rien n’est enregistré tant que vous n’avez pas confirmé.';
+    $('#genShL').innerHTML = (genWarn ? '<p class="plwhy">⚠ '+esc(genWarn)+'</p>' : '')
+      + '<button type="button" class="astbtn go" data-genstart="1">▶ Valider une par une</button>'
+      + '<p class="hint">Ou relisez la liste : touchez « Accepté » pour refuser une vacation.</p>'
+      + genRows.map((r,ri)=>{ const on = genPending[r.idx[0]].on; return '<div class="astrow">'+genRowHtml(r)+'<button type="button" class="ghost genrow" data-genrow="'+ri+'" aria-pressed="'+on+'">'+(on ? '✓ Accepté' : '✗ Refusé')+'</button></div>'; }).join('');
+    $('#genShF').innerHTML = genCount();
   }
   function genClose(){ $('#genSheet').hidden = true; genPending = null; }
   $('#genSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-genx]')) return genClose();
     const gr = e.target.closest('[data-genrow]');
-    if (gr && genPending) { const r = genRows[Number(gr.dataset.genrow)], on = !genPending[r.idx[0]].on; r.idx.forEach(i=>{ genPending[i].on = on; }); gr.setAttribute('aria-pressed', String(on)); gr.textContent = on ? '✓ Accepté' : '✗ Refusé'; genCount(); return; }
+    if (gr && genPending) { const r = genRows[Number(gr.dataset.genrow)], on = !genPending[r.idx[0]].on; r.idx.forEach(i=>{ genPending[i].on = on; }); genRender(); return; }
+    if (!genPending) return;
+    if (e.target.closest('[data-genstart]')) { genStep = 0; genRender(); return; }
+    if (e.target.closest('[data-genlist]')) { genStep = -1; genRender(); return; }
+    if (e.target.closest('[data-genprev]')) { genStep = Math.max(0, genStep-1); genRender(); return; }
+    const gp = e.target.closest('[data-genpick]');
+    if (gp && genStep >= 0) { const r = genRows[genStep], id = gp.dataset.genpick, cur = genPending[r.idx[0]].after; let nx = r.sam ? [id] : (cur.includes(id) ? cur.filter(x=>x !== id) : cur.concat(id)); r.idx.forEach(i=>{ genPending[i].after = nx.slice(); genPending[i].val.w = nx.slice(); }); genRender(); return; }
+    const gn = e.target.closest('[data-gennext]');
+    if (gn && genStep >= 0) { const r = genRows[genStep]; const on = gn.dataset.gennext === '1' && genPending[r.idx[0]].after.length > 0; r.idx.forEach(i=>{ genPending[i].on = on; }); genStep++; if (genStep >= genRows.length) genStep = -1; genRender(); return; }
     if (!e.target.closest('[data-genok]') || !genPending) return;
     const ws = genPending.filter(w=>w.on); genClose();
     let ok = true;
