@@ -11,6 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Planning">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <style>*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}body{margin:0}</style>
@@ -353,6 +354,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
 .subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
 .subtabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent)}
+.plun{padding:10px 14px}
+.plun summary{cursor:pointer;font-weight:700;min-height:36px;display:flex;align-items:center;gap:8px}
 .plone{font-size:12px;color:var(--muted);margin:-4px 0 0}
 .plsg{min-height:44px;border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700;border-radius:999px;padding:0 14px}
 .pladd{min-height:44px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-weight:700;border-radius:999px;padding:0 16px}
@@ -1461,7 +1464,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
 
   /* ---------- onglet Créer un planning ---------- */
-  let plMode = 'week', plSheet = null, plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
+  let plUnOpen = false, plMode = 'week', plSheet = null, plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
   const plNorm = t => normS(String(t || '')).replace(/\s+/g,' ');
   function plFind(txt){
     const t = plNorm(txt); if (!t) return null;
@@ -1518,13 +1521,26 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       }).join('');
       return '<section class="plcard'+(isSam(p) ? ' ast' : '')+'"><h3><i style="background:'+posteColor(p.id)+'"></i>'+(isSam(p) ? 'Astreinte · '+esc(fmtShort.format(parse(k))) : esc(postName(p.id,k)))+'</h3>'+(isSam(p) ? '<p class="plone">Une seule personne · le chiffre = astreintes déjà prévues · classé du moins au plus chargé · noms barrés en rouge = indisponibles.</p>' : '')+rows+'</section>';
     };
+    const dLab = id => esc(dLabel(id));
+    const unBtn = (id, on, data) => '<button type="button" class="plsg alt'+(on ? ' na' : '')+'" aria-pressed="'+on+'" data-plun="'+esc(data)+'"'+dis+'>'+(on ? '✓ ' : '')+dLab(id)+'</button>';
+    const unWeek = () => {
+      const wk = [0,1,2,3,4].map(i=>key(days[i]));
+      const isOn = d => wk.every(kk=>d.days[kk] === 'J' || d.days[kk] === 'G');
+      const n = docs.filter(isOn).length;
+      return '<details class="plun card"'+(plUnOpen ? ' open' : '')+'><summary>🚫 Indisponible toute la semaine'+(n ? ' <b class="acn">'+n+'</b>' : '')+'</summary><p class="plone">Touchez un nom : indisponible du lundi au vendredi ('+esc(fmtDM.format(days[0]))+' – '+esc(fmtDM.format(days[4]))+'). Retouchez pour annuler. Les gardes ne sont pas modifiées.</p><div class="plc">'+docs.map(d=>unBtn(d.id, isOn(d), 'w|'+d.id)).join('')+'</div></details>';
+    };
+    const unSat = k => {
+      const isOn = d => d.days[k] === 'J' || d.days[k] === 'M' || d.days[k] === 'G';
+      const n = docs.filter(isOn).length;
+      return '<details class="plun card"'+(plUnOpen ? ' open' : '')+'><summary>🚫 Indisponible ce samedi'+(n ? ' <b class="acn">'+n+'</b>' : '')+'</summary><div class="plc">'+docs.map(d=>unBtn(d.id, isOn(d), 's|'+k+'|'+d.id)).join('')+'</div></details>';
+    };
     if (plMode === 'ast') {
       $('#plSum').textContent = '';
       if (!astP) { grid.innerHTML = '<p class="empty">Le poste d’astreinte n’est pas encore créé.</p>'; return; }
       const sats = [...Array(6)].map((_,i)=>addDays(days[5], 7*i));
-      grid.innerHTML = sats.map(d=>plCard(astP, key(d)).replace('<h3><i', '<h3 data-sat="'+key(d)+'"><i')).join('');
+      grid.innerHTML = sats.map(d=>plCard(astP, key(d)).replace('<h3><i', '<h3 data-sat="'+key(d)+'"><i').replace('</section>', unSat(key(d))+'</section>')).join('');
     } else {
-      grid.innerHTML = posts.map(p=>plCard(p, k)).join('') || '<p class="empty">Aucun poste ce jour-là.</p>';
+      grid.innerHTML = unWeek() + (posts.map(p=>plCard(p, k)).join('') || '<p class="empty">Aucun poste ce jour-là.</p>');
     }
   }
   async function plApply(poste, date, part, arr, added){
@@ -1589,9 +1605,25 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   document.querySelectorAll('[data-plmode]').forEach(b=>b.addEventListener('click', ()=>{ plMode = b.dataset.plmode; renderCompose(); }));
   $('#plJump').addEventListener('change', e=>{ if (e.target.value) { const d = parse(e.target.value); plStart = mondayOf(d); plDay = Math.min((d.getDay()+6)%7, 5); renderCompose(); } });
   document.querySelectorAll('[data-plscope]').forEach(b=>b.addEventListener('click', ()=>{ plScope = b.dataset.plscope; renderCompose(); }));
+  async function plToggleUn(spec){
+    const a = spec.split('|'), id = a[a.length-1], doc = doctors[id]; if (!doc) return;
+    let patch = {}, on;
+    if (a[0] === 'w') {
+      const wk = [0,1,2,3,4].map(i=>key(addDays(plStart,i)));
+      on = wk.every(kk=>doc.days[kk] === 'J' || doc.days[kk] === 'G');
+      wk.forEach(kk=>{ if (on) { if (doc.days[kk] === 'J') patch[kk] = null; } else if (doc.days[kk] !== 'G') patch[kk] = 'J'; });
+    } else {
+      const kk = a[1], cur = doc.days[kk];
+      if (cur === 'G') return notify(dLabel(id)+' est de garde ce jour-là : modifiez la garde dans Indispos.', true);
+      on = cur === 'J' || cur === 'M'; patch[kk] = on ? null : 'J';
+    }
+    if (!Object.keys(patch).length) return;
+    if (await setDays(id, patch)) notify(dLabel(id)+(on ? ' : indisponibilité retirée.' : (a[0] === 'w' ? ' : indisponible toute la semaine.' : ' : indisponible ce samedi.')));
+  }
   const plDayClick = e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} };
   $('#plDays').addEventListener('click', plDayClick);
-  $('#plGrid') && $('#plGrid').addEventListener('click', e=>{ if (e.target.closest('.plast')) plDayClick(e); });
+  $('#plGrid') && $('#plGrid').addEventListener('click', e=>{ if (e.target.closest('.plast')) plDayClick(e); const u = e.target.closest('[data-plun]'); if (u) plToggleUn(u.dataset.plun); });
+  $('#plGrid') && $('#plGrid').addEventListener('toggle', e=>{ if (e.target.classList && e.target.classList.contains('plun')) plUnOpen = e.target.open; }, true);
   function openSheet(slot){ plSheet = slot; $('#plSheet').hidden = false; $('#plShQ').value = ''; renderSheet(); setTimeout(()=>{ try { $('#plShQ').focus(); } catch(e) {} }, 60); }
   function closeSheet(){ plSheet = null; $('#plSheet').hidden = true; renderCompose(); }
   function renderSheet(){
