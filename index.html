@@ -513,8 +513,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       <div class="col">
         <div id="astBarBox" class="astbar" hidden></div>
         <div class="card" id="plCard">
-          <h2>Créer un planning</h2>
-          <div class="subtabs" role="group" aria-label="Type de planning"><button type="button" data-plmode="week" aria-pressed="true">📅 Semaine normale</button><button type="button" data-plmode="ast" aria-pressed="false">🔔 Astreintes</button></div>
+          <h2 id="plTitle">Créer un planning</h2>
+          <div class="subtabs" id="plSubtabs" hidden role="group" aria-label="Type de planning"><button type="button" data-plmode="week" aria-pressed="true">📅 Semaine normale</button><button type="button" data-plmode="ast" aria-pressed="false">🔔 Astreintes</button></div>
           <div class="weekbar">
             <button type="button" id="plPrev" aria-label="Semaine précédente">‹</button>
             <h2 id="plLabel"></h2>
@@ -770,7 +770,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 22h45 (départ v11)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 23h00 (mode v12)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1572,6 +1572,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const days = [...Array(6)].map((_,i)=>addDays(plStart,i));
     $('#plLabel').textContent = plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
     document.querySelectorAll('[data-plmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plmode === plMode)));
+    $('#plTitle').textContent = plMode === 'ast' ? 'Planning d’astreinte' : 'Planning de la semaine';
     $('#plCard').hidden = plStage !== 'auto' && plStage !== 'man'; $('#plManBox').hidden = plStage !== 'man'; grid.hidden = plStage !== 'man'; if (plStage !== 'man') { grid.innerHTML = ''; return; }
     $('#plDays').hidden = plMode === 'ast'; $('#plCopy').hidden = plMode === 'ast';
     document.querySelectorAll('[data-plscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plscope === plScope)));
