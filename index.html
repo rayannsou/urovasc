@@ -350,6 +350,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astr{display:flex;gap:8px;align-items:center;margin:0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);color:var(--ink);font-size:14px}
 .astr.mine{background:var(--accent);color:var(--accent-ink)}
 .lview .astr{margin-top:-2px}
+.subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
+.subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
+.subtabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent)}
 .plone{font-size:12px;color:var(--muted);margin:-4px 0 0}
 .plsg{min-height:44px;border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700;border-radius:999px;padding:0 14px}
 .pladd{min-height:44px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-weight:700;border-radius:999px;padding:0 16px}
@@ -489,13 +492,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       <div class="col">
         <div class="card">
           <h2>Créer un planning</h2>
+          <div class="subtabs" role="group" aria-label="Type de planning"><button type="button" data-plmode="week" aria-pressed="true">📅 Semaine normale</button><button type="button" data-plmode="ast" aria-pressed="false">🔔 Astreintes</button></div>
           <div class="weekbar">
             <button type="button" id="plPrev" aria-label="Semaine précédente">‹</button>
             <h2 id="plLabel"></h2>
             <button type="button" id="plNext" aria-label="Semaine suivante">›</button>
           </div>
           <div class="f jump"><label for="plJump">Aller à une semaine</label><input type="date" id="plJump"></div>
-          <div class="seg" role="group" aria-label="Type de planning"><button type="button" data-plmode="week" aria-pressed="true">Semaine normale</button><button type="button" data-plmode="ast" aria-pressed="false">Astreinte</button></div>
           <div class="seg" role="group" aria-label="Portée de la modification">
             <button type="button" data-plscope="once" aria-pressed="true">Une seule fois</button>
             <button type="button" data-plscope="always" aria-pressed="false">Toujours</button>
@@ -1510,7 +1513,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           + '<button type="button" class="pladd" data-plopen="'+esc(slot)+'"'+dis+'>'+(sug.length || who.length ? '＋ Nouveau nom' : '＋ Ajouter un médecin')+'</button><button type="button" class="pladd" data-plclose="'+esc(slot+'|1')+'"'+dis+'>🔒 Fermer la vacation</button></div>'
           + (why ? '<p class="plwhy">⚠ '+why+'</p>' : '')+'</div>';
       }).join('');
-      return '<section class="plcard'+(isSam(p) ? ' ast' : '')+'"><h3><i style="background:'+posteColor(p.id)+'"></i>'+(isSam(p) ? 'Astreinte · samedi '+esc(fmtShort.format(parse(k))) : esc(postName(p.id,k)))+'</h3>'+(isSam(p) ? '<p class="plone">Une seule personne · le chiffre = astreintes déjà prévues · classé du moins au plus chargé · noms barrés en rouge = indisponibles.</p>' : '')+rows+'</section>';
+      return '<section class="plcard'+(isSam(p) ? ' ast' : '')+'"><h3><i style="background:'+posteColor(p.id)+'"></i>'+(isSam(p) ? 'Astreinte · '+esc(fmtShort.format(parse(k))) : esc(postName(p.id,k)))+'</h3>'+(isSam(p) ? '<p class="plone">Une seule personne · le chiffre = astreintes déjà prévues · classé du moins au plus chargé · noms barrés en rouge = indisponibles.</p>' : '')+rows+'</section>';
     };
     if (plMode === 'ast') {
       $('#plSum').textContent = '';
