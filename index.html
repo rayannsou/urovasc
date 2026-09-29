@@ -785,7 +785,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 01h15 (sans médecin v21)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 01h30 (off v22)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -2576,9 +2576,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         L += '</div>';
       });
       if (!any) L += '<p class="empty">Aucune vacation ce jour-là.</p>';
-      const offs = PARTS.map(part=>{ const l = offList(gDay, dk, part); return l.length ? (part === 'M' ? 'matin' : 'après-midi')+' : '+l.map(dLabel).join(', ') : ''; }).filter(Boolean);
-      if (offs.length) L += '<p class="poff">OFF · '+esc(offs.join(' · '))+'</p>';
       const ab = PARTS.map(part=>({part, g: absAt(dk, part)}));
+      ab.forEach(x=>{ const l = offList(gDay, dk, x.part).filter(id=>doctors[id]); if (l.length) { const cur = x.g.Off || []; x.g.Off = cur.concat(l.filter(id=>!cur.includes(id))); } });
       if (ab.some(x=>Object.keys(x.g).length)) {
         L += '<div class="prow pabs"><div class="pname">Absences</div>';
         ab.forEach(x=>{
