@@ -1,0 +1,2218 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Planning Imagerie</title>
+<meta name="theme-color" content="#17465A">
+<meta name="color-scheme" content="light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planning">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<style>*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}body{margin:0}</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Mise en page : en-tête avec choix du médecin, deux vues.
+   "Mon planning" = calendrier mensuel + saisie ; "Équipe" = grille de semaine M / AM comme la trame du service. */
+:root{
+  --page:#FFFFFF; --bg:#F1F4F2; --surface:#FFFFFF; --ink:#13201D; --muted:#586964; --line:#D6DEDA;
+  --accent:#1D5266; --accent-ink:#FFFFFF; --accent-soft:#DCEBF0;
+  --garde:#3B3A8C; --garde-ink:#FFFFFF;
+  --rdg:#BFE2EC; --rdg-ink:#0C3A49;
+  --ind:#FBEFD3; --ind-2:#EBCB86; --ind-ink:#5A3A00;
+  --danger:#9B2C2C;
+  color-scheme:light;
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font:15px/1.5 var(--font-body);padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:1020px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(1.8rem,5.5vw,2.5rem);line-height:1.05;font-weight:700}
+h2{font-size:1.05rem;font-weight:600}
+p{margin:0}
+.sub{margin-top:6px;color:var(--muted)}
+.muted{color:var(--muted)}
+.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+.who-box{display:flex;flex-direction:column;gap:4px;width:min(100%,260px)}
+label,.lbl{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+select,input[type=date],input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;min-height:44px;width:100%}
+#who{font-weight:600;border-color:var(--accent)}
+.renme{margin-top:8px;background:transparent;border:1px solid rgba(255,255,255,.7);color:#fff;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;min-height:36px}
+button{font:inherit;cursor:pointer;min-height:44px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:0 14px}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled,select:disabled,input:disabled{opacity:.5;cursor:not-allowed}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.ghost{background:none}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+.notice{border:1.5px solid var(--ind-2);background:var(--ind);color:var(--ind-ink);border-radius:10px;padding:10px 14px}
+.tabs{display:flex;gap:4px;border-bottom:1.5px solid var(--line)}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font-weight:600;color:var(--muted);margin-bottom:-1.5px}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.grid2{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.empty{padding:24px 16px;border:1.5px dashed var(--line);border-radius:12px;color:var(--muted);text-align:center}
+.next{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;padding:0 2px}
+.next strong{font-family:var(--font-display);font-weight:600}
+.k-G{background:var(--garde);color:var(--garde-ink)}
+.k-R{background:var(--rdg);color:var(--rdg-ink)}
+.k-I{background:repeating-linear-gradient(135deg,var(--ind) 0 6px,var(--ind-2) 6px 9px);color:var(--ind-ink)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;margin:0;padding:0;font-size:13px;color:var(--muted)}
+.legend li{display:flex;align-items:center;gap:6px}
+.sw{width:26px;height:18px;border-radius:4px;display:inline-block;font:700 9px/18px var(--font-mono);text-align:center}
+.hint{font-size:13px;color:var(--muted)}
+fieldset{border:0;padding:0;margin:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{min-height:38px;font-size:13px;border-radius:999px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.check{display:flex;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);font-weight:400}
+.check input{width:20px;height:20px}
+.weekbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.weekbar h2{flex:1;text-align:center;min-width:140px}
+.weekbar button{min-width:44px;padding:0 10px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table.team{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content;min-width:100%}
+.team th,.team td{padding:0;text-align:center;border-bottom:1px solid var(--line)}
+.team .who{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;padding:0 10px;font:600 12px var(--font-mono);min-width:76px;border-right:1px solid var(--line)}
+.team thead th{background:var(--surface);font:600 12px var(--font-mono);padding:7px 2px}
+.team thead th.we{color:var(--muted)}
+.team .sub th{font:500 10px var(--font-mono);color:var(--muted);padding:3px 0}
+.team td.c{width:30px;min-width:30px;height:32px;font:700 11px var(--font-mono)}
+.team td.end,.team th.end{border-right:1px solid var(--line)}
+.team tr.me .who{background:var(--accent-soft)}
+.team tfoot td,.team tfoot th{border-bottom:0;color:var(--muted);font:500 11px var(--font-mono);height:30px}
+.team tfoot td.c{font-weight:600;color:var(--ink)}
+.manage{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 16px}
+.manage summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+.manage[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px}
+.manage-body{display:flex;flex-direction:column;gap:14px;padding-bottom:16px}
+.people{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.people li{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:8px;padding:2px 2px 2px 10px;font:600 12px var(--font-mono)}
+.people button{min-height:36px;font-size:12px;border:0;background:none;color:var(--muted)}
+.people button.confirm{color:var(--danger);font-weight:600}
+.addrow{display:flex;gap:8px;align-items:flex-end}
+.addrow .f{flex:1}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;max-width:calc(100% - 32px);z-index:10;font-size:14px}
+.toast.err{background:var(--danger);color:var(--bg)}
+.badge{display:inline-block;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--garde);color:var(--garde-ink);font:700 11px/20px var(--font-mono);margin-left:8px;vertical-align:middle}
+.sec h2{margin-bottom:2px}
+.sw{background:var(--bg);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.sw-h{font-weight:500}
+.sw-h strong{font-family:var(--font-mono)}
+.sw-m{font-size:13px;color:var(--muted)}
+.sw-n{font-size:14px;font-style:italic;color:var(--muted)}
+.sw-a{display:flex;flex-wrap:wrap;gap:8px}
+.sw-resp{border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:10px}
+.warn{background:var(--ind);color:var(--ind-ink);border-radius:8px;padding:8px 10px;font-size:13px}
+.tag{display:inline-block;font:600 11px var(--font-body);background:var(--accent-soft);color:var(--ink);padding:1px 8px;border-radius:999px;margin-left:8px}
+.sw-a button.danger{color:var(--danger);border-color:var(--danger);font-weight:600}
+table.trame .who{min-width:112px;vertical-align:middle}
+.trame .who small{display:block;font:400 10px/1.3 var(--font-body);color:var(--muted);white-space:normal;max-width:132px;margin-top:2px}
+.team td.v{min-width:62px;padding:4px 3px;vertical-align:top;height:auto}
+.team td.none{background:repeating-linear-gradient(135deg,var(--bg) 0 6px,var(--line) 6px 7px)}
+.ch{display:inline-block;font:600 11px/1.5 var(--font-mono);padding:0 5px;border-radius:5px;background:var(--bg);margin:1px}
+.ch.me{background:var(--accent);color:var(--accent-ink)}
+.ch.bad{background:var(--ind);color:var(--ind-ink);text-decoration:line-through}
+.ch.off{color:var(--muted)}
+.cap{display:block;font:500 9px/1.2 var(--font-mono);color:var(--muted)}
+.cap.alt{color:var(--accent);font-weight:700}
+.cf{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cf li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}
+.cf button{min-height:36px;font-size:13px;color:var(--ink)}
+.myweek{display:flex;flex-direction:column;gap:8px}
+.dayrow{background:var(--bg);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dayrow.we{background:none;border:1px dashed var(--line)}
+.dayrow.today{outline:2px solid var(--accent);outline-offset:-2px}
+.dr-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.dr-date{font:600 14px var(--font-body);text-transform:none;letter-spacing:0;color:var(--ink)}
+.dr-sel{flex:1 1 200px;width:auto;max-width:290px;font-weight:500}
+.dr-sel.sel-G{background:var(--garde);color:var(--garde-ink);border-color:var(--garde)}
+.dr-sel.sel-I{background:var(--ind);color:var(--ind-ink);border-color:var(--ind-2)}
+.dr-body{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.vac{display:flex;gap:8px;align-items:baseline;min-width:0}
+.vac .vp{font:700 11px var(--font-mono);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:0 6px;flex:none}
+.vac small{color:var(--muted);font-size:12px}
+.vac.bad .vp{background:var(--ind);border-color:var(--ind-2);color:var(--ind-ink)}
+.vac.bad small{color:var(--ind-ink);font-weight:600}
+.pill-r{display:inline-block;align-self:flex-start;background:var(--rdg);color:var(--rdg-ink);font:600 12px var(--font-body);padding:2px 10px;border-radius:999px}
+.none-txt{color:var(--muted);font-size:13px}
+.jump{max-width:220px}
+.seg{display:inline-flex;align-self:flex-start;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;min-height:40px;background:var(--surface)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+
+[hidden]{display:none!important}
+:root{--red:#B42318;--red-soft:#FDECEA;--red-line:#F1B4AD}
+.alert{border:1.5px solid var(--red-line);background:var(--red-soft);color:var(--red);border-radius:10px;padding:10px 14px;font-size:14px}
+.alert strong{color:var(--red)}
+.alert p+p,.alert p+ul{margin-top:6px}
+.ch.bad{background:var(--red-soft);color:var(--red);text-decoration:none;box-shadow:inset 0 0 0 1px var(--red-line)}
+.vac.bad .vp{background:var(--red-soft);border-color:var(--red-line);color:var(--red)}
+.vac.bad small{color:var(--red);font-weight:600}
+.badge.red{background:var(--red);color:#fff}
+.toast.err{background:var(--red);color:#fff}
+.team td.v[data-p]{cursor:pointer}
+.team td.v[data-p]:hover{background:var(--accent-soft)}
+.team td.v.sel{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft)}
+.team td.v.cfl{background:var(--red-soft)}
+.cap.open{color:var(--red);font-weight:700}
+.cap.mod{color:var(--accent);font-weight:700}
+.st{display:inline-block;font:600 12px var(--font-body);padding:2px 10px;border-radius:999px}
+.st-g{background:var(--garde);color:var(--garde-ink)}
+.st-r{background:var(--rdg);color:var(--rdg-ink)}
+.st-i{background:var(--ind);color:var(--ind-ink)}
+.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.row3{grid-template-columns:minmax(0,1fr)}}
+.ed-row select.bad{border-color:var(--red);color:var(--red);font-weight:600}
+.people li input{min-height:36px;width:118px;border:0;border-radius:6px;font:600 12px var(--font-mono);padding:0 6px;background:transparent}
+.people li input:focus{background:var(--bg)}
+.hours{font-size:14px}
+.hours summary{cursor:pointer;min-height:40px;display:flex;align-items:center;color:var(--muted)}
+.hours .row2{margin-top:6px}
+.hrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:560px){.hrow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.tday{display:flex;flex-direction:column;gap:12px}
+.tday h2.date{font-size:clamp(1.3rem,4.5vw,1.7rem);text-transform:capitalize}
+.slot{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.slot.g{border-left-color:var(--garde)}.slot.r{border-left-color:#5BA9C0}.slot.i{border-left-color:var(--ind-2)}.slot.free{border-left-color:var(--line)}.slot.bad{border-left-color:var(--red)}
+.slot .when{font:600 12px var(--font-mono);color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.slot .what{font:700 clamp(1.3rem,5vw,1.7rem)/1.15 var(--font-display)}
+.slot .with{color:var(--muted)}
+.slot .lone{color:var(--muted)}
+.next-v{background:var(--accent-soft);border-radius:10px;padding:10px 14px}
+.tom{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.tom b{font:600 12px var(--font-mono);color:var(--muted)}
+
+body{font-size:16px}
+select,input[type=date],input[type=text],input[type=time]{font-size:16px}
+.ic{display:none;width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ts{display:none}
+.tabs{flex-wrap:wrap}
+.tday h2.date{text-transform:none}
+.tday h2.date::first-letter{text-transform:uppercase}
+.daychips{display:flex;gap:6px;margin-bottom:10px}
+.daychips button{flex:1;min-width:0;padding:0 2px;font-size:13px;line-height:1.25;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:54px}
+.daychips button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.plist{display:flex;flex-direction:column;gap:10px}
+.prow{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.pname{font:600 17px/1.2 var(--font-display)}
+.pname small{display:block;font:500 12px var(--font-body);color:var(--muted);margin-top:2px}
+.pcell{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--bg);min-height:46px;cursor:pointer}
+.pcell.sel{outline:2px solid var(--accent);outline-offset:-2px}
+.pcell.cfl{background:var(--red-soft)}
+.pp{font:600 11px var(--font-mono);color:var(--muted);width:66px;flex:none;text-transform:uppercase}
+.pw{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:0}
+.pw .ch{font-size:14px;padding:2px 9px}
+.pw .cap{width:100%}
+.poff{font-size:13px;color:var(--muted);padding:2px 4px}
+@media (max-width:700px){
+  body{padding-inline:14px;padding-block:14px calc(96px + env(safe-area-inset-bottom))}
+  h1{font-size:1.65rem}
+  .top{gap:10px}
+  .who-box{width:100%}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--page);border-top:1.5px solid var(--line);border-bottom:0;gap:0;flex-wrap:nowrap;padding-bottom:env(safe-area-inset-bottom)}
+  .tabs button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;letter-spacing:-.01em;line-height:1.1;min-height:62px;padding:6px 0;border-bottom:0;border-top:3px solid transparent;margin:0;position:relative;text-align:center}
+  .tabs button[aria-selected=true]{border-top-color:var(--accent);color:var(--accent)}
+  .tabs .ic{display:block}
+  .tl{display:none}.ts{display:inline}
+  .tabs .badge{position:absolute;top:5px;left:calc(50% + 6px);margin:0;min-width:18px;height:18px;font-size:10px;line-height:18px;padding:0 4px}
+  .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
+  .card{padding:14px}
+}
+.st{white-space:nowrap}.legend li{flex-wrap:wrap}
+.cwp{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 14px}
+.cwp>summary{min-height:52px;display:flex;align-items:center;gap:8px;cursor:pointer;font:600 17px var(--font-display)}
+.cwp>summary small{font:400 13px var(--font-body);color:var(--muted);margin-left:auto}
+.cwp[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+.cwb{display:flex;flex-direction:column;gap:8px;padding-bottom:14px}
+.cwr{background:var(--bg);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.cwr.cf{background:var(--red-soft)}
+.cwl{font-size:14px}.cwl b{font-weight:600}
+.cww{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cww .ch{font-size:14px;padding:3px 4px 3px 9px;display:inline-flex;align-items:center;gap:2px}
+.cww .ch .x{min-height:28px;min-width:28px;padding:0;border:0;background:none;color:var(--muted);font-size:18px;line-height:1}
+.cww select{width:auto;flex:1 1 170px;min-height:40px;padding:4px 10px}
+.cwm{color:var(--red);font-size:13px;font-weight:600}
+.cwv{align-self:flex-start;min-height:36px;font-size:13px}
+.tag.ex{background:var(--ind);color:var(--ind-ink)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.filebtn{display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:8px;padding:0 14px;font:600 15px var(--font-body);text-transform:none;letter-spacing:0;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
+.xlp{background:var(--accent-soft);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.xlp ul{margin:0;padding-left:18px;font-size:14px}
+.xlp .xw{color:var(--red);font-weight:600;font-size:14px}
+.xlp .xa{display:flex;flex-wrap:wrap;gap:8px}
+/* couleur */
+.top{background:linear-gradient(135deg,#17465A,#2F7A8C);color:#fff;border-radius:16px;padding:16px 18px}
+.top h1,.top .sub{color:#fff}.top .sub{opacity:.88;margin-top:4px}.top label{color:#DCEBF0}
+.top #who{border-color:#fff}
+.tday h2.date{color:var(--accent)}
+.slot{border-left-color:var(--pc,var(--accent))}
+.slot .what{color:var(--pc,var(--ink))}
+.slot.g .what{color:var(--garde)}
+.prow{border-left:6px solid var(--pc,var(--accent))}
+.pname{color:var(--pc,var(--ink))}
+.cwp{border-left:6px solid var(--pc,var(--accent))}
+.cwp>summary{color:var(--pc,var(--ink))}
+.pcell .pp{color:var(--ink)}
+.dayrow{border-left:4px solid var(--line)}
+.dayrow.today{border-left-color:var(--accent)}
+.card>h2{color:var(--accent)}
+.tabs button[aria-selected=true]{color:var(--accent)}
+.dnote{font-size:13px;color:var(--ink);background:var(--accent-soft);border-radius:8px;padding:6px 10px}
+.dnote b{font-weight:600}
+.notelist{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.cwr.empty{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 12px}
+.cwr.empty select{flex:1 1 180px;max-width:280px;min-height:40px}
+.cwr input[type=text]{min-height:40px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Planning Imagerie</h1>
+      <p class="sub">Indisponibilités, gardes et repos de garde</p>
+    </div>
+    <div class="who-box">
+      <label for="who">Je suis</label>
+      <select id="who"><option value="">Chargement…</option></select>
+      <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <nav class="tabs" role="tablist" aria-label="Vues du planning">
+    <button type="button" role="tab" id="tab-auj" aria-selected="true" data-tab="auj"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="tl">Aujourd’hui</span><span class="ts">Aujourd’hui</span></button>
+    <button type="button" role="tab" id="tab-moi" aria-selected="false" data-tab="moi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span class="tl">Mon planning</span><span class="ts">Planning</span></button>
+    <button type="button" role="tab" id="tab-general" aria-selected="false" data-tab="general"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 10h18M9 4v17M15 10v11"/></svg><span class="tl">Planning général</span><span class="ts">Général</span><span id="gBadge" class="badge red" hidden></span></button>
+    <button type="button" role="tab" id="tab-creer" aria-selected="false" data-tab="creer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span class="tl">Créer planning</span><span class="ts">Créer</span></button>
+    <button type="button" role="tab" id="tab-indispos" aria-selected="false" data-tab="indispos"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span class="tl">Mes indisponibilités</span><span class="ts">Indispos</span></button>
+    <button type="button" role="tab" id="tab-echanges" aria-selected="false" data-tab="echanges"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15l-3.5-3.5M20 16H5l3.5 3.5"/></svg><span class="tl">Échanges</span><span class="ts">Échanges</span><span id="swapBadge" class="badge" hidden></span></button>
+  </nav>
+
+  <main>
+    <section id="view-auj" aria-labelledby="tab-auj">
+      <p id="auEmpty" class="empty">Chargement du planning partagé…</p>
+      <div id="auBody" class="col" hidden></div>
+    </section>
+
+    <section id="view-moi" aria-labelledby="tab-moi" hidden>
+      <p id="meEmpty" class="empty">Chargement du planning partagé…</p>
+      <div id="meBody" class="col" hidden>
+        <div id="nextG" class="next"></div>
+        <div id="conflicts" class="alert" hidden></div>
+        <div class="card">
+          <div class="weekbar">
+            <button type="button" id="mwPrev" aria-label="Semaine précédente">‹</button>
+            <h2 id="mwLabel"></h2>
+            <button type="button" id="mwNext" aria-label="Semaine suivante">›</button>
+            <button type="button" id="mwToday" class="ghost">Cette semaine</button>
+          </div>
+          <div class="f jump"><label for="mwJump">Aller à une date</label><input type="date" id="mwJump"></div>
+          <div id="myWeek" class="myweek"></div>
+          <ul class="legend">
+            <li><span class="st st-g">Garde</span></li>
+            <li><span class="st st-r">Repos de garde</span>posé le lendemain d'une garde</li>
+            <li><span class="st st-i">Indisponible</span></li>
+            <li><span class="ch bad">M</span>Vacation en conflit avec une indisponibilité</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Importer dans mon calendrier</h2>
+          <p class="hint">Vos vacations, gardes et repos de garde des 12 prochaines semaines, dans un fichier calendrier (.ics) pour l'iPhone, Google Agenda ou Outlook.</p>
+          <button type="button" class="primary" id="icsBtn">Importer mon emploi du temps sur le calendrier</button>
+          <p class="hint">Sur iPhone : ouvrez le fichier reçu, puis touchez « Ajouter tout ». Réimporter met le calendrier à jour sans doublon.</p>
+          <details class="hours"><summary>Horaires des vacations</summary>
+            <div class="hrow">
+              <div class="f"><label for="hM1">Matin début</label><input type="time" id="hM1"></div>
+              <div class="f"><label for="hM2">Matin fin</label><input type="time" id="hM2"></div>
+              <div class="f"><label for="hA1">Après-midi début</label><input type="time" id="hA1"></div>
+              <div class="f"><label for="hA2">Après-midi fin</label><input type="time" id="hA2"></div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-creer" aria-labelledby="tab-creer" hidden>
+      <div class="col">
+        <div class="card">
+          <h2>Créer le planning d’une semaine</h2>
+          <p class="hint">Choisissez la semaine, puis ouvrez chaque poste (échographie, scanner…) et choisissez les médecins jour par jour dans les menus. Le plus rapide : importer le fichier Excel du planning du mois ci-dessous.</p>
+          <div class="weekbar">
+            <button type="button" id="cwPrev" aria-label="Semaine précédente">‹</button>
+            <h2 id="cwLabel"></h2>
+            <button type="button" id="cwNext" aria-label="Semaine suivante">›</button>
+          </div>
+          <div class="f jump"><label for="cwJump">Aller à une semaine</label><input type="date" id="cwJump"></div>
+          <p id="cwStatus" class="hint"></p>
+          <fieldset data-edit id="cwSet"><button type="button" class="ghost" id="cwReset">Vider les vacations de la semaine</button></fieldset>
+        </div>
+        <div class="card" id="cwImport">
+          <h2>Importer le planning Excel</h2>
+          <p class="hint">Importez le fichier du service (une feuille par semaine : postes, congés, absences, astreintes, notes). Toutes les semaines du fichier sont créées d’un coup et les médecins inconnus sont ajoutés à la liste. Un tableau simple (postes en lignes, jours en colonnes) est aussi accepté.</p>
+          <fieldset data-edit id="xlSet">
+            <label class="filebtn primary" for="xlFile">Choisir un fichier Excel…</label>
+            <input type="file" id="xlFile" accept=".xlsx,.xls,.csv" class="visually-hidden">
+            <button type="button" class="ghost" id="xlModel">Télécharger le modèle (semaine affichée)</button>
+          </fieldset>
+          <div id="xlPreview" hidden></div>
+        </div>
+        <div id="cwAlert" class="alert" role="alert" hidden></div>
+        <div id="cwPostes" class="col"></div>
+        <form id="cwExcep" class="card" onsubmit="return false">
+          <h2>Ajout rapide d’une vacation</h2>
+          <p class="hint">Choisissez le poste, le jour, le créneau et le médecin. Vous pouvez aussi remplir directement les postes ci-dessus.</p>
+          <fieldset data-edit id="cxSet">
+            <div class="row3">
+              <div class="f"><label for="cxPoste">Poste</label><select id="cxPoste"></select></div>
+              <div class="f"><label for="cxDay">Jour</label><select id="cxDay"></select></div>
+              <div class="f"><label for="cxPart">Créneau</label><select id="cxPart"></select></div>
+            </div>
+            <div class="f"><label for="cxWho">Médecin</label><select id="cxWho"></select></div>
+            <p id="cxNote" class="hint"></p>
+            <button type="submit" class="primary" id="cxGo">Ajouter cette vacation</button>
+          </fieldset>
+        </form>
+      </div>
+    </section>
+
+    <section id="view-indispos" aria-labelledby="tab-indispos" hidden>
+      <p id="inEmpty" class="empty">Chargement du planning partagé…</p>
+      <div id="inBody" class="grid2" hidden>
+        <div class="col">
+          <div class="card">
+            <div class="weekbar">
+              <button type="button" id="iwPrev" aria-label="Semaine précédente">‹</button>
+              <h2 id="iwLabel"></h2>
+              <button type="button" id="iwNext" aria-label="Semaine suivante">›</button>
+              <button type="button" id="iwToday" class="ghost">Cette semaine</button>
+            </div>
+            <div class="f jump"><label for="iwJump">Aller à une date</label><input type="date" id="iwJump"></div>
+            <div id="myDays" class="myweek"></div>
+            <ul class="legend">
+              <li>Choisissez votre statut pour chaque jour dans le menu déroulant</li>
+              <li><span class="st st-r">Repos de garde</span>posé tout seul le lendemain d'une garde</li>
+            </ul>
+          </div>
+        </div>
+        <div class="col">
+          <form id="period" class="card">
+            <h2>Saisir une période</h2>
+            <p class="hint">Congés, semaine entière ou série de gardes. Le repos de garde se pose tout seul le lendemain.</p>
+            <fieldset data-edit id="pSet">
+              <div class="chips" role="group" aria-label="Raccourcis de dates">
+                <button type="button" data-w="0">Cette semaine</button>
+                <button type="button" data-w="1">Semaine prochaine</button>
+                <button type="button" data-w="2">Dans 2 semaines</button>
+              </div>
+              <div class="row2">
+                <div class="f"><label for="pFrom">Du</label><input type="date" id="pFrom"></div>
+                <div class="f"><label for="pTo">Au</label><input type="date" id="pTo"></div>
+              </div>
+              <div class="f">
+                <label for="pType">Type</label>
+                <select id="pType">
+                  <option value="J">Indisponible toute la journée</option>
+                  <option value="M">Indisponible le matin</option>
+                  <option value="AM">Indisponible l'après-midi</option>
+                  <option value="G">De garde (repos le lendemain)</option>
+                  <option value="">Disponible (effacer)</option>
+                </select>
+              </div>
+              <label class="check"><input type="checkbox" id="pWe" checked>Inclure samedi et dimanche</label>
+              <button type="submit" class="primary">Appliquer à ma fiche</button>
+              <p class="hint">Une indisponibilité ne remplace pas une garde déjà saisie.</p>
+            </fieldset>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-general" aria-labelledby="tab-general" hidden>
+      <div class="col">
+        <div class="seg" role="group" aria-label="Affichage du planning général">
+          <button type="button" data-g="poste" aria-pressed="true">Par poste</button>
+          <button type="button" data-g="medecin" aria-pressed="false">Par médecin</button>
+        </div>
+        <div class="weekbar">
+          <button type="button" id="gPrev" aria-label="Semaine précédente">‹</button>
+          <h2 id="gLabel"></h2>
+          <button type="button" id="gNext" aria-label="Semaine suivante">›</button>
+          <button type="button" id="gToday" class="ghost">Cette semaine</button>
+        </div>
+        <div id="gAlert" class="alert" hidden></div>
+        <div id="gPoste" class="col">
+          <div id="trameWrap" class="tw"></div>
+          <ul class="legend">
+            <li>Case hachurée : pas de vacation</li>
+            <li><span class="ch me">RM</span>Vous</li>
+            <li><span class="ch bad">RM</span>Indisponible, de garde ou en repos ce jour-là</li>
+            <li>Les échanges enregistrés sont déjà appliqués</li>
+            <li>Touchez une case pour modifier qui est affecté</li>
+          </ul>
+          <div id="gNotes" class="card" hidden></div>
+          <form id="edForm" class="card" onsubmit="return false">
+            <h2>Modifier une vacation</h2>
+            <p class="hint">Touchez une case du tableau ou choisissez ci-dessous. Le changement vaut pour ce jour seulement : la trame de la semaine type ne bouge pas.</p>
+            <fieldset data-edit id="edSet">
+              <div class="row3">
+                <div class="f"><label for="edPoste">Poste</label><select id="edPoste"></select></div>
+                <div class="f"><label for="edDay">Jour</label><select id="edDay"></select></div>
+                <div class="f"><label for="edPart">Créneau</label><select id="edPart"></select></div>
+              </div>
+              <p id="edState" class="hint"></p>
+              <div id="edWho" class="col" style="gap:8px"></div>
+              <div class="f"><label for="edAdd">Ajouter un médecin</label><select id="edAdd"></select></div>
+              <div id="edMsg" class="alert" role="alert" hidden></div>
+              <button type="button" class="ghost" id="edRevert" hidden>Effacer cette vacation</button>
+            </fieldset>
+          </form>
+        </div>
+        <div id="gMed" class="col" hidden>
+          <div id="teamWrap" class="tw"></div>
+          <ul class="legend">
+            <li><span class="sw k-G">G</span>Garde</li>
+            <li><span class="sw k-R">R</span>Repos de garde</li>
+            <li><span class="sw k-I">×</span>Indisponible</li>
+            <li>Dernière ligne : nombre de médecins absents sur la demi-journée</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-echanges" aria-labelledby="tab-echanges" hidden>
+      <p id="swEmpty" class="empty" hidden></p>
+      <div id="swBody" class="grid2" hidden>
+        <div class="col">
+          <button type="button" class="ghost" id="swJump">Échanger deux vacations ↓</button>
+          <div id="swLists" class="col"></div>
+        </div>
+        <div class="col">
+          <form id="swForm" class="card">
+            <h2>Échanger deux vacations</h2>
+            <p class="hint">L'échange est immédiat, sans validation du confrère. Il apparaît dans l'onglet Échanges de chacun et peut être annulé par l'un ou l'autre.</p>
+            <fieldset data-edit id="swSet">
+              <div class="f"><label for="swMine">Ma vacation</label><select id="swMine"></select></div>
+              <div class="f"><label for="swWith">Échanger avec</label><select id="swWith"></select></div>
+              <div class="f"><label for="swTheirs">Contre sa vacation</label><select id="swTheirs"></select></div>
+              <p id="swCheck" class="hint" aria-live="polite"></p>
+              <button type="submit" class="primary" id="swGo" disabled>Échanger</button>
+            </fieldset>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <details class="manage" id="manage">
+    <summary>Médecins : renommer, ajouter, retirer</summary>
+    <div class="manage-body">
+      <p class="hint">Pour renommer, modifiez le nom dans la case puis validez (Entrée). Les vacations et indisponibilités sont conservées.</p>
+      <ul id="people" class="people"></ul>
+      <form id="addForm" class="addrow">
+        <fieldset data-edit id="aSet" style="flex-direction:row;align-items:flex-end;width:100%">
+          <div class="f" style="flex:1"><label for="newName">Ajouter (initiales ou nom)</label><input type="text" id="newName" maxlength="24" autocomplete="off"></div>
+          <button type="submit" class="primary">Ajouter</button>
+        </fieldset>
+      </form>
+    </div>
+  </details>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* Lecture du planning mensuel du service (une feuille par semaine). Sans dépendance : reçoit la bibliothèque XLSX. */
+(function (root) {
+  const POSTES = [
+    {id:'interp-urg', label:'Interprétation radio Libourne urgences', info:true},
+    {id:'interp-ext', label:'Interprétation radio Libourne externes', info:true},
+    {id:'blaye', label:'Déplacement Blaye', journee:true},
+    {id:'stefoy', label:'Déplacement Ste Foy', journee:true},
+    {id:'scanner', label:'Scanner Libourne / Blaye / Ste Foy + radios Ste Foy'},
+    {id:'scanner-interv', label:'Interventionnel scanner'},
+    {id:'irm1', label:'IRM 1 + radio urgences'},
+    {id:'irm2', label:'IRM 2 + radio externes'},
+    {id:'irm-blaye', label:'IRM Blaye', journee:true},
+    {id:'irm-3t', label:'IRM 3 T', journee:true},
+    {id:'salle-interv', label:'Salle interventionnel'},
+    {id:'echo1', label:'Échographie 1'},
+    {id:'echo2', label:'Échographie 2'},
+    {id:'mammo', label:'Mammographie'},
+    {id:'astreinte', label:'Astreinte', journee:true}
+  ];
+  const MOIS = ['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
+  const JOURS = ['lundi','mardi','mercredi','jeudi','vendredi'];
+  const norm = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+  const pad = n => String(n).padStart(2,'0');
+  const ymd = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const KNOWN = {'clara b':'Clara B','clara m':'Clara M','heloise':'Héloïse','chloe':'Chloé','rayann':'Rayann','jennifer':'Jennifer','eric':'Eric'};
+
+  function personLabel(raw){
+    let t = String(raw).replace(/\*/g,'').replace(/\s+/g,' ').trim().replace(/\.$/,'');
+    let n = norm(t).replace(/\./g,'').replace(/ v$/,'').trim();
+    if (KNOWN[n]) return KNOWN[n];
+    if (/^[A-Za-zÀ-ÿ]{2,3}$/.test(t)) return t.toUpperCase();
+    return t.toLowerCase().replace(/(^|[\s-])([a-zà-ÿ])/g,(m,a,b)=>a+b.toUpperCase());
+  }
+  function posteFor(label){
+    const n = norm(label);
+    if (n.startsWith('interpretation radio libourne urgences')) return 'interp-urg';
+    if (n.startsWith('interpretation radio libourne externes')) return 'interp-ext';
+    if (n.startsWith('deplacement blaye')) return 'blaye';
+    if (n.startsWith('deplacement ste foy')) return 'stefoy';
+    if (n.startsWith('scanner')) return 'scanner';
+    if (n.startsWith('interventionnel scanner')) return 'scanner-interv';
+    if (/^irm 1/.test(n)) return 'irm1';
+    if (/^irm 2/.test(n)) return 'irm2';
+    if (n.startsWith('irm blaye')) return 'irm-blaye';
+    if (/^irm\s*:?\s*3/.test(n)) return 'irm-3t';
+    if (n.startsWith('salle')) return 'salle-interv';
+    if (/^echographie 1/.test(n)) return 'echo1';
+    if (/^echographie 2/.test(n)) return 'echo2';
+    if (n.startsWith('mammographie')) return 'mammo';
+    if (n.startsWith('astreinte')) return 'astreinte';
+    return null;
+  }
+  const isText = tok => { const n = norm(tok); return n.startsWith('maintenance') || /\d/.test(n) || n.length > 18; };
+
+  function parseSheet(X, ws){
+    if (!ws || !ws['!ref']) return null;
+    const rg = X.utils.decode_range(ws['!ref']);
+    const merges = {}; (ws['!merges'] || []).forEach(m=>{ merges[m.s.r+','+m.s.c] = m; });
+    const cellStr = (r,c)=>{ const x = ws[X.utils.encode_cell({r,c})]; return x && x.v != null ? String(x.v).trim() : ''; };
+    /* semaine */
+    let monday = null;
+    const title = cellStr(0,0) || cellStr(1,0);
+    const mt = norm(title).match(/semaine du (\d{1,2})(?:er)? ([a-z]+)(?: (\d{4}))?/);
+    if (mt) { const mi = MOIS.indexOf(mt[2]); if (mi >= 0) monday = new Date(Number(mt[3] || new Date().getFullYear()), mi, Number(mt[1])); }
+    /* colonnes des jours */
+    let hr = -1; const start = [];
+    for (let r=rg.s.r; r<=Math.min(rg.e.r, rg.s.r+8) && hr < 0; r++) {
+      const found = {};
+      for (let c=rg.s.c; c<=rg.e.c; c++) { const n = norm(cellStr(r,c)); const i = JOURS.findIndex(j=>n.startsWith(j)); if (i >= 0 && found[i] === undefined) found[i] = c; }
+      if (Object.keys(found).length >= 3) { hr = r; Object.keys(found).forEach(i=>{ start[Number(i)] = found[i]; }); }
+    }
+    if (hr < 0 || !monday) return null;
+    const dayPart = c=>{ let d = -1; for (let i=0;i<5;i++) if (start[i] !== undefined && start[i] <= c) d = i; if (d < 0 || (start[d+1] === undefined && c > start[d]+1)) return null; if (start[d+1] !== undefined && c >= start[d+1]) return null; return {d, part: c === start[d] ? 'M' : 'AM'}; };
+    const firstCol = Math.min(...start.filter(x=>x !== undefined));
+    const covered = (r,c)=>{ const m = merges[r+','+c]; const out = []; const ec = m ? m.e.c : c; for (let cc=c; cc<=ec; cc++) { const dp = dayPart(cc); if (dp) out.push(dp); } return out; };
+    const dates = [...Array(5)].map((_,i)=>ymd(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+i)));
+
+    const cells = {}, absences = [], notes = [];
+    const addCell = (poste, d, part, people, x)=>{
+      const k = poste+'|'+d+'|'+part; const o = cells[k] || (cells[k] = {poste, date: dates[d], part, people: [], x: ''});
+      people.forEach(p=>{ const e = o.people.find(q=>q.label === p.label); if (e) e.star = e.star || p.star; else o.people.push(p); });
+      if (x) o.x = o.x ? o.x+' · '+x : x;
+    };
+    const addNote = (d, text)=>{ if (!text) return; if (!notes.some(n=>n.date === dates[d] && n.text === text)) notes.push({date: dates[d], text}); };
+    let cur = null, state = 'postes', person = null;
+    for (let r=hr+2; r<=rg.e.r; r++) {
+      const lab = norm(cellStr(r,0)).replace(/^\s+/,'');
+      if (lab) {
+        if (lab === 'note') { state = 'note'; cur = null; }
+        else if (lab.startsWith('absence')) { state = 'abs'; person = personLabel(cellStr(r,0).replace(/^[^:]*:/,'')); }
+        else if (lab.startsWith('astreinte')) { state = 'postes'; cur = 'astreinte'; }
+        else if (state === 'abs' && !posteFor(lab)) { person = personLabel(cellStr(r,0)); }
+        else if (lab === '+' || lab.startsWith('radios ste foy')) { /* suite du bloc scanner */ }
+        else { const p = posteFor(lab); if (p) { state = 'postes'; cur = p; } }
+      }
+      for (let c=firstCol; c<=rg.e.c; c++) {
+        const v = cellStr(r,c); if (!v) continue;
+        const cov = covered(r,c); if (!cov.length) continue;
+        if (state === 'postes' && cur) {
+          const def = POSTES.find(p=>p.id === cur);
+          const parts = [];
+          cov.forEach(dp=>{ if (def.journee) { parts.push({d:dp.d, part:'M'}, {d:dp.d, part:'AM'}); } else parts.push(dp); });
+          if (def.info) { parts.forEach(dp=>addCell(cur, dp.d, dp.part, [], v)); continue; }
+          const people = [], texts = [];
+          v.split(/[\/;\n]/).forEach(tok=>{
+            let t = tok.trim().replace(/^\+\s*/,''); if (!t) return;
+            const star = t.indexOf('*') >= 0; t = t.replace(/\*/g,'').trim(); if (!t) return;
+            if (isText(t)) texts.push(t); else people.push({label: personLabel(t), star});
+          });
+          parts.forEach(dp=>addCell(cur, dp.d, dp.part, people, texts.join(' · ')));
+        } else if (state === 'abs' && !lab && r > 0 && !person) {
+          /* rien */
+        } else if (state === 'abs') {
+          if (lab || !cellStr(r,0)) {
+            const isConges = !lab && !/^x/i.test(v) ? true : false;
+            if (!lab && !/^x/i.test(v)) {
+              /* ligne des congés du jour : initiales séparées par / */
+              v.split('/').forEach(tok=>{
+                let t = tok.trim(); if (!t) return;
+                const mat = /\((mat|matin)\)/i.test(t), apm = /\((apm|ap|apres.?midi)\)/i.test(t);
+                t = t.replace(/\(.*?\)/g,'').trim(); if (!t) return;
+                cov.forEach(dp=>{ if (mat && dp.part !== 'M') return; if (apm && dp.part !== 'AM') return; absences.push({label: personLabel(t), date: dates[dp.d], part: dp.part, note: 'Congés'}); });
+              });
+            } else if (/^conges/i.test(norm(v))) {
+              for (let d=0; d<5; d++) ['M','AM'].forEach(part=>absences.push({label: person, date: dates[d], part, note: 'Congés'}));
+            } else {
+              const note = /cours/i.test(v) ? 'Cours' : 'Absent';
+              cov.forEach(dp=>absences.push({label: person, date: dates[dp.d], part: dp.part, note}));
+            }
+          }
+        } else if (state === 'note' || state === 'tail') {
+          cov.slice(0,1).forEach(dp=>addNote(dp.d, v));
+        }
+      }
+      if (lab.startsWith('astreinte')) { state = 'tail'; cur = null; }
+    }
+    return {monday: ymd(monday), dates, cells: Object.values(cells), absences, notes};
+  }
+
+
+  /* ---- planning mensuel « grille » : une feuille, 4 semaines côte à côte (Matin / Après-midi) ---- */
+  const POSTES_MOIS = [
+    {id:'echo', label:'Échographie'},
+    {id:'bloc', label:'Bloc'},
+    {id:'bloc-urg', label:'Bloc urgences'},
+    {id:'consultation', label:'Consultation'},
+    {id:'irm', label:'IRM'},
+    {id:'scanner-ext', label:'Scanner externes'},
+    {id:'scanner-rdc', label:'Scanner RDC / RI'},
+    {id:'scanner-urg', label:'Scanner urgences'},
+    {id:'scanner-sa', label:'Scanner SA'},
+    {id:'echo-sa', label:'Écho SA'},
+    {id:'scanner-xa', label:'Scanner photonique XA'},
+    {id:'rcp', label:'RCP'},
+    {id:'cours', label:'Cours fac'},
+    {id:'formation', label:'Formation'},
+    {id:'recherche', label:'Recherche'},
+    {id:'admin', label:'Administratif'}
+  ];
+  const ABS_ROWS = {'off':'Off', 'rdg':'Repos de garde', 'conges annuels':'Congés annuels', 'conges':'Congés annuels'};
+  const PERSON = {'rm':'RM','ef':'EF','ylb':'YLB','hr':'HR','am':'AM','cm':'CM','np':'NP','ac':'AC','im':'IM','mb':'MB','dj':'DJ','ima':'IMA','alexandre':'Alexandre','alex':'Alexandre','romain':'Romain','rom':'Romain'};
+  const gnorm = s => norm(s).replace(/[.]/g,'').trim();
+  function splitCell(raw){
+    let t = String(raw == null ? '' : raw).replace(/\s+/g,' ').trim();
+    const notes = [];
+    t = t.replace(/\(([^)]*)\)/g, (m)=>{ notes.push(m); return ' '; });
+    const ou = /(^|\s)ou(\s|$)/i.test(t);
+    const parts = t.split(/[\/+,]|\bet\b|\bpuis\b|\bou\b/i).map(x=>x.trim()).filter(Boolean);
+    const people = [];
+    parts.forEach(pt=>{ const k = gnorm(pt); if (PERSON[k]) { if (!people.some(p=>p.label === PERSON[k])) people.push({label: PERSON[k], star:false}); } else notes.push(pt); });
+    return {people, ou, text: notes.join(' ').replace(/\s+/g,' ').trim(), raw: t};
+  }
+  function guessMonday(n, ref){
+    const base = ref || new Date(); let best = null, bd = 1e18;
+    for (let k=-3; k<=14; k++) {
+      const d = new Date(base.getFullYear(), base.getMonth()+k, n);
+      if (d.getDate() === n && d.getDay() === 1) { const diff = Math.abs(d - base); if (diff < bd) { bd = diff; best = d; } }
+    }
+    return best;
+  }
+  function parseMonthGrid(aoa, opts){
+    opts = opts || {};
+    if (!aoa || !aoa.length) return null;
+    const S = v => v == null ? '' : String(v).trim();
+    let hr = -1, heads = [];
+    for (let r=0; r<Math.min(aoa.length, 6) && hr < 0; r++) {
+      const hs = [];
+      (aoa[r] || []).forEach((v,c)=>{ const m = gnorm(S(v)).match(/^(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})$/); if (m) hs.push({c, j:JOURS.indexOf(m[1]), n:Number(m[2])}); });
+      if (hs.length >= 5) { hr = r; heads = hs; }
+    }
+    if (hr < 0) return null;
+    /* semaines : une nouvelle semaine commence à chaque « lundi » */
+    const blocks = []; heads.forEach(h=>{ if (h.j === 0 || !blocks.length) blocks.push([]); blocks[blocks.length-1].push(h); });
+    let first = guessMonday(blocks[0][0].n, opts.ref);
+    if (opts.monday) first = opts.monday;
+    if (!first) return null;
+    const weeks = blocks.map((bl,i)=>{
+      const mon = new Date(first.getFullYear(), first.getMonth(), first.getDate()+7*i);
+      const dates = [0,1,2,3,4].map(k=>ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+k)));
+      return {monday: ymd(mon), dates, cells:{}, absences:[], notes:[], bl};
+    });
+    const byLabel = {}; POSTES_MOIS.forEach(p=>{ byLabel[gnorm(p.label)] = p.id; });
+    const alias = {'echo':'echo','bloc':'bloc','bloc urgences':'bloc-urg','consultation':'consultation','irm':'irm','scanner ext':'scanner-ext','scanner rdc / ri':'scanner-rdc','scanner urg':'scanner-urg','scanner sa':'scanner-sa','echo sa':'echo-sa','scanner photonique xa':'scanner-xa','rcp':'rcp','cours fac':'cours','formation':'formation','recherche':'recherche','administratif':'admin'};
+    Object.keys(alias).forEach(k=>{ byLabel[k] = alias[k]; });
+    let total = 0;
+    for (let r=hr+1; r<aoa.length; r++) {
+      const row = aoa[r] || [], lab = gnorm(S(row[0]));
+      let poste = null, abs = null;
+      if (byLabel[lab]) poste = byLabel[lab];
+      else if (ABS_ROWS[lab]) abs = ABS_ROWS[lab];
+      else if (!lab) abs = 'Absent(e)';
+      else continue;
+      weeks.forEach(w=>{
+        w.bl.forEach(h=>{
+          ['M','AM'].forEach((part,k)=>{
+            const raw = S(row[h.c+k]); if (!raw) return;
+            const date = w.dates[h.j], sc = splitCell(raw);
+            if (poste) {
+              const key = poste+'|'+date+'|'+part;
+              const x = sc.ou ? raw : sc.text;
+              w.cells[key] = {poste, date, part, people: sc.ou ? [] : sc.people, x};
+              total++;
+            } else {
+              const people = sc.people.length ? sc.people : [];
+              people.forEach(p=>w.absences.push({label:p.label, date, part, note:abs}));
+              total += people.length;
+            }
+          });
+        });
+      });
+    }
+    if (!total) return null;
+    return weeks.map(w=>({monday:w.monday, dates:w.dates, cells:Object.values(w.cells), absences:w.absences, notes:w.notes}));
+  }
+
+  function parseWorkbook(X, wb){
+    const weeks = [];
+    wb.SheetNames.forEach(n=>{
+      const w = parseSheet(X, wb.Sheets[n]);
+      if (w) { weeks.push(w); return; }
+      try {
+        const aoa = X.utils.sheet_to_json(wb.Sheets[n], {header:1, defval:'', raw:false});
+        const g = parseMonthGrid(aoa); if (g) g.forEach(x=>weeks.push(x));
+      } catch(e) {}
+    });
+    weeks.sort((a,b)=>a.monday < b.monday ? -1 : 1);
+    return weeks;
+  }
+  root.PlanningParser = {POSTES: POSTES_MOIS, POSTES_OLD: POSTES, parseMonthGrid, parseSheet, parseWorkbook, personLabel, norm};
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const DOW = ['lun','mar','mer','jeu','ven','sam','dim'];
+  const fmtLong = new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const fmtShort = new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+  const fmtDM = new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short'});
+  const fmtMonth = new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'});
+  const pad = n => String(n).padStart(2,'0');
+  const key = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const parse = k => { const p = k.split('-').map(Number); return new Date(p[0],p[1]-1,p[2]); };
+  const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+  const mondayOf = d => { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; };
+  const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const slug = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
+
+  let db = null, canWrite = true, loaded = false;
+  let doctors = {};
+  let me = '';
+  try { me = localStorage.getItem('planning-me') || ''; } catch(e) {}
+  const today = new Date();
+  let weekStart = mondayOf(today);
+  let myWeek = mondayOf(today);
+  let pendingRemove = '', pendingTimer = 0;
+  let pickerSig = '', manSig = '';
+  const chains = {};
+
+  const sortedDocs = () => Object.values(doctors).sort((a,b)=> (a.order-b.order) || a.label.localeCompare(b.label,'fr'));
+
+  function dayInfo(doc,k){
+    const days = doc.days || {};
+    const v = days[k] || null;
+    const prev = days[key(addDays(parse(k),-1))] || null;
+    if (v === 'G') return {kind:'G', M:'G', AM:'G'};
+    if (prev === 'G') return {kind:'R', M:'R', AM:'R'};
+    if (v === 'J') return {kind:'I', M:'I', AM:'I', part:'J'};
+    if (v === 'M') return {kind:'I', M:'I', AM:null, part:'M'};
+    if (v === 'AM') return {kind:'I', M:null, AM:'I', part:'AM'};
+    return {kind:null, M:null, AM:null};
+  }
+
+  let toastTimer = 0;
+  function notify(msg, isErr){
+    const t = $('#toast');
+    t.textContent = msg; t.className = 'toast' + (isErr ? ' err' : ''); t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ t.hidden = true; }, 4000);
+  }
+
+  function handleErr(e){
+    if (e && e.code === 'invalid_argument') {
+      canWrite = false; renderAll();
+      notify("Modification refusée : vous n'avez pas le droit d'écrire dans ce planning.", true);
+    } else {
+      notify("Enregistrement impossible. Réessayez dans un instant.", true);
+    }
+  }
+
+  function setDays(id, patch){
+    if (!db) { notify("Le planning partagé n'est pas disponible dans cette vue.", true); return Promise.resolve(false); }
+    if (!canWrite) { notify("Lecture seule : vous ne pouvez pas modifier le planning.", true); return Promise.resolve(false); }
+    const prev = chains[id] || Promise.resolve();
+    const run = prev.then(()=>{
+      const ref = db.doc('medecins/'+id);
+      return doctors[id] ? ref.update({days: patch}) : ref.set({label:id, order:999, days: patch});
+    });
+    chains[id] = run.catch(()=>{});
+    return run.then(()=>true).catch(e=>{ handleErr(e); return false; });
+  }
+
+  /* ---------- rendu ---------- */
+  function renderPicker(){
+    const list = sortedDocs();
+    const sig = list.map(d=>d.id+':'+d.label).join('|') + '#' + (loaded?1:0);
+    if (me && !doctors[me] && loaded) me = '';
+    if (sig !== pickerSig) {
+      pickerSig = sig;
+      const first = loaded ? 'Choisir mon nom…' : 'Chargement…';
+      $('#who').innerHTML = '<option value="">'+first+'</option>' + list.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('');
+    }
+    $('#who').value = doctors[me] ? me : '';
+  }
+
+  function renderNotice(){
+    const n = $('#notice');
+    if (!db) { n.textContent = "Connexion à la base de données impossible. Vérifiez votre connexion internet, puis rechargez la page."; n.hidden = false; }
+    else if (!canWrite) { n.textContent = "Vous consultez le planning en lecture seule. Pour saisir vos indisponibilités, demandez à l'auteur de la page de vous donner le droit de contribuer."; n.hidden = false; }
+    else n.hidden = true;
+  }
+
+  function renderMe(){
+    const doc = doctors[me];
+    const msg = !loaded ? 'Chargement du planning partagé…'
+      : (sortedDocs().length ? 'Choisissez votre nom en haut de la page pour voir votre planning.'
+      : "La liste des médecins est vide. Ouvrez « Médecins » en bas de page pour ajouter les noms.");
+    [['#meEmpty','#meBody'],['#inEmpty','#inBody']].forEach(a=>{ $(a[0]).hidden = !!doc; $(a[0]).textContent = msg; $(a[1]).hidden = !doc; });
+    if (!doc) return;
+
+    const todayK = key(new Date());
+    const gardes = Object.keys(doc.days).filter(k=>doc.days[k]==='G' && k>=todayK).sort().slice(0,3);
+    $('#nextG').innerHTML = gardes.length
+      ? '<span class="muted">Prochaines gardes</span>' + gardes.map(k=>'<span><strong>'+fmtShort.format(parse(k))+'</strong> <span class="muted">repos '+fmtDM.format(addDays(parse(k),1))+'</span></span>').join('')
+      : '<span class="muted">Aucune garde à venir sur votre fiche.</span>';
+
+    const days = [...Array(7)].map((_,i)=>addDays(myWeek,i));
+    const lab = fmtDM.format(days[0])+' – '+fmtDM.format(days[6])+' '+days[6].getFullYear();
+    $('#mwLabel').textContent = lab; $('#iwLabel').textContent = lab;
+    const IND = {J:'Indisponible toute la journée', M:'Indisponible le matin', AM:"Indisponible l'après-midi"};
+    const opts = [['','Disponible'],['J',IND.J],['M',IND.M],['AM',IND.AM],['G','De garde']];
+    const vacHtml = (k)=>dayVacs(me,k).map(v=>{
+      const r = reasonFor(me,k,v.part);
+      const who = v.ou ? 'à confirmer : '+v.who.map(dLabel).join(' ou ') : (v.others.length ? 'avec '+v.others.map(dLabel).join(', ') : '');
+      return '<div class="vac'+(r ? ' bad' : '')+'"><span class="vp"'+(r ? '' : ' style="background:'+posteColor(v.poste)+';color:#fff;border-color:'+posteColor(v.poste)+'"')+'>'+v.part+'</span><span>'+esc(postName(v.poste,k))+' <small>'+esc(who)+(r ? (who ? ' · ' : '')+'conflit : vous êtes '+esc(r) : '')+'</small></span></div>';
+    }).join('');
+    const rowWrap = (d,i,k,head,body)=>'<div class="dayrow'+(k === todayK ? ' today' : '')+(i > 4 ? ' we' : '')+'"><div class="dr-head">'+head+'</div>'+(body ? '<div class="dr-body">'+body+'</div>' : '')+'</div>';
+    const dateTxt = (d,k)=>esc(fmtShort.format(d))+(k === todayK ? ' <span class="tag">aujourd’hui</span>' : '');
+
+    /* onglet Mon planning : lecture seule */
+    $('#myWeek').innerHTML = days.map((d,i)=>{
+      const k = key(d), inf = dayInfo(doc,k), own = doc.days[k] || '';
+      let pill = '', body = '';
+      if (own === 'G') { pill = '<span class="st st-g">De garde</span>'; body += '<span class="none-txt">Repos de garde posé le '+esc(fmtShort.format(addDays(d,1)))+'</span>'; }
+      else if (inf.kind === 'R') pill = '<span class="st st-r">Repos de garde</span>';
+      else if (IND[own]) pill = '<span class="st st-i">'+IND[own]+'</span>';
+      body += vacHtml(k);
+      if (!body && trame && i < 5) body = '<span class="none-txt">Pas de vacation</span>';
+      return rowWrap(d,i,k,'<span class="dr-date">'+dateTxt(d,k)+'</span>'+pill, body);
+    }).join('');
+
+    /* onglet Mes indisponibilités : menu déroulant par jour */
+    $('#myDays').innerHTML = days.map((d,i)=>{
+      const k = key(d), inf = dayInfo(doc,k), own = doc.days[k] || '';
+      let body = '';
+      if (own === 'G') body += '<span class="none-txt">Repos de garde posé le '+esc(fmtShort.format(addDays(d,1)))+'</span>';
+      else if (inf.kind === 'R') body += '<span class="st st-r" style="align-self:flex-start">Repos de garde (après la garde de la veille)</span>';
+      const cf = dayVacs(me,k).filter(v=>reasonFor(me,k,v.part));
+      body += cf.map(v=>'<div class="vac bad"><span class="vp">'+v.part+'</span><span>'+esc(postName(v.poste,k))+' <small>vous y êtes affecté(e) : à échanger</small></span></div>').join('');
+      const head = '<label class="dr-date" for="ds-'+k+'">'+dateTxt(d,k)+'</label>'
+        + '<select id="ds-'+k+'" class="dr-sel'+(own === 'G' ? ' sel-G' : own ? ' sel-I' : '')+'" data-k="'+k+'"'+(canWrite ? '' : ' disabled')+'>'
+        + opts.map(o=>'<option value="'+o[0]+'"'+(o[0] === own ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>';
+      return rowWrap(d,i,k,head,body);
+    }).join('');
+  }
+
+  function renderToday(){
+    const doc = doctors[me], empty = $('#auEmpty'), box = $('#auBody');
+    if (!doc) {
+      box.hidden = true; empty.hidden = false;
+      empty.textContent = !loaded ? 'Chargement du planning partagé…' : (sortedDocs().length ? 'Choisissez votre nom en haut de la page : vous verrez ici où vous êtes aujourd’hui.' : 'La liste des médecins est vide.');
+      return;
+    }
+    empty.hidden = true; box.hidden = false;
+    const H = getHours(), now = new Date(), k = key(now), dow = (now.getDay()+6)%7;
+    const PLAB = {M:'Matin', AM:'Après-midi'};
+    const hr = {M:H.hM1.replace(':','h')+' – '+H.hM2.replace(':','h'), AM:H.hA1.replace(':','h')+' – '+H.hA2.replace(':','h')};
+    const STAT = {G:['g','Vous êtes de garde'], R:['r','Repos de garde'], I:['i','Vous êtes indisponible']};
+    const slot = (kk, part, showHours)=>{
+      const st = dayInfo(doc,kk)[part], vs = dayVacs(me,kk).filter(v=>v.part === part);
+      const bad = vs.length && st && st !== undefined;
+      let cls = 'slot', what = '', sub = '';
+      const sty = vs.length ? ' style="--pc:'+posteColor(vs[0].poste)+'"' : '';
+      if (vs.length) {
+        what = vs.map(v=>esc(postName(v.poste,kk))).join(' + ');
+        sub = vs.map(v=>v.ou ? 'À confirmer : '+v.who.map(dLabel).join(' ou ') : (v.others.length ? 'Avec '+v.others.map(dLabel).join(', ') : 'Seul(e) sur ce poste')).join(' · ');
+        cls += st ? ' bad' : '';
+        if (st) sub += ' — ⚠ mais vous êtes '+(st === 'G' ? 'de garde' : st === 'R' ? 'en repos de garde' : 'indisponible');
+      } else if (st) { cls += ' '+STAT[st][0]; what = STAT[st][1]; }
+      else { cls += ' free'; what = 'Pas de vacation'; }
+      if (!vs.length && !st) return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what lone">'+what+'</span></div>';
+      return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what">'+what+'</span>'+(sub ? '<span class="with">'+esc(sub)+'</span>' : '')+'</div>';
+    };
+    let h = '<div class="tday"><h2 class="date">'+esc(fmtLong.format(now))+'</h2>';
+    if (dow > 4 && !dayInfo(doc,k).kind && !dayVacs(me,k).length) h += '<p class="empty">C’est le week-end : pas de vacation prévue.</p>';
+    else h += slot(k,'M',true)+slot(k,'AM',true);
+    h += '</div>';
+    /* prochaine vacation si rien aujourd'hui */
+    const todayNone = !dayVacs(me,k).length;
+    const nv = myVacations(me).filter(v=>v.date > k || (v.date === k && false))[0];
+    if (todayNone && nv) h += '<div class="next-v"><strong>Prochaine vacation</strong> : '+esc(vacLabel(nv))+'</div>';
+    /* demain (prochain jour ouvré) */
+    let t = addDays(now,1); while ((t.getDay()+6)%7 > 4) t = addDays(t,1);
+    const tk = key(t);
+    const line = part=>{
+      const vs = dayVacs(me,tk).filter(v=>v.part === part), st = dayInfo(doc,tk)[part];
+      return '<b>'+(part === 'M' ? 'MATIN' : 'APRÈS-MIDI')+'</b><span>'+(vs.length ? vs.map(v=>esc(postName(v.poste,tk))+(v.others.length ? ' <span class="muted">avec '+esc(v.others.map(dLabel).join(', '))+'</span>' : '')).join(' + ') : st ? '<span class="muted">'+STAT[st][1]+'</span>' : '<span class="muted">Pas de vacation</span>')+'</span>';
+    };
+    h += '<div class="card"><h2>'+(key(addDays(now,1)) === tk ? 'Demain' : 'Prochain jour')+' · '+esc(fmtShort.format(t))+'</h2><div class="tom">'+line('M')+line('AM')+'</div></div>';
+    const nt = dayNotes(k).concat(dayNotes(tk).map(x=>'Demain : '+x));
+    if (nt.length) h += '<div class="card"><h2>Notes du service</h2><ul class="notelist">'+nt.map(t=>'<li class="dnote">'+esc(t)+'</li>').join('')+'</ul></div>';
+    /* alerte de conflit */
+    const cf = myVacations(me).filter(v=>v.date >= k && reasonFor(me,v.date,v.part)).length;
+    if (cf) h += '<div class="alert">⚠ '+cf+' vacation'+(cf > 1 ? 's' : '')+' à venir tomb'+(cf > 1 ? 'ent' : 'e')+' sur vos indisponibilités : voir « Mon planning ».</div>';
+    box.innerHTML = h;
+  }
+
+  const dayNotes = k => (notesBy[k] || []);
+  function renderGNotes(){
+    const box = $('#gNotes');
+    const items = [...Array(5)].map((_,i)=>({d: addDays(weekStart,i)})).map(x=>({d: x.d, n: dayNotes(key(x.d))})).filter(x=>x.n.length);
+    box.hidden = !items.length;
+    box.innerHTML = items.length ? '<h2>Notes de la semaine</h2><ul class="notelist">'+items.map(x=>x.n.map(t=>'<li class="dnote"><b>'+esc(fmtShort.format(x.d))+'</b> · '+esc(t)+'</li>').join('')).join('')+'</ul>' : '';
+  }
+
+  function renderTeam(){
+    const keys = [...Array(7)].map((_,i)=>addDays(weekStart,i));
+    const list = sortedDocs();
+    if (!list.length) { $('#teamWrap').innerHTML = '<p class="empty" style="border:0">'+(loaded?'Aucun médecin dans la liste pour le moment.':'Chargement…')+'</p>'; return; }
+    const counts = Array(14).fill(0);
+    let h = '<table class="team"><thead><tr><th class="who" rowspan="2" scope="col">Médecin</th>'
+      + keys.map((d,i)=>'<th colspan="2" scope="colgroup" class="end'+(i>4?' we':'')+'">'+DOW[i]+' '+d.getDate()+'</th>').join('')
+      + '</tr><tr class="sub">' + keys.map(()=>'<th scope="col">M</th><th scope="col" class="end">AM</th>').join('') + '</tr></thead><tbody>';
+    list.forEach(doc=>{
+      h += '<tr'+(doc.id===me?' class="me"':'')+'><th class="who" scope="row">'+esc(doc.label)+'</th>';
+      keys.forEach((d,i)=>{
+        const inf = dayInfo(doc,key(d));
+        ['M','AM'].forEach((p,j)=>{
+          const s = inf[p]; if (s) counts[i*2+j]++;
+          const txt = s==='G' ? 'G' : s==='R' ? 'R' : s==='I' ? '×' : '';
+          const lab = s==='G' ? 'de garde' : s==='R' ? 'repos de garde' : s==='I' ? 'indisponible' : 'disponible';
+          h += '<td class="c'+(s?' k-'+s:'')+(j?' end':'')+'" aria-label="'+esc(doc.label)+', '+DOW[i]+' '+d.getDate()+', '+(p==='M'?'matin':'après-midi')+' : '+lab+'">'+txt+'</td>';
+        });
+      });
+      h += '</tr>';
+    });
+    h += '</tbody><tfoot><tr><th class="who" scope="row">Absents</th>' + counts.map((n,i)=>'<td class="c'+(i%2?' end':'')+'">'+(n||'·')+'</td>').join('') + '</tr></tfoot></table>';
+    $('#teamWrap').innerHTML = h;
+  }
+
+  function renderManage(){
+    const list = sortedDocs();
+    const sig = list.map(d=>d.id+':'+d.label).join('|')+'#'+pendingRemove+'#'+canWrite;
+    if (sig === manSig) return;
+    const a = document.activeElement;
+    if (a && a.matches && a.matches('[data-ren]')) return;
+    manSig = sig;
+    $('#people').innerHTML = list.length ? list.map(d=>{
+      const c = pendingRemove === d.id;
+      return '<li><input type="text" data-ren="'+esc(d.id)+'" value="'+esc(d.label)+'" maxlength="24" autocomplete="off" aria-label="Nom de '+esc(d.label)+' (modifiable)"'+(canWrite?'':' disabled')+'><button type="button" data-rm="'+esc(d.id)+'" class="'+(c?'confirm':'')+'"'+(canWrite?'':' disabled')+' aria-label="Retirer '+esc(d.label)+'">'+(c?'Confirmer le retrait':'Retirer')+'</button></li>';
+    }).join('') : '<li class="muted" style="border:0;font-family:inherit">Aucun médecin.</li>';
+  }
+
+  function applyRO(){
+    document.querySelectorAll('[data-edit]').forEach(el=>{ el.disabled = !canWrite || !db; });
+  }
+
+  function renderAll(){
+    renderRenMe(); renderPicker(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+  }
+
+  /* ---------- interactions ---------- */
+  $('#who').addEventListener('change', e=>{
+    me = e.target.value;
+    try { localStorage.setItem('planning-me', me); } catch(err) {}
+    renderAll();
+  });
+
+  function showTab(t){
+    document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected', String(x.dataset.tab === t)));
+    ['auj','moi','general','creer','indispos','echanges'].forEach(v=>{ $('#view-'+v).hidden = v !== t; });
+    if (typeof renderBadge === 'function') renderBadge();
+    if (t === 'auj') renderToday();
+  }
+  document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+
+  function renderGLabel(){
+    const b = addDays(weekStart,6);
+    $('#gLabel').textContent = fmtDM.format(weekStart)+' – '+fmtDM.format(b)+' '+b.getFullYear();
+  }
+  function moveWeek(n){ gDay = -1; weekStart = n === 0 ? mondayOf(new Date()) : addDays(weekStart, 7*n); renderGLabel(); renderTeam(); renderTrame(); }
+  $('#gPrev').addEventListener('click',()=>moveWeek(-1));
+  $('#gNext').addEventListener('click',()=>moveWeek(1));
+  $('#gToday').addEventListener('click',()=>moveWeek(0));
+  document.querySelectorAll('[data-g]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-g]').forEach(x=>x.setAttribute('aria-pressed', String(x === b)));
+    $('#gPoste').hidden = b.dataset.g !== 'poste';
+    $('#gMed').hidden = b.dataset.g !== 'medecin';
+  }));
+
+  function moveMyWeek(n){ myWeek = n === 0 ? mondayOf(new Date()) : addDays(myWeek, 7*n); renderMe(); }
+  $('#mwPrev').addEventListener('click',()=>moveMyWeek(-1));
+  $('#mwNext').addEventListener('click',()=>moveMyWeek(1));
+  $('#mwToday').addEventListener('click',()=>{ $('#mwJump').value = ''; moveMyWeek(0); });
+  $('#mwJump').addEventListener('change', e=>{ if (e.target.value) { myWeek = mondayOf(parse(e.target.value)); renderMe(); } });
+  $('#iwPrev').addEventListener('click',()=>moveMyWeek(-1));
+  $('#iwNext').addEventListener('click',()=>moveMyWeek(1));
+  $('#iwToday').addEventListener('click',()=>{ $('#iwJump').value = ''; moveMyWeek(0); });
+  $('#iwJump').addEventListener('change', e=>{ if (e.target.value) { myWeek = mondayOf(parse(e.target.value)); renderMe(); } });
+  $('#myDays').addEventListener('change', async e=>{
+    const sel = e.target.closest('select[data-k]'); if (!sel || !doctors[me]) return;
+    const v = sel.value, k = sel.dataset.k;
+    const ok = await setDays(me, {[k]: v || null});
+    if (ok) notify(v === 'G' ? 'Garde enregistrée, repos posé le lendemain.' : 'Enregistré.'); else renderMe();
+  });
+
+  document.querySelectorAll('[data-w]').forEach(b=>b.addEventListener('click',()=>{
+    const n = Number(b.dataset.w);
+    const start = n === 0 ? new Date() : mondayOf(addDays(new Date(), n*7));
+    const end = addDays(mondayOf(start), 6);
+    $('#pFrom').value = key(start); $('#pTo').value = key(end);
+  }));
+  $('#pFrom').value = key(today); $('#pTo').value = key(today);
+
+  $('#period').addEventListener('submit', async e=>{
+    e.preventDefault();
+    if (!doctors[me]) return notify('Choisissez d\'abord votre nom.', true);
+    const f = $('#pFrom').value, t = $('#pTo').value, type = $('#pType').value;
+    if (!f || !t) return notify('Renseignez les deux dates.', true);
+    const a = parse(f), b = parse(t);
+    if (b < a) return notify('La date de fin précède la date de début.', true);
+    const n = Math.round((b-a)/864e5)+1;
+    if (n > 366) return notify('Une période ne peut pas dépasser un an.', true);
+    const we = $('#pWe').checked, days = doctors[me].days || {};
+    const patch = {}; let count = 0, kept = 0;
+    for (let i=0;i<n;i++){
+      const d = addDays(a,i), wd = (d.getDay()+6)%7, k = key(d);
+      if (!we && wd >= 5) continue;
+      if (type === '') patch[k] = null;
+      else if (type === 'G') patch[k] = 'G';
+      else { if (days[k] === 'G') { kept++; continue; } patch[k] = type; }
+      count++;
+    }
+    if (!count) return notify('Aucun jour à modifier sur cette période.', true);
+    const ok = await setDays(me, patch);
+    if (ok) notify(count+' jour'+(count>1?'s':'')+' mis à jour'+(kept?' · '+kept+' garde'+(kept>1?'s':'')+' conservée'+(kept>1?'s':''):'')+'.');
+  });
+
+  $('#addForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const raw = $('#newName').value.trim();
+    if (!raw) return;
+    const id = slug(raw);
+    if (!id) return notify('Ce nom ne peut pas être utilisé.', true);
+    if (doctors[id]) return notify('Ce médecin est déjà dans la liste.', true);
+    const order = Math.max(0, ...Object.values(doctors).filter(d=>d.order!==999).map(d=>d.order)) + 1;
+    try {
+      await db.doc('medecins/'+id).set({label: raw, order, days: {}});
+      $('#newName').value = '';
+      notify(raw+' ajouté à la liste.');
+    } catch(err) { handleErr(err); }
+  });
+
+  $('#people').addEventListener('click', async e=>{
+    const b = e.target.closest('[data-rm]'); if (!b) return;
+    const id = b.dataset.rm;
+    if (pendingRemove !== id) {
+      pendingRemove = id; clearTimeout(pendingTimer);
+      pendingTimer = setTimeout(()=>{ pendingRemove = ''; renderManage(); applyRO(); }, 5000);
+      renderManage(); applyRO(); return;
+    }
+    pendingRemove = ''; clearTimeout(pendingTimer);
+    try {
+      await db.doc('medecins/'+id).delete();
+      if (me === id) { me = ''; try { localStorage.removeItem('planning-me'); } catch(err) {} }
+      notify('Médecin retiré de la liste.');
+    } catch(err) { handleErr(err); }
+  });
+
+  function renderRenMe(){ const b = $('#renMe'); if (b) b.hidden = !(me && doctors[me]); }
+  $('#renMe').addEventListener('click', async ()=>{
+    const d = doctors[me]; if (!d) return;
+    let v = null; try { v = window.prompt('Votre prénom (ou nom affiché) :', d.label); } catch(e) {}
+    if (v == null) return;
+    v = v.trim().replace(/\s+/g,' ');
+    if (!v || v === d.label) return;
+    if (sortedDocs().some(x=>x.id !== me && x.label.toLowerCase() === v.toLowerCase())) return notify('Ce nom existe déjà dans la liste.', true);
+    if (!db || !canWrite) return notify('Lecture seule : vous ne pouvez pas renommer.', true);
+    try { await db.doc('medecins/'+me).update({label: v}); notify('Renommé en '+v+'.'); } catch(err) { handleErr(err); }
+  });
+  $('#people').addEventListener('change', async e=>{
+    const inp = e.target.closest('[data-ren]'); if (!inp) return;
+    const id = inp.dataset.ren, v = inp.value.trim().replace(/\s+/g,' ');
+    if (!v || !doctors[id] || v === doctors[id].label) { manSig = ''; renderManage(); return; }
+    if (sortedDocs().some(d=>d.id !== id && d.label.toLowerCase() === v.toLowerCase())) { notify('Ce nom existe déjà dans la liste.', true); manSig = ''; renderManage(); return; }
+    if (!db || !canWrite) { notify('Lecture seule : vous ne pouvez pas renommer.', true); manSig = ''; renderManage(); return; }
+    try { await db.doc('medecins/'+id).update({label: v}); notify('Renommé en '+v+'.'); }
+    catch(err) { handleErr(err); manSig = ''; renderManage(); }
+  });
+
+  /* ---------- trame du service ---------- */
+  const PARTS = ['M','AM'];
+  const PART_TXT = {M:'matin', AM:'après-midi'};
+  const DOWFULL = ['lundi','mardi','mercredi','jeudi','vendredi'];
+  const ABREV = {interventionnel:'interv.', diagnostique:'diag.'};
+  const HORIZON = 56;
+  const isDate = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const dLabel = id => doctors[id] ? doctors[id].label : (id || '?');
+  const tk = (p,dow,part) => p+'_'+dow+'_'+part;
+  const ordinal = n => n === 1 ? '1er' : n+'e';
+  let trame = null, swaps = {}, swSig = '', pendingUndo = '', undoTimer = 0;
+  const PCOL = ['#2F7A8C','#7A4FA3','#C2571A','#2E8B57','#B8860B','#C23B6B','#3B5BA5','#8A6D3B','#4B8F29','#A1443F','#5B6FBF','#127C7C'];
+  const posteColor = id => { const i = trame ? trame.postes.findIndex(p=>p.id === id) : -1; return PCOL[(i < 0 ? 0 : i) % PCOL.length]; };
+  const docStyle = id => { let h = 0; for (const ch of String(id)) h = (h*31 + ch.charCodeAt(0)) % 360; return 'background:hsl('+h+' 70% 89%);color:hsl('+h+' 60% 20%)'; };
+  const chipSty = (id, extra) => (id !== me && !extra) ? ' style="'+docStyle(id)+'"' : '';
+  const SEED = {"weeks":[{"monday":"2026-08-03","dates":["2026-08-03","2026-08-04","2026-08-05","2026-08-06","2026-08-07"],"cells":[{"poste":"echo","date":"2026-08-03","part":"M","people":[{"label":"RM","star":false},{"label":"EF","star":false},{"label":"Alexandre","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"echo","date":"2026-08-03","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-04","part":"M","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"echo","date":"2026-08-04","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"echo","date":"2026-08-05","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-05","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-06","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-06","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-07","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"echo","date":"2026-08-07","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"bloc","date":"2026-08-03","part":"M","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-03","part":"AM","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-04","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":"ostéo"},{"poste":"bloc","date":"2026-08-04","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-05","part":"M","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-05","part":"AM","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-06","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"bloc","date":"2026-08-06","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"bloc","date":"2026-08-07","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"bloc","date":"2026-08-07","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-03","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-03","part":"AM","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-04","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-05","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-06","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"consultation","date":"2026-08-06","part":"AM","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-07","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"irm","date":"2026-08-04","part":"AM","people":[{"label":"Alexandre","star":false}],"x":"(PM)"},{"poste":"irm","date":"2026-08-05","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"irm","date":"2026-08-05","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"irm","date":"2026-08-06","part":"M","people":[{"label":"AC","star":false}],"x":""},{"poste":"irm","date":"2026-08-07","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-05","part":"AM","people":[{"label":"IMA","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-06","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-07","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-03","part":"M","people":[{"label":"RM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-03","part":"AM","people":[{"label":"IMA","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-04","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-rdc","date":"2026-08-07","part":"M","people":[{"label":"Alexandre","star":false},{"label":"EF","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-07","part":"AM","people":[{"label":"Alexandre","star":false}],"x":"(RM pendant cs)"},{"poste":"scanner-urg","date":"2026-08-03","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-06","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-03","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-03","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-05","part":"M","people":[{"label":"MB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-05","part":"AM","people":[{"label":"MB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-06","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-sa","date":"2026-08-06","part":"AM","people":[{"label":"AC","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-07","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo-sa","date":"2026-08-05","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-xa","date":"2026-08-07","part":"M","people":[{"label":"IMA","star":false}],"x":""},{"poste":"rcp","date":"2026-08-03","part":"M","people":[{"label":"RM","star":false},{"label":"NP","star":false}],"x":""},{"poste":"rcp","date":"2026-08-04","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"rcp","date":"2026-08-07","part":"M","people":[{"label":"EF","star":false},{"label":"RM","star":false}],"x":""}],"absences":[{"label":"AM","date":"2026-08-03","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-04","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-05","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-06","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-07","part":"AM","note":"Absent(e)"},{"label":"RM","date":"2026-08-04","part":"M","note":"Off"},{"label":"EF","date":"2026-08-04","part":"M","note":"Off"},{"label":"YLB","date":"2026-08-04","part":"M","note":"Off"},{"label":"RM","date":"2026-08-04","part":"AM","note":"Off"},{"label":"EF","date":"2026-08-04","part":"AM","note":"Off"},{"label":"YLB","date":"2026-08-04","part":"AM","note":"Off"},{"label":"HR","date":"2026-08-05","part":"AM","note":"Off"},{"label":"Alexandre","date":"2026-08-06","part":"M","note":"Off"},{"label":"HR","date":"2026-08-06","part":"AM","note":"Off"},{"label":"CM","date":"2026-08-03","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-03","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-03","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-03","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-03","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-03","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-04","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-04","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-04","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-04","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-04","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-04","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-05","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-05","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-05","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-05","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-05","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-05","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-06","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-06","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-06","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-06","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-06","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-06","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-07","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-07","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-07","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-07","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-07","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-07","part":"AM","note":"Congés annuels"},{"label":"AC","date":"2026-08-07","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-07","part":"AM","note":"Absent(e)"},{"label":"Romain","date":"2026-08-05","part":"M","note":"Absent(e)"},{"label":"Romain","date":"2026-08-05","part":"AM","note":"Absent(e)"},{"label":"Romain","date":"2026-08-06","part":"M","note":"Absent(e)"},{"label":"Romain","date":"2026-08-06","part":"AM","note":"Absent(e)"},{"label":"Romain","date":"2026-08-07","part":"M","note":"Absent(e)"},{"label":"Romain","date":"2026-08-07","part":"AM","note":"Absent(e)"}],"notes":[]},{"monday":"2026-08-10","dates":["2026-08-10","2026-08-11","2026-08-12","2026-08-13","2026-08-14"],"cells":[{"poste":"echo","date":"2026-08-10","part":"M","people":[{"label":"AM","star":false},{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-10","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-11","part":"M","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-11","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-12","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-12","part":"AM","people":[{"label":"DJ","star":false}],"x":""},{"poste":"echo","date":"2026-08-13","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-13","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-14","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-14","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"bloc","date":"2026-08-10","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-10","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-11","part":"M","people":[{"label":"HR","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-11","part":"AM","people":[{"label":"HR","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-12","part":"M","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-12","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"bloc","date":"2026-08-13","part":"M","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-13","part":"AM","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-14","part":"M","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-14","part":"AM","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"consultation","date":"2026-08-10","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-10","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-11","part":"M","people":[{"label":"AM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-12","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-13","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-14","part":"AM","people":[{"label":"Alexandre","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"irm","date":"2026-08-11","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"irm","date":"2026-08-12","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"irm","date":"2026-08-12","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"irm","date":"2026-08-13","part":"M","people":[{"label":"AC","star":false}],"x":""},{"poste":"irm","date":"2026-08-14","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-12","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-13","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-14","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-10","part":"M","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-10","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-14","part":"M","people":[{"label":"Alexandre","star":false},{"label":"HR","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-14","part":"AM","people":[{"label":"Alexandre","star":false},{"label":"HR","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-10","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-13","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-10","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-10","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-12","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-12","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-13","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-sa","date":"2026-08-13","part":"AM","people":[{"label":"AC","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-14","part":"M","people":[{"label":"AC","star":false}],"x":""},{"poste":"echo-sa","date":"2026-08-12","part":"AM","people":[],"x":"Fermée"},{"poste":"scanner-xa","date":"2026-08-14","part":"M","people":[],"x":"fermée"},{"poste":"rcp","date":"2026-08-10","part":"M","people":[],"x":"Pas de staff"},{"poste":"rcp","date":"2026-08-11","part":"AM","people":[{"label":"AM","star":false}],"x":""}],"absences":[{"label":"AM","date":"2026-08-10","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-11","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-12","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-13","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-14","part":"AM","note":"Absent(e)"},{"label":"HR","date":"2026-08-13","part":"AM","note":"Off"},{"label":"EF","date":"2026-08-10","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-10","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-10","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-10","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-10","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-10","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-10","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-10","part":"AM","note":"Congés annuels"},{"label":"EF","date":"2026-08-11","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-11","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-11","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-11","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-11","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-11","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-11","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-11","part":"AM","note":"Congés annuels"},{"label":"EF","date":"2026-08-12","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-12","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-12","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-12","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-12","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-12","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-12","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-12","part":"AM","note":"Congés annuels"},{"label":"EF","date":"2026-08-13","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-13","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-13","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-13","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-13","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-13","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-13","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-13","part":"AM","note":"Congés annuels"},{"label":"EF","date":"2026-08-14","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-14","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-14","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-14","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-14","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-14","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-14","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-14","part":"AM","note":"Congés annuels"},{"label":"AC","date":"2026-08-10","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-10","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-10","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-10","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-11","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-11","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-12","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-12","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-13","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-13","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-14","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-14","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-10","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-10","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-11","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-11","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-12","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-12","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-13","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-13","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-14","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-14","part":"AM","note":"Absent(e)"}],"notes":[]},{"monday":"2026-08-17","dates":["2026-08-17","2026-08-18","2026-08-19","2026-08-20","2026-08-21"],"cells":[{"poste":"echo","date":"2026-08-17","part":"M","people":[{"label":"HR","star":false},{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-17","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-18","part":"M","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-18","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-19","part":"M","people":[{"label":"YLB","star":false},{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-19","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-20","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-20","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-21","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"echo","date":"2026-08-21","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-17","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-17","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-18","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-18","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-19","part":"M","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-19","part":"AM","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-20","part":"M","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-20","part":"AM","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-21","part":"M","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-21","part":"AM","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"consultation","date":"2026-08-17","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-17","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-18","part":"M","people":[{"label":"AM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-19","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-20","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"consultation","date":"2026-08-20","part":"AM","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-21","part":"AM","people":[],"x":"Alex ou Rom"},{"poste":"irm","date":"2026-08-18","part":"AM","people":[],"x":"fermée"},{"poste":"irm","date":"2026-08-19","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"irm","date":"2026-08-19","part":"AM","people":[],"x":"fermée"},{"poste":"irm","date":"2026-08-20","part":"M","people":[{"label":"AC","star":false}],"x":""},{"poste":"irm","date":"2026-08-21","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-19","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-20","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-21","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-17","part":"M","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-17","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-21","part":"M","people":[{"label":"Alexandre","star":false},{"label":"EF","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-21","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-17","part":"AM","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-20","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-17","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-17","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-19","part":"M","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-19","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-20","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-sa","date":"2026-08-20","part":"AM","people":[{"label":"AC","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-21","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo-sa","date":"2026-08-19","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-xa","date":"2026-08-21","part":"M","people":[{"label":"EF","star":false}],"x":"Interne"},{"poste":"rcp","date":"2026-08-17","part":"M","people":[{"label":"NP","star":false},{"label":"RM","star":false},{"label":"HR","star":false}],"x":""},{"poste":"rcp","date":"2026-08-18","part":"AM","people":[{"label":"AM","star":false}],"x":""}],"absences":[{"label":"AM","date":"2026-08-17","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-18","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-19","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-20","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-21","part":"AM","note":"Absent(e)"},{"label":"EF","date":"2026-08-17","part":"M","note":"Off"},{"label":"EF","date":"2026-08-17","part":"AM","note":"Off"},{"label":"EF","date":"2026-08-18","part":"M","note":"Off"},{"label":"Alexandre","date":"2026-08-18","part":"M","note":"Off"},{"label":"EF","date":"2026-08-18","part":"AM","note":"Off"},{"label":"Alexandre","date":"2026-08-18","part":"AM","note":"Off"},{"label":"AM","date":"2026-08-19","part":"M","note":"Off"},{"label":"AM","date":"2026-08-19","part":"AM","note":"Off"},{"label":"Romain","date":"2026-08-20","part":"M","note":"Off"},{"label":"Romain","date":"2026-08-20","part":"AM","note":"Off"},{"label":"HR","date":"2026-08-21","part":"M","note":"Off"},{"label":"HR","date":"2026-08-21","part":"AM","note":"Off"},{"label":"Alexandre","date":"2026-08-17","part":"M","note":"Repos de garde"},{"label":"Alexandre","date":"2026-08-17","part":"AM","note":"Repos de garde"},{"label":"CM","date":"2026-08-17","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-17","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-17","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-17","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-17","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-17","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-18","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-18","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-18","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-18","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-18","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-18","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-19","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-19","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-19","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-19","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-19","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-19","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-20","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-20","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-20","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-20","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-20","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-20","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-21","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-21","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-21","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-21","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-21","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-21","part":"AM","note":"Congés annuels"},{"label":"IM","date":"2026-08-17","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-17","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-18","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-18","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-19","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-19","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-20","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-20","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-21","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-21","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-17","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-17","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-18","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-18","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-19","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-19","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-20","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-20","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-21","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-21","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-21","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-21","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-21","part":"AM","note":"Absent(e)"}],"notes":[]},{"monday":"2026-08-24","dates":["2026-08-24","2026-08-25","2026-08-26","2026-08-27","2026-08-28"],"cells":[{"poste":"echo","date":"2026-08-24","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-24","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-25","part":"M","people":[{"label":"CM","star":false}],"x":""},{"poste":"echo","date":"2026-08-25","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-26","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-26","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-27","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-27","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-28","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-28","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"bloc","date":"2026-08-24","part":"M","people":[{"label":"CM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-24","part":"AM","people":[{"label":"CM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-25","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":"ostéo"},{"poste":"bloc","date":"2026-08-25","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-26","part":"M","people":[{"label":"EF","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-26","part":"AM","people":[{"label":"EF","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-27","part":"M","people":[{"label":"RM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-27","part":"AM","people":[{"label":"RM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-28","part":"M","people":[{"label":"HR","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-28","part":"AM","people":[{"label":"HR","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"consultation","date":"2026-08-24","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-24","part":"AM","people":[],"x":"fermé"},{"poste":"consultation","date":"2026-08-25","part":"M","people":[],"x":"fermé"},{"poste":"consultation","date":"2026-08-26","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-27","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"consultation","date":"2026-08-27","part":"AM","people":[{"label":"CM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-28","part":"AM","people":[{"label":"DJ","star":false}],"x":""},{"poste":"irm","date":"2026-08-24","part":"M","people":[],"x":"gynéco"},{"poste":"irm","date":"2026-08-25","part":"AM","people":[],"x":"fermée"},{"poste":"irm","date":"2026-08-26","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"irm","date":"2026-08-26","part":"AM","people":[],"x":"fermée"},{"poste":"irm","date":"2026-08-27","part":"M","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"irm","date":"2026-08-28","part":"AM","people":[{"label":"CM","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-26","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-27","part":"M","people":[{"label":"CM","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-28","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-24","part":"M","people":[{"label":"RM","star":false}],"x":"(diag)"},{"poste":"scanner-rdc","date":"2026-08-24","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-25","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-28","part":"M","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-28","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-24","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-27","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-24","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-24","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-26","part":"M","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-26","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-27","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-sa","date":"2026-08-27","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-28","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"echo-sa","date":"2026-08-26","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-xa","date":"2026-08-28","part":"M","people":[{"label":"CM","star":false}],"x":""},{"poste":"rcp","date":"2026-08-24","part":"M","people":[{"label":"HR","star":false},{"label":"RM","star":false}],"x":""},{"poste":"rcp","date":"2026-08-25","part":"AM","people":[{"label":"RM","star":false}],"x":""}],"absences":[{"label":"AM","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-28","part":"AM","note":"Absent(e)"},{"label":"EF","date":"2026-08-24","part":"M","note":"Off"},{"label":"Romain","date":"2026-08-24","part":"M","note":"Off"},{"label":"EF","date":"2026-08-24","part":"AM","note":"Off"},{"label":"Romain","date":"2026-08-24","part":"AM","note":"Off"},{"label":"EF","date":"2026-08-25","part":"M","note":"Off"},{"label":"Alexandre","date":"2026-08-25","part":"M","note":"Off"},{"label":"EF","date":"2026-08-25","part":"AM","note":"Off"},{"label":"Alexandre","date":"2026-08-25","part":"AM","note":"Off"},{"label":"AM","date":"2026-08-26","part":"M","note":"Off"},{"label":"AM","date":"2026-08-26","part":"AM","note":"Off"},{"label":"HR","date":"2026-08-27","part":"M","note":"Off"},{"label":"HR","date":"2026-08-27","part":"AM","note":"Off"},{"label":"RM","date":"2026-08-28","part":"M","note":"Off"},{"label":"RM","date":"2026-08-28","part":"AM","note":"Off"},{"label":"CM","date":"2026-08-26","part":"M","note":"Repos de garde"},{"label":"CM","date":"2026-08-26","part":"AM","note":"Repos de garde"},{"label":"NP","date":"2026-08-24","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-24","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-24","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-24","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-25","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-25","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-25","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-25","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-26","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-26","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-26","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-26","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-27","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-27","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-27","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-27","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-28","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-28","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-28","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-28","part":"AM","note":"Congés annuels"},{"label":"AC","date":"2026-08-24","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-24","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-25","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-25","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-26","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-26","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-27","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-27","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-28","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-28","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-28","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-28","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-24","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-25","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-26","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-27","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-28","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-28","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-24","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-25","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-26","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-27","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-28","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-28","part":"AM","note":"Absent(e)"}],"notes":[]}]};
+  let subs = {aj:false, notes:false, sw:false}, jumped = false;
+  let notesBy = {}, seedState = null, trameLoaded = false, seeding = false, gDay = -1, overrides = {}, ed = {poste:'', date:'', part:'M'}; const oChains = {};
+
+  function normalizeTrame(v){
+    if (!v || typeof v !== 'object') return null;
+    return {
+      postes: Array.isArray(v.postes) ? v.postes.filter(p=>p && typeof p.id === 'string' && typeof p.label === 'string') : [],
+      cases: v.cases && typeof v.cases === 'object' ? v.cases : {},
+      off: v.off && typeof v.off === 'object' ? v.off : {},
+      regles: Array.isArray(v.regles) ? v.regles.filter(Boolean) : []
+    };
+  }
+  const findPost = id => trame ? trame.postes.find(p=>p.id === id) : null;
+  function variantOf(post, date){
+    if (!post || !post.variante) return '';
+    const dow = (date.getDay()+6)%7, rang = Math.ceil(date.getDate()/7);
+    const r = trame.regles.find(r=>r.poste === post.id && r.jour === dow && r.rang === rang);
+    return r && r.variante ? r.variante : post.variante;
+  }
+  function postName(id, k){
+    const p = findPost(id); if (!p) return id;
+    const v = variantOf(p, parse(k));
+    return p.label + (v ? ' '+v : '');
+  }
+
+  /* qui fait quoi : la trame, corrigée par les échanges enregistrés */
+  function vacWho(postId, k, part){
+    if (!trame || !isDate(k)) return null;
+    const dow = (parse(k).getDay()+6)%7; if (dow > 4) return null;
+    const c = trame.cases[tk(postId,dow,part)] || null;
+    const ov = overrides[k] && overrides[k][postId+'_'+part] || null;
+    if (!c && !(ov && (ov.w.length || ov.x))) return null;
+    const who = ov ? ov.w.slice() : (Array.isArray(c.who) ? c.who.slice() : []);
+    Object.values(swaps).filter(x=>x.status === 'conclu' && (!ov || (x.updatedAt||0) > ov.t)).sort((a,b)=>(a.updatedAt||0)-(b.updatedAt||0)).forEach(x=>{
+      if (x.poste === postId && x.date === k && x.part === part) {
+        const i = who.indexOf(x.from); if (i >= 0) who.splice(i,1);
+        if (!who.includes(x.to)) who.push(x.to);
+      }
+      if (x.poste2 === postId && x.date2 === k && x.part2 === part) {
+        const i = who.indexOf(x.to); if (i >= 0) who.splice(i,1);
+        if (!who.includes(x.from)) who.push(x.from);
+      }
+    });
+    return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : ''), edited: !!(ov && c), open: !!ov && !who.length && !ov.x};
+  }
+  /* pourquoi id ne peut pas être sur ce créneau ('' si tout va bien) */
+  function reasonFor(id, date, part){
+    const doc = doctors[id];
+    if (doc) {
+      const s = dayInfo(doc, date)[part];
+      if (s === 'G') return 'de garde';
+      if (s === 'R') return 'en repos de garde';
+      if (s === 'I') return 'indisponible';
+    }
+    if (isOff(id, date, part)) return 'marqué OFF dans la trame';
+    return '';
+  }
+  function conflictsBetween(from, to){
+    const out = [];
+    if (!trame) return out;
+    for (let d = new Date(from); d <= to; d = addDays(d,1)) {
+      if ((d.getDay()+6)%7 > 4) continue;
+      const k = key(d);
+      trame.postes.forEach(p=>PARTS.forEach(part=>{
+        const v = vacWho(p.id,k,part); if (!v || v.ou) return;
+        v.who.forEach(id=>{ const r = reasonFor(id,k,part); if (r) out.push({poste:p.id, date:k, part, id, reason:r}); });
+      }));
+    }
+    return out;
+  }
+  function myVacations(id){
+    const out = [];
+    if (!trame || !id) return out;
+    const start = new Date(); start.setHours(0,0,0,0);
+    for (let i=0;i<HORIZON;i++){
+      const dt = addDays(start,i); if ((dt.getDay()+6)%7 > 4) continue;
+      const k = key(dt);
+      trame.postes.forEach(p=>PARTS.forEach(part=>{
+        const v = vacWho(p.id,k,part);
+        if (v && !v.ou && v.who.includes(id)) out.push({poste:p.id, date:k, part});
+      }));
+    }
+    return out;
+  }
+  function busy(id, date, part){
+    const doc = doctors[id]; if (!doc) return false;
+    return !!dayInfo(doc, date)[part];
+  }
+  function isOff(id, date, part){
+    if (!trame) return false;
+    const l = trame.off[((parse(date).getDay()+6)%7)+'_'+part];
+    return Array.isArray(l) && l.includes(id);
+  }
+  /* id ne peut pas prendre la vacation v : indisponible, de garde, en repos, OFF, ou déjà dessus */
+  function blockedFor(id, v, giving){
+    if (giving && giving.poste === v.poste && giving.date === v.date && giving.part === v.part) return true;
+    if (busy(id, v.date, v.part) || isOff(id, v.date, v.part)) return true;
+    const w = vacWho(v.poste, v.date, v.part);
+    return !!(w && w.who.includes(id));
+  }
+  const starOf = (v,id) => v && v.stars && v.stars.includes(id) ? '*' : '';
+  const vacVal = v => v.poste+'|'+v.date+'|'+v.part;
+  const parseVac = s => { if (!s) return null; const a = s.split('|'); return a.length === 3 ? {poste:a[0], date:a[1], part:a[2]} : null; };
+  const vacLabel = v => fmtShort.format(parse(v.date))+' · '+(PART_TXT[v.part]||v.part)+' · '+postName(v.poste, v.date);
+
+  function dayVacs(id, k){
+    const out = [];
+    if (!trame) return out;
+    trame.postes.forEach(p=>PARTS.forEach(part=>{
+      const v = vacWho(p.id,k,part);
+      if (v && v.who.includes(id)) out.push({poste:p.id, part, ou:v.ou, who:v.who, others:v.who.filter(w=>w !== id)});
+    }));
+    return out.sort((a,b)=>PARTS.indexOf(a.part)-PARTS.indexOf(b.part));
+  }
+
+  /* ---------- vue Trame ---------- */
+  function renderTrame(){ renderTrameCore(); renderGNotes(); renderCreate(); }
+  function renderTrameCore(){
+    const keys = [...Array(5)].map((_,i)=>addDays(weekStart,i));
+    const wrap = $('#trameWrap');
+    if (!trame || !trame.postes.length) {
+      wrap.innerHTML = '<p class="empty" style="border:0">'+(loaded ? 'La trame du service n’est pas encore chargée.' : 'Chargement…')+'</p>';
+      renderGAlert(); renderEditor(); return;
+    }
+    ensureEd();
+    const narrow = window.matchMedia && window.matchMedia('(max-width:700px)').matches;
+    wrap.classList.toggle('tw', !narrow);
+    if (narrow) {
+      const tk0 = key(new Date());
+      if (gDay < 0) { const ix = [0,1,2,3,4].find(i=>key(addDays(weekStart,i)) === tk0); gDay = ix === undefined ? 0 : ix; }
+      const dd = addDays(weekStart, gDay), dk = key(dd);
+      let L = '<div class="daychips" role="group" aria-label="Jour">' + [0,1,2,3,4].map(i=>{ const x = addDays(weekStart,i); return '<button type="button" data-gd="'+i+'" aria-pressed="'+(i === gDay)+'">'+DOW[i]+'<strong>'+x.getDate()+'</strong></button>'; }).join('') + '</div><div class="plist">';
+      let any = false;
+      trame.postes.forEach(p=>{
+        const vv = variantOf(p,dd), vs = PARTS.map(part=>vacWho(p.id,dk,part));
+        if (!vs[0] && !vs[1]) return;
+        any = true;
+        L += '<div class="prow" style="--pc:'+posteColor(p.id)+'"><div class="pname">'+esc(p.label)+(p.variante ? '<small>'+esc(vv)+'</small>' : '')+'</div>';
+        PARTS.forEach((part,ix)=>{
+          const v = vs[ix]; let cfl = false, inner = '';
+          if (v) {
+            inner = v.texte ? '<span class="ch">'+esc(v.texte)+'</span>' : '';
+            inner += v.who.map(id=>{ const r = v.ou ? '' : reasonFor(id,dk,part); if (r) cfl = true; return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+(r ? ' · '+esc(r) : '')+'</span>'; }).join(v.ou ? ' ou ' : '');
+            if (v.open) inner += '<span class="cap open">à pourvoir</span>';
+            if (v.edited) inner += '<span class="cap mod">modifié pour ce jour</span>';
+          } else inner = '<span class="muted">—</span>';
+          L += '<div class="pcell'+(cfl ? ' cfl' : '')+(ed.poste === p.id && ed.date === dk && ed.part === part ? ' sel' : '')+'" data-p="'+esc(p.id)+'" data-d="'+dk+'" data-part="'+part+'" tabindex="0" role="button"><span class="pp">'+(part === 'M' ? 'Matin' : 'Après-midi')+'</span><span class="pw">'+inner+'</span></div>';
+        });
+        L += '</div>';
+      });
+      if (!any) L += '<p class="empty">Aucune vacation ce jour-là.</p>';
+      const offs = PARTS.map(part=>{ const l = trame.off[gDay+'_'+part]; return Array.isArray(l) && l.length ? (part === 'M' ? 'matin' : 'après-midi')+' : '+l.map(dLabel).join(', ') : ''; }).filter(Boolean);
+      if (offs.length) L += '<p class="poff">OFF · '+esc(offs.join(' · '))+'</p>';
+      L += '</div>';
+      wrap.innerHTML = L;
+      renderGAlert(); renderEditor(); return;
+    }
+    let h = '<table class="team trame"><thead><tr><th class="who" rowspan="2" scope="col">Poste</th>'
+      + keys.map((d,i)=>'<th colspan="2" scope="colgroup" class="end">'+DOW[i]+' '+d.getDate()+'</th>').join('')
+      + '</tr><tr class="sub">' + keys.map(()=>'<th scope="col">M</th><th scope="col" class="end">AM</th>').join('') + '</tr></thead><tbody>';
+    trame.postes.forEach(p=>{
+      const notes = [];
+      if (p.variante) {
+        notes.push(p.variante);
+        trame.regles.filter(r=>r.poste === p.id).forEach(r=>notes.push(ordinal(r.rang)+' '+DOWFULL[r.jour]+' : '+r.variante));
+      }
+      h += '<tr><th class="who" scope="row" style="box-shadow:inset 5px 0 0 '+posteColor(p.id)+';padding-left:14px">'+esc(p.label)+(notes.length ? '<small>'+esc(notes.join(' · '))+'</small>' : '')+'</th>';
+      keys.forEach((d,i)=>{
+        const k = key(d), vv = variantOf(p,d);
+        PARTS.forEach(part=>{
+          const v = vacWho(p.id,k,part), end = part === 'AM' ? ' end' : '';
+          const sel = ed.poste === p.id && ed.date === k && ed.part === part ? ' sel' : '';
+          const attrs = ' data-p="'+esc(p.id)+'" data-d="'+k+'" data-part="'+part+'" tabindex="0" role="button"';
+          if (!v) { h += '<td class="v none'+end+sel+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : pas de vacation, toucher pour en ajouter"></td>'; return; }
+          let inner = v.texte ? '<span class="ch">'+esc(v.texte)+'</span>' : '';
+          let cfl = false;
+          inner += v.who.map(id=>{
+            const r = v.ou ? '' : reasonFor(id,k,part); if (r) cfl = true;
+            return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+(r ? ' title="'+esc(dLabel(id)+' : '+r)+'"' : '')+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+'</span>';
+          }).join(v.ou ? ' ou ' : '');
+          if (v.open) inner += '<span class="cap open">à pourvoir</span>';
+          if (p.variante) inner += '<span class="cap'+(vv !== p.variante ? ' alt' : '')+'">'+esc(ABREV[vv] || vv)+'</span>';
+          if (v.edited) inner += '<span class="cap mod">modifié</span>';
+          h += '<td class="v'+end+sel+(cfl ? ' cfl' : '')+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : '+esc(v.who.map(dLabel).join(', ') || 'personne')+(cfl ? ', conflit' : '')+'">'+inner+'</td>';
+        });
+      });
+      h += '</tr>';
+    });
+    h += (Object.keys(trame.off || {}).length ? '<tr><th class="who" scope="row">OFF</th>' + keys.map((d,i)=>PARTS.map(part=>{
+      const l = trame.off[i+'_'+part];
+      return '<td class="v'+(part === 'AM' ? ' end' : '')+'">'+(Array.isArray(l) ? l.map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('') : '')+'</td>';
+    }).join('')).join('') + '</tr>' : '') + '</tbody></table>';
+    wrap.innerHTML = h;
+    renderGAlert(); renderEditor();
+  }
+
+  /* ---------- onglet Créer planning ---------- */
+  let cwStart = addDays(mondayOf(new Date()), 7), cwOpen = null, cwConfirm = false, cwTimer = 0;
+  const whoOf = (p,k,part)=>{ const v = vacWho(p,k,part); return v ? v.who.slice() : []; };
+  function renderCreate(){
+    if (!trame || !trame.postes.length) { $('#cwPostes').innerHTML = '<p class="empty">'+(loaded ? 'Les postes du service ne sont pas encore chargés.' : 'Chargement…')+'</p>'; $('#cwLabel').textContent = ''; return; }
+    const days = [...Array(5)].map((_,i)=>addDays(cwStart,i)), keys = days.map(key);
+    $('#cwLabel').textContent = fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
+    if (!cwOpen) cwOpen = new Set([trame.postes[0].id]);
+    const docs = sortedDocs();
+    const cfs = conflictsBetween(cwStart, days[4]);
+    let total = 0, anyOv = false;
+    keys.forEach(k=>{
+      if (overrides[k] && Object.keys(overrides[k]).length) anyOv = true;
+      trame.postes.forEach(p=>{ if (p.info) return; (p.journee ? ['M'] : PARTS).forEach(part=>{ const v = vacWho(p.id,k,part); if (v && v.who.length) total++; }); });
+    });
+    $('#cwStatus').textContent = total ? total+' vacation'+(total > 1 ? 's' : '')+' avec médecin cette semaine.' : 'Semaine vide : importez le fichier Excel ou choisissez les médecins poste par poste.';
+    $('#cwReset').hidden = !anyOv;
+    $('#cwReset').textContent = cwConfirm ? 'Confirmer : vider toute la semaine' : 'Vider les vacations de la semaine';
+    const al = $('#cwAlert');
+    al.hidden = !cfs.length;
+    al.innerHTML = cfs.length ? '<p><strong>⚠ '+cfs.length+' conflit'+(cfs.length > 1 ? 's' : '')+' sur cette semaine</strong></p><ul class="cf">'+cfs.slice(0,8).map(c=>'<li><span><strong>'+esc(dLabel(c.id))+'</strong> · '+esc(postName(c.poste,c.date))+', '+esc(fmtShort.format(parse(c.date)))+' '+PART_TXT[c.part]+' : '+esc(c.reason)+'</span></li>').join('')+'</ul>' : '';
+
+    const opt = (id,k,part)=>{ const r = reasonFor(id,k,part); return '<option value="'+esc(id)+'">'+esc(dLabel(id))+(r ? ' ⚠ '+esc(r) : '')+'</option>'; };
+    $('#cwPostes').innerHTML = trame.postes.map(p=>{
+      const parts = p.journee ? ['M'] : PARTS;
+      let b = '', filled = 0, nbad = 0;
+      keys.forEach((k,i)=>parts.forEach(part=>{
+        const v = vacWho(p.id,k,part), key3 = p.id+'|'+k+'|'+part;
+        const when = '<b>'+esc(fmtShort.format(parse(k)))+'</b> · '+(p.journee ? 'journée' : PART_TXT[part]);
+        const dis = canWrite ? '' : ' disabled';
+        if (p.info) {
+          b += '<div class="cwr"><div class="cwl">'+when+'</div><input type="text" data-cwx="'+esc(key3)+'" value="'+esc(v ? v.texte : '')+'" maxlength="80" placeholder="Texte libre (ex. IRM 1 ET 2)"'+dis+'></div>';
+          if (v && v.texte) filled++;
+          return;
+        }
+        if (!v || !(v.who.length || v.texte)) {
+          b += '<div class="cwr empty"><span class="cwl">'+when+'</span><select data-cwa="'+esc(key3)+'" aria-label="Ajouter un médecin, '+esc(p.label)+'"'+dis+'><option value="">+ Ajouter un médecin…</option>'+docs.map(d=>opt(d.id,k,part)).join('')+'</select></div>';
+          return;
+        }
+        filled++;
+        const bad = v.ou ? [] : v.who.filter(id=>reasonFor(id,k,part)); nbad += bad.length;
+        const ov = overrides[k] && overrides[k][p.id+'_'+part];
+        b += '<div class="cwr'+(bad.length ? ' cf' : '')+'"><div class="cwl">'+when+'</div>'
+          + (v.texte ? '<p class="hint">'+esc(v.texte)+'</p>' : '')
+          + '<div class="cww">'+v.who.map(id=>{ const rs = v.ou ? '' : reasonFor(id,k,part); return '<span class="ch'+(rs ? ' bad' : '')+'"'+chipSty(id, rs)+'>'+(rs ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+'<button type="button" class="x" data-cwr="'+esc(key3+'|'+id)+'" aria-label="Retirer '+esc(dLabel(id))+'"'+dis+'>×</button></span>'; }).join('')
+          + '<select data-cwa="'+esc(key3)+'" aria-label="Ajouter un médecin"'+dis+'><option value="">+ Ajouter un médecin…</option>'+docs.filter(d=>!v.who.includes(d.id)).map(d=>opt(d.id,k,part)).join('')+'</select></div>'
+          + bad.map(id=>'<p class="cwm">⚠ '+esc(dLabel(id))+' : '+esc(reasonFor(id,k,part))+'</p>').join('')
+          + (ov ? '<button type="button" class="cwv ghost" data-cwv="'+esc(key3)+'"'+dis+'>Effacer cette vacation</button>' : '')
+          + '</div>';
+      }));
+      return '<details class="cwp" style="--pc:'+posteColor(p.id)+'" data-cwp="'+esc(p.id)+'"'+(cwOpen.has(p.id) ? ' open' : '')+'><summary>'+esc(p.label)+(nbad ? ' <span class="badge red">'+nbad+'</span>' : '')+'<small>'+filled+' rempli'+(filled > 1 ? 'es' : '')+'</small></summary><div class="cwb">'+b+'</div></details>';
+    }).join('');
+
+    /* ajout rapide : garde les choix en cours */
+    const pv = {p: $('#cxPoste').value, d: $('#cxDay').value, t: $('#cxPart').value, w: $('#cxWho').value};
+    $('#cxPoste').innerHTML = trame.postes.filter(x=>!x.info).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.label)+'</option>').join('');
+    $('#cxDay').innerHTML = days.map(d=>'<option value="'+key(d)+'">'+esc(fmtShort.format(d))+'</option>').join('');
+    $('#cxPart').innerHTML = PARTS.map(x=>'<option value="'+x+'">'+(x === 'M' ? 'Matin' : 'Après-midi')+'</option>').join('');
+    if (findPost(pv.p)) $('#cxPoste').value = pv.p;
+    if (keys.includes(pv.d)) $('#cxDay').value = pv.d;
+    if (PARTS.includes(pv.t)) $('#cxPart').value = pv.t;
+    const cd = $('#cxDay').value, cp = $('#cxPart').value, cpo = $('#cxPoste').value;
+    $('#cxWho').innerHTML = '<option value="">Choisir un médecin…</option>'+docs.map(d=>opt(d.id,cd,cp)).join('');
+    if (docs.some(d=>d.id === pv.w)) $('#cxWho').value = pv.w;
+    const exists = vacWho(cpo, cd, cp);
+    $('#cxNote').textContent = exists && exists.who.length ? 'Déjà sur cette vacation : '+exists.who.map(dLabel).join(', ')+'. Le médecin choisi sera ajouté.' : 'Aucun médecin sur cette vacation pour le moment.';
+    applyRO();
+  }
+  $('#cwPrev').addEventListener('click',()=>{ cwStart = addDays(cwStart,-7); renderCreate(); });
+  $('#cwNext').addEventListener('click',()=>{ cwStart = addDays(cwStart,7); renderCreate(); });
+  $('#cwJump').addEventListener('change', e=>{ if (e.target.value) { cwStart = mondayOf(parse(e.target.value)); renderCreate(); } });
+  $('#cwPostes').addEventListener('toggle', e=>{ const d = e.target; if (!d.dataset || !d.dataset.cwp || !cwOpen) return; if (d.open) cwOpen.add(d.dataset.cwp); else cwOpen.delete(d.dataset.cwp); }, true);
+  $('#cwPostes').addEventListener('change', e=>{
+    const sel = e.target.closest('select[data-cwa]'); if (!sel || !sel.value) return;
+    const a = sel.dataset.cwa.split('|'), cur = whoOf(a[0],a[1],a[2]);
+    if (!cur.includes(sel.value)) cur.push(sel.value);
+    writeWho(a[0],a[1],a[2],cur,sel.value);
+  });
+  $('#cwPostes').addEventListener('change', async e=>{
+    const inp = e.target.closest('input[data-cwx]'); if (!inp) return;
+    const a = inp.dataset.cwx.split('|');
+    const ok = await writeText(a[0], a[1], a[2], inp.value.trim());
+    if (ok) notify('Enregistré.');
+  });
+  $('#cwPostes').addEventListener('click', async e=>{
+    const rm = e.target.closest('[data-cwr]');
+    if (rm) { const a = rm.dataset.cwr.split('|'); writeWho(a[0],a[1],a[2],whoOf(a[0],a[1],a[2]).filter(x=>x !== a[3]), null); return; }
+    const rv = e.target.closest('[data-cwv]');
+    if (rv) { const a = rv.dataset.cwv.split('|'); const ok = await revertSlot(a[0], a[1], a[2]); if (ok) notify('Vacation effacée.'); }
+  });
+  ['cxPoste','cxDay','cxPart'].forEach(id=>$('#'+id).addEventListener('change', renderCreate));
+  $('#cxWho').addEventListener('change', ()=>{});
+  $('#cwExcep').addEventListener('submit', e=>{
+    e.preventDefault();
+    const po = $('#cxPoste').value, k = $('#cxDay').value, part = $('#cxPart').value, w = $('#cxWho').value;
+    if (!w) return notify('Choisissez le médecin.', true);
+    const cur = whoOf(po,k,part);
+    if (cur.includes(w)) return notify(dLabel(w)+' est déjà sur cette vacation.', true);
+    cur.push(w);
+    writeWho(po,k,part,cur,w,'Médecin ajouté.');
+    $('#cxWho').value = '';
+  });
+  $('#cwReset').addEventListener('click', async ()=>{
+    if (!cwConfirm) { cwConfirm = true; clearTimeout(cwTimer); cwTimer = setTimeout(()=>{ cwConfirm = false; renderCreate(); }, 5000); renderCreate(); return; }
+    cwConfirm = false; clearTimeout(cwTimer);
+    let n = 0, okAll = true;
+    for (let i=0;i<5;i++){
+      const k = key(addDays(cwStart,i)), o = overrides[k]; if (!o) continue;
+      for (const kk of Object.keys(o)) { n++; okAll = (await setOverride(k, kk, null)) && okAll; }
+    }
+    if (okAll) notify('Semaine vidée ('+n+' vacation'+(n > 1 ? 's' : '')+' effacée'+(n > 1 ? 's' : '')+').');
+    renderCreate();
+  });
+
+  /* ---------- import Excel ---------- */
+  const normS = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+  const DAYN = ['lun','mar','mer','jeu','ven'];
+  const dayOfCell = v => { if (v instanceof Date) return -1; const n = normS(v); if (!n || n.length > 30) return -1; return DAYN.findIndex(d=>n.startsWith(d)); };
+  const partOfCell = v => { if (v instanceof Date) return ''; const n = normS(v); if (n === 'm' || n.startsWith('mat')) return 'M'; if (n === 'am' || n === 'pm' || n === 'apm' || n === 'a-m' || n.startsWith('apr')) return 'AM'; return ''; };
+  function dateFromAny(v){
+    if (v instanceof Date && !isNaN(v)) { const t = new Date(v.getTime()+12*36e5); return new Date(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()); }
+    const str = String(v == null ? '' : v);
+    let m = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+    m = str.match(/(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?/);
+    if (m) { let y = m[3] ? Number(m[3]) : cwStart.getFullYear(); if (y < 100) y += 2000; const d = new Date(y, Number(m[2])-1, Number(m[1])); if (d.getMonth() === Number(m[2])-1) return d; }
+    return null;
+  }
+  function splitNames(v){
+    return String(v == null ? '' : v).replace(/\(.*?\)/g,'').split(/[,;\/+&\n]|\bet\b|\bou\b/i).map(x=>x.trim()).filter(x=>x && x.length <= 24 && !/^[-–—x.]+$/i.test(x));
+  }
+  function matchPoste(label){
+    const n = normS(label); if (!n) return null;
+    const list = trame.postes.map(p=>({p, n: normS(p.label)}));
+    const ex = list.find(x=>x.n === n); if (ex) return ex.p;
+    const inc = list.filter(x=>n.includes(x.n)).sort((a,b)=>b.n.length-a.n.length);
+    if (inc.length) return inc[0].p;
+    const rev = list.filter(x=>x.n.includes(n));
+    return rev.length === 1 ? rev[0].p : null;
+  }
+  function parseGrid(rows){
+    let hr = -1;
+    for (let r=0; r<Math.min(rows.length,15); r++) { const ds = new Set(); rows[r].forEach(c=>{ const i = dayOfCell(c); if (i >= 0) ds.add(i); }); if (ds.size >= 3) { hr = r; break; } }
+    if (hr < 0) return null;
+    const width = Math.max(...rows.map(r=>r.length));
+    const dayCol = [], partCol = [];
+    let cur = -1;
+    for (let c=0;c<width;c++) { const i = dayOfCell(rows[hr][c]); if (i >= 0) cur = i; dayCol[c] = cur; }
+    let pr = -1;
+    for (let r=hr; r<=Math.min(hr+2, rows.length-1); r++) { let n = 0; for (let c=0;c<width;c++) if (partOfCell(rows[r][c])) n++; if (n >= 4) { pr = r; break; } }
+    if (pr >= 0) for (let c=0;c<width;c++) partCol[c] = partOfCell(rows[pr][c]);
+    else { const seen = {}; for (let c=0;c<width;c++) if (dayCol[c] >= 0) { seen[dayCol[c]] = (seen[dayCol[c]]||0)+1; partCol[c] = seen[dayCol[c]] === 1 ? 'M' : 'AM'; } }
+    const first = dayCol.findIndex(x=>x >= 0);
+    let monday = null;
+    for (let r=0; r<=(pr >= 0 ? pr : hr) && !monday; r++) for (let c=0;c<width && !monday;c++) {
+      const d = dateFromAny(rows[r][c]); if (!d) continue;
+      const di = r === hr || r === pr ? dayOfCell(rows[hr][c]) : -1;
+      monday = mondayOf(di > 0 ? addDays(d,-di) : d);
+    }
+    const cells = [], ignored = [];
+    for (let r=(pr >= 0 ? pr : hr)+1; r<rows.length; r++) {
+      const label = rows[r].slice(0, first).map(x=>String(x||'').trim()).filter(Boolean).join(' ');
+      if (!label || normS(label) === 'off') continue;
+      const post = matchPoste(label);
+      if (!post) { if (rows[r].some((x,c)=>c >= first && String(x||'').trim())) ignored.push(label); continue; }
+      for (let c=first;c<width;c++) if (dayCol[c] >= 0 && partCol[c]) cells.push({poste: post.id, day: dayCol[c], part: partCol[c], names: splitNames(rows[r][c])});
+    }
+    return {monday, cells, ignored};
+  }
+  function parseFlat(rows){
+    let hr = -1, ci = {};
+    for (let r=0; r<Math.min(rows.length,10); r++) {
+      const ns = rows[r].map(normS);
+      const p = ns.findIndex(x=>x === 'poste'), m = ns.findIndex(x=>/^(medecin|docteur|praticien|nom)/.test(x)), j = ns.findIndex(x=>/^(jour|date)/.test(x));
+      if (p >= 0 && m >= 0 && j >= 0) { hr = r; ci = {p, m, j, t: ns.findIndex(x=>/^(creneau|demi|periode|moment)/.test(x))}; break; }
+    }
+    if (hr < 0) return null;
+    const cells = [], ignored = []; let monday = null;
+    for (let r=hr+1; r<rows.length; r++) {
+      const row = rows[r], label = String(row[ci.p] || '').trim(); if (!label) continue;
+      const post = matchPoste(label); if (!post) { ignored.push(label); continue; }
+      let day = dayOfCell(row[ci.j]); const d = dateFromAny(row[ci.j]);
+      if (d) { if (!monday) monday = mondayOf(d); day = (d.getDay()+6)%7; }
+      if (day < 0 || day > 4) continue;
+      const part = ci.t >= 0 ? partOfCell(row[ci.t]) : 'M'; if (!part) continue;
+      cells.push({poste: post.id, day, part, names: splitNames(row[ci.m])});
+    }
+    return {monday, cells, ignored};
+  }
+  let xlPlan = null;
+  const PP = window.PlanningParser;
+  function planFromWeeks(weeks, ignored){
+    const known = {}, fresh = {};
+    sortedDocs().forEach(d=>{ known[normS(d.label)] = d.id; known[d.id] = d.id; });
+    const idOf = label=>{ const n = normS(label); let id = known[n] || known[slug(label)]; if (!id) { id = slug(label); if (id) { fresh[id] = fresh[id] || label; known[n] = id; } } return id || null; };
+    weeks.forEach(w=>{ w.cells.forEach(c=>c.people.forEach(p=>{ p.id = idOf(p.label); })); w.absences.forEach(a=>{ a.id = idOf(a.label); }); });
+    return {weeks, fresh, ignored: ignored || []};
+  }
+  function renderPlan(){
+    const box = $('#xlPreview');
+    if (!xlPlan) { box.hidden = true; box.innerHTML = ''; return; }
+    const pl = xlPlan, fresh = Object.values(pl.fresh);
+    const filled = pl.weeks.reduce((n,w)=>n+w.cells.filter(c=>c.people.length && !(findPost(c.poste) && findPost(c.poste).journee && c.part === 'AM')).length, 0);
+    box.hidden = false;
+    box.innerHTML = '<div class="xlp"><strong>Aperçu du fichier</strong>'
+      + '<ul>'+pl.weeks.map(w=>{ const a = parse(w.monday), b = addDays(a,4); const n = w.cells.filter(c=>c.people.length).length; return '<li>Semaine du '+esc(fmtDM.format(a))+' au '+esc(fmtDM.format(b))+' : '+n+' cases avec médecin, '+new Set(w.absences.map(x=>x.label+x.date)).size+' absences/congés, '+w.notes.length+' note'+(w.notes.length > 1 ? 's' : '')+'</li>'; }).join('')+'</ul>'
+      + (fresh.length ? '<p>Médecins ajoutés à la liste : <strong>'+esc(fresh.join(', '))+'</strong></p>' : '<p>Tous les noms existent déjà dans la liste.</p>')
+      + (pl.ignored.length ? '<p class="xw">Lignes ignorées (poste inconnu) : '+esc(pl.ignored.join(', '))+'</p>' : '')
+      + (!filled ? '<p class="xw">Aucun médecin trouvé dans le fichier.</p>' : '')
+      + '<p class="hint" style="color:var(--ink)">Les semaines déjà présentes sont remplacées. Vos gardes ne sont pas touchées.</p>'
+      + '<div class="xa"><button type="button" class="primary" id="xlApply"'+(filled && canWrite ? '' : ' disabled')+'>Importer '+pl.weeks.length+' semaine'+(pl.weeks.length > 1 ? 's' : '')+'</button><button type="button" class="ghost" id="xlCancel">Annuler</button></div></div>';
+  }
+  async function readFile(file){
+    const X = window.XLSX;
+    if (!X) return notify("La lecture des fichiers Excel n'est pas disponible dans cette vue.", true);
+    if (!trame || !trame.postes.length) return notify('Les postes du service doivent être chargés.', true);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = X.read(new Uint8Array(buf), {type:'array', cellDates:true});
+      let weeks = PP.parseWorkbook(X, wb), ignored = [];
+      if (!weeks.length) {
+        let parsed = null;
+        for (const name of wb.SheetNames) {
+          const rows = X.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:'', raw:true});
+          parsed = parseGrid(rows) || parseFlat(rows);
+          if (parsed && parsed.cells.length) break;
+        }
+        if (parsed) {
+          const mon = parsed.monday || cwStart; ignored = parsed.ignored;
+          weeks = [{monday: key(mon), dates: [0,1,2,3,4].map(i=>key(addDays(mon,i))), cells: parsed.cells.map(c=>({poste: c.poste, date: key(addDays(mon,c.day)), part: c.part, people: c.names.map(n=>({label: PP.personLabel(n), star: false})), x: ''})), absences: [], notes: []}];
+        }
+      }
+      if (!weeks.length) { xlPlan = null; renderPlan(); return notify("Format non reconnu. Utilisez le fichier du planning du service ou le modèle.", true); }
+      xlPlan = planFromWeeks(weeks, ignored); renderPlan();
+    } catch(e) { xlPlan = null; renderPlan(); notify('Fichier illisible. Utilisez un .xlsx ou .csv.', true); }
+  }
+  /* écrit les semaines d'un plan : médecins, vacations, absences, notes */
+  async function applyWeeks(plan){
+    if (!db || !canWrite || !trame) return false;
+    const postIds = new Set(trame.postes.map(p=>p.id));
+    try {
+      let order = Math.max(0, ...Object.values(doctors).filter(d=>d.order !== 999).map(d=>d.order));
+      for (const id of Object.keys(plan.fresh).sort((a,b)=>plan.fresh[a].localeCompare(plan.fresh[b],'fr'))) {
+        const ref = db.doc('medecins/'+id), snap = await ref.get();
+        if (!snap.exists) await ref.set({label: plan.fresh[id], order: ++order, days: {}});
+      }
+      const abs = {};
+      for (const w of plan.weeks) {
+        const byDate = {}; w.dates.forEach(d=>{ byDate[d] = {}; });
+        w.cells.forEach(c=>{
+          if (!postIds.has(c.poste) || !byDate[c.date]) return;
+          const ids = c.people.map(p=>p.id).filter(Boolean);
+          if (!ids.length && !c.x) return;
+          const val = {w: ids, t: Date.now()}, st = c.people.filter(p=>p.star && p.id).map(p=>p.id);
+          if (st.length) val.s = st; if (c.x) val.x = c.x;
+          byDate[c.date][c.poste+'_'+c.part] = val;
+        });
+        for (const d of w.dates) {
+          const ref = db.doc('ajustements/'+d);
+          if (Object.keys(byDate[d]).length) await ref.set(byDate[d]);
+          else if (overrides[d] && Object.keys(overrides[d]).length) await ref.delete();
+          const items = w.notes.filter(n=>n.date === d).map(n=>n.text);
+          if (items.length) await db.doc('notes/'+d).set({items});
+          else if (notesBy[d] && notesBy[d].length) await db.doc('notes/'+d).delete();
+        }
+        w.absences.forEach(a=>{ if (!a.id) return; abs[a.id] = abs[a.id] || {}; abs[a.id][a.date] = abs[a.id][a.date] || {}; abs[a.id][a.date][a.part] = true; });
+      }
+      for (const id of Object.keys(abs)) {
+        const cur = (doctors[id] && doctors[id].days) || {}, patch = {};
+        Object.keys(abs[id]).forEach(d=>{
+          const c = cur[d]; if (c === 'G') return;
+          const p = abs[id][d]; if (c === 'J' || c === 'M') p.M = true; if (c === 'J' || c === 'AM') p.AM = true;
+          patch[d] = p.M && p.AM ? 'J' : p.M ? 'M' : 'AM';
+        });
+        if (Object.keys(patch).length) await db.doc('medecins/'+id).update({days: patch});
+      }
+      return true;
+    } catch(e) { handleErr(e); return false; }
+  }
+  async function applyPlan(){
+    const pl = xlPlan; if (!pl) return;
+    const btn = $('#xlApply'); if (btn) btn.disabled = true;
+    const ok = await applyWeeks(pl);
+    if (!ok) { renderPlan(); return; }
+    if (pl.weeks.length) cwStart = parse(pl.weeks[0].monday);
+    xlPlan = null; renderPlan(); renderCreate();
+    notify(pl.weeks.length+' semaine'+(pl.weeks.length > 1 ? 's' : '')+' importée'+(pl.weeks.length > 1 ? 's' : '')+'.');
+  }
+  async function downloadModel(){
+    const X = window.XLSX;
+    if (!X) return notify("Les fichiers Excel ne sont pas disponibles dans cette vue.", true);
+    if (!trame) return notify('La trame du service doit être chargée.', true);
+    const days = [...Array(5)].map((_,i)=>addDays(cwStart,i));
+    const NAMES = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
+    const head1 = ['Semaine du '+fmtDM.format(days[0])+' '+days[0].getFullYear()], head2 = ['Poste'];
+    days.forEach((d,i)=>{ head1.push(NAMES[i]+' '+pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(), ''); head2.push('Matin','Après-midi'); });
+    const aoa = [head1, head2];
+    trame.postes.forEach(p=>{
+      const row = [p.label];
+      days.forEach(d=>PARTS.forEach(part=>{ const v = vacWho(p.id, key(d), part); row.push(v ? v.who.map(dLabel).join(', ') : ''); }));
+      aoa.push(row);
+    });
+    const ws = X.utils.aoa_to_sheet(aoa);
+    ws['!merges'] = [0,1,2,3,4].map(i=>({s:{r:0,c:1+2*i}, e:{r:0,c:2+2*i}}));
+    ws['!cols'] = [{wch:26}].concat(Array(10).fill({wch:16}));
+    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'Semaine');
+    const out = X.write(wb, {type:'array', bookType:'xlsx'});
+    let dl = null;
+    try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch(e) {}
+    if (!dl) return notify("L'enregistrement de fichiers n'est pas disponible dans cette vue.", true);
+    try { await dl.save({filename: 'planning-semaine-'+key(days[0])+'.xlsx', data: new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}); notify('Modèle enregistré.'); }
+    catch(e) { if (!e || e.code !== 'declined') notify("Impossible d'enregistrer le fichier ici.", true); }
+  }
+  $('#xlFile').addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
+  $('#xlModel').addEventListener('click', downloadModel);
+  $('#xlPreview').addEventListener('click', e=>{
+    if (e.target.closest('#xlApply')) applyPlan();
+    if (e.target.closest('#xlCancel')) { xlPlan = null; renderPlan(); }
+  });
+
+  /* ---------- alertes du planning général ---------- */
+  function renderGAlert(){
+    const box = $('#gAlert'), b = $('#gBadge');
+    if (!trame) { box.hidden = true; box.innerHTML = ''; b.hidden = true; return; }
+    const m0 = mondayOf(new Date());
+    const soon = conflictsBetween(m0, addDays(m0, 8*7-1)).length;
+    b.hidden = !soon; b.textContent = soon; b.setAttribute('aria-label', soon+' conflit'+(soon > 1 ? 's' : '')+' dans les 8 prochaines semaines');
+    const wk = conflictsBetween(weekStart, addDays(weekStart,4));
+    if (!wk.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '<p><strong>⚠ '+wk.length+' conflit'+(wk.length > 1 ? 's' : '')+' cette semaine</strong> : un médecin est affecté alors qu’il n’est pas disponible.</p><ul class="cf">'
+      + wk.slice(0,10).map(c=>'<li><span><strong>'+esc(dLabel(c.id))+'</strong> · '+esc(postName(c.poste,c.date))+', '+esc(fmtShort.format(parse(c.date)))+' '+PART_TXT[c.part]+' : '+esc(c.reason)+'</span><button type="button" data-goto="'+esc(c.poste+'|'+c.date+'|'+c.part)+'">Modifier</button></li>').join('')
+      + '</ul>' + (wk.length > 10 ? '<p class="hint">et '+(wk.length-10)+' autre'+(wk.length-10 > 1 ? 's' : '')+'</p>' : '');
+  }
+
+  /* ---------- modification d'une vacation (menus déroulants) ---------- */
+  function ensureEd(){
+    if (!trame || !trame.postes.length) return false;
+    if (!findPost(ed.poste)) ed.poste = trame.postes[0].id;
+    const wk = [...Array(5)].map((_,i)=>key(addDays(weekStart,i)));
+    if (!wk.includes(ed.date)) ed.date = wk[0];
+    if (!PARTS.includes(ed.part)) ed.part = 'M';
+    return true;
+  }
+  const edWho = () => { const v = vacWho(ed.poste, ed.date, ed.part); return v ? v.who.slice() : []; };
+  function renderEditor(){
+    if (!ensureEd()) { $('#edWho').innerHTML = ''; $('#edState').textContent = ''; $('#edMsg').hidden = true; $('#edRevert').hidden = true; return; }
+    const days = [...Array(5)].map((_,i)=>addDays(weekStart,i));
+    $('#edPoste').innerHTML = trame.postes.map(p=>'<option value="'+esc(p.id)+'"'+(p.id === ed.poste ? ' selected' : '')+'>'+esc(p.label)+'</option>').join('');
+    $('#edDay').innerHTML = days.map(d=>'<option value="'+key(d)+'"'+(key(d) === ed.date ? ' selected' : '')+'>'+esc(fmtShort.format(d))+'</option>').join('');
+    $('#edPart').innerHTML = PARTS.map(x=>'<option value="'+x+'"'+(x === ed.part ? ' selected' : '')+'>'+(x === 'M' ? 'Matin' : 'Après-midi')+'</option>').join('');
+    const v = vacWho(ed.poste, ed.date, ed.part), cur = v ? v.who : [];
+    const docs = sortedDocs();
+    const opt = (id, sel)=>{ const r = reasonFor(id, ed.date, ed.part); return '<option value="'+esc(id)+'"'+(sel ? ' selected' : '')+'>'+esc(dLabel(id))+(r ? ' ⚠ '+esc(r) : '')+'</option>'; };
+    $('#edWho').innerHTML = cur.length ? cur.map((id,i)=>{
+      const r = reasonFor(id, ed.date, ed.part);
+      return '<div class="ed-row"><select data-i="'+i+'" class="'+(r ? 'bad' : '')+'" aria-label="Médecin '+(i+1)+'">'+opt(id,true)
+        + docs.filter(d=>d.id !== id && !cur.includes(d.id)).map(d=>opt(d.id,false)).join('')
+        + '<option value="__rm">Retirer de cette vacation</option></select></div>';
+    }).join('') : '<p class="hint">Personne n’est affecté à cette vacation.</p>';
+    $('#edAdd').innerHTML = '<option value="">Choisir un médecin…</option>' + docs.filter(d=>!cur.includes(d.id)).map(d=>opt(d.id,false)).join('');
+    const p = findPost(ed.poste);
+    const notes = [];
+    if (v && v.ou) notes.push('Case « ou » dans la trame : elle deviendra ferme si vous la modifiez.');
+    if (v && v.texte) notes.push('Mention : « '+v.texte+' ».');
+    $('#edState').textContent = postName(ed.poste, ed.date)+(findPost(ed.poste) && findPost(ed.poste).journee ? ' (journée entière)' : '')+(notes.length ? ' · '+notes.join(' ') : '');
+    const bad = cur.filter(id=>!(v && v.ou) && reasonFor(id, ed.date, ed.part));
+    const box = $('#edMsg');
+    box.hidden = !bad.length;
+    box.innerHTML = bad.map(id=>'⚠ <strong>'+esc(dLabel(id))+'</strong> n’est pas disponible : '+esc(reasonFor(id, ed.date, ed.part))+', '+esc(fmtShort.format(parse(ed.date)))+' '+PART_TXT[ed.part]+'.').join('<br>');
+    const ov = overrides[ed.date] && overrides[ed.date][ed.poste+'_'+ed.part];
+    $('#edRevert').hidden = !ov;
+    applyRO();
+  }
+
+  function setOverride(date, kk, val){
+    if (!db) { notify("Le planning partagé n'est pas disponible dans cette vue.", true); return Promise.resolve(false); }
+    if (!canWrite) { notify('Lecture seule : vous ne pouvez pas modifier le planning.', true); return Promise.resolve(false); }
+    const prev = oChains[date] || Promise.resolve();
+    const run = prev.then(async ()=>{
+      const ref = db.doc('ajustements/'+date);
+      const snap = await ref.get();
+      if (snap.exists) return ref.update({[kk]: val});
+      if (val === null) return;
+      return ref.set({[kk]: val});
+    });
+    oChains[date] = run.catch(()=>{});
+    return run.then(()=>true).catch(e=>{ handleErr(e); return false; });
+  }
+  const slotParts = (poste, part) => { const p = findPost(poste); return p && p.journee ? PARTS : [part]; };
+  async function writeWho(poste, date, part, arr, added, okMsg){
+    let ok = true;
+    for (const pt of slotParts(poste, part)) {
+      const ov = overrides[date] && overrides[date][poste+'_'+pt];
+      const val = {w: arr, t: Date.now()};
+      if (ov && ov.x) val.x = ov.x;
+      const st = ov && ov.s ? ov.s.filter(id=>arr.includes(id)) : []; if (st.length) val.s = st;
+      ok = (await setOverride(date, poste+'_'+pt, val)) && ok;
+    }
+    if (!ok) { renderEditor(); renderCreate(); return; }
+    const r = added ? reasonFor(added, date, part) : '';
+    if (r) notify('⚠ '+dLabel(added)+' n’est pas disponible : '+r+', '+fmtShort.format(parse(date))+' '+PART_TXT[part]+'.', true);
+    else notify(okMsg || 'Vacation modifiée.');
+  }
+  async function revertSlot(poste, date, part){
+    let ok = true;
+    for (const pt of slotParts(poste, part)) ok = (await setOverride(date, poste+'_'+pt, null)) && ok;
+    return ok;
+  }
+  async function writeText(poste, date, part, text){
+    let ok = true;
+    for (const pt of slotParts(poste, part)) ok = (await (text ? setOverride(date, poste+'_'+pt, {w: [], t: Date.now(), x: text}) : setOverride(date, poste+'_'+pt, null))) && ok;
+    return ok;
+  }
+  const commitWho = (arr, added)=>writeWho(ed.poste, ed.date, ed.part, arr, added);
+  ['edPoste','edDay','edPart'].forEach(id=>$('#'+id).addEventListener('change', e=>{
+    ed.poste = $('#edPoste').value; ed.date = $('#edDay').value; ed.part = $('#edPart').value;
+    const gi = [0,1,2,3,4].find(i=>key(addDays(weekStart,i)) === ed.date); if (gi !== undefined) gDay = gi;
+    renderTrame();
+  }));
+  $('#edWho').addEventListener('change', e=>{
+    const sel = e.target.closest('select[data-i]'); if (!sel) return;
+    const cur = edWho(), i = Number(sel.dataset.i), val = sel.value;
+    if (val === '__rm') { cur.splice(i,1); commitWho(cur, null); }
+    else { cur[i] = val; commitWho(cur, val); }
+  });
+  $('#edAdd').addEventListener('change', e=>{
+    const val = e.target.value; if (!val) return;
+    const cur = edWho(); if (!cur.includes(val)) cur.push(val);
+    commitWho(cur, val);
+  });
+  $('#edRevert').addEventListener('click', async ()=>{
+    const ok = await revertSlot(ed.poste, ed.date, ed.part);
+    if (ok) notify('Vacation effacée.');
+  });
+  function gotoCell(poste, date, part){
+    ed.poste = poste; ed.date = date; ed.part = part;
+    const gi = [0,1,2,3,4].find(i=>key(addDays(weekStart,i)) === date); if (gi !== undefined) gDay = gi;
+    renderTrame();
+    $('#edForm').scrollIntoView({block:'nearest'});
+  }
+  $('#trameWrap').addEventListener('click', e=>{
+    const gd = e.target.closest('[data-gd]'); if (gd) { gDay = Number(gd.dataset.gd); renderTrame(); return; }
+    const td = e.target.closest('[data-p]'); if (td) gotoCell(td.dataset.p, td.dataset.d, td.dataset.part);
+  });
+  $('#trameWrap').addEventListener('keydown', e=>{
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const td = e.target.closest('[data-p]'); if (td) { e.preventDefault(); gotoCell(td.dataset.p, td.dataset.d, td.dataset.part); }
+  });
+  $('#gAlert').addEventListener('click', e=>{
+    const b = e.target.closest('[data-goto]'); if (!b) return;
+    const a = b.dataset.goto.split('|'); gotoCell(a[0], a[1], a[2]);
+  });
+
+  /* ---------- alerte : vacations qui tombent sur une indisponibilité ---------- */
+  function renderConflicts(){
+    const box = $('#conflicts');
+    const list = doctors[me] && trame ? myVacations(me).filter(v=>busy(me, v.date, v.part)) : [];
+    if (!list.length) { box.hidden = true; box.innerHTML = ''; return; }
+    const extra = list.length - 4;
+    box.hidden = false;
+    box.innerHTML = '<p><strong>'+list.length+' vacation'+(list.length > 1 ? 's tombent' : ' tombe')+' sur vos indisponibilités ou vos repos de garde.</strong></p><ul class="cf">'
+      + list.slice(0,4).map(v=>'<li><span>'+esc(vacLabel(v))+'</span><button type="button" data-vac="'+esc(vacVal(v))+'"'+(canWrite ? '' : ' disabled')+'>Échanger</button></li>').join('')
+      + '</ul>' + (extra > 0 ? '<p class="hint">et '+extra+' autre'+(extra > 1 ? 's' : '')+'</p>' : '');
+  }
+
+  /* ---------- échanges de vacations (immédiats, sans validation) ---------- */
+  function loadSeen(){ try { return new Set(JSON.parse(localStorage.getItem('planning-seen') || '[]')); } catch(e) { return new Set(); } }
+  function saveSeen(s){ try { localStorage.setItem('planning-seen', JSON.stringify([...s].slice(-200))); } catch(e) {} }
+  const upcomingX = x => { const t = key(new Date()); return x.date >= t || x.date2 >= t; };
+  const newForMe = () => { const seen = loadSeen(); return me ? Object.values(swaps).filter(x=>x.status === 'conclu' && x.to === me && x.from !== me && upcomingX(x) && !seen.has(x.id)) : []; };
+  function renderBadge(){
+    const list = newForMe(), b = $('#swapBadge');
+    if (!$('#view-echanges').hidden && list.length) { const s = loadSeen(); list.forEach(x=>s.add(x.id)); saveSeen(s); b.hidden = true; return; }
+    b.hidden = !list.length; b.textContent = list.length; b.setAttribute('aria-label', list.length+' nouvel échange à connaître');
+  }
+
+  function xCard(x, canUndo){
+    const dis = canWrite ? '' : ' disabled';
+    const concerned = x.to === me && x.from !== me;
+    let h = '<article class="sw" data-id="'+esc(x.id)+'"><div class="sw-h"><strong>'+esc(dLabel(x.from))+'</strong> ⇄ <strong>'+esc(dLabel(x.to))+'</strong>'+(concerned ? '<span class="tag">Vous êtes concerné</span>' : '')+'</div>';
+    h += '<div class="sw-m">'+esc(dLabel(x.from))+' cède : '+esc(vacLabel({poste:x.poste, date:x.date, part:x.part}))+'</div>';
+    h += '<div class="sw-m">'+esc(dLabel(x.to))+' cède : '+esc(vacLabel({poste:x.poste2, date:x.date2, part:x.part2}))+'</div>';
+    if (canUndo) h += '<div class="sw-a"><button type="button" data-act="undo"'+(pendingUndo === x.id ? ' class="danger"' : '')+dis+'>'+(pendingUndo === x.id ? "Confirmer l'annulation" : 'Annuler cet échange')+'</button></div>';
+    return h + '</article>';
+  }
+
+  function renderSwaps(){
+    const empty = $('#swEmpty'), body = $('#swBody');
+    if (!doctors[me]) {
+      body.hidden = true; empty.hidden = false;
+      empty.textContent = !loaded ? 'Chargement du planning partagé…' : 'Choisissez votre nom en haut de la page pour échanger des vacations.';
+      return;
+    }
+    empty.hidden = true; body.hidden = false;
+    const all = Object.values(swaps).filter(x=>x.status === 'conclu').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    const involved = x => x.from === me || x.to === me;
+    const mine = all.filter(x=>involved(x) && upcomingX(x));
+    const rest = all.filter(x=>!mine.includes(x)).slice(0,10);
+    const sec = (title, items) => items.length ? '<section class="card sec"><h2>'+title+'</h2>'+items.join('')+'</section>' : '';
+    const html = sec('Vos échanges à venir', mine.map(x=>xCard(x, involved(x))))
+      + sec("Derniers échanges de l'équipe", rest.map(x=>xCard(x, false)));
+    $('#swLists').innerHTML = html || '<p class="empty">Aucun échange enregistré pour le moment.</p>';
+  }
+
+  function fillTheirs(){
+    const sel = $('#swTheirs'), go = $('#swGo'), chk = $('#swCheck');
+    const mineV = parseVac($('#swMine').value), wid = $('#swWith').value;
+    const prev = sel.value;
+    if (!trame || !mineV || !wid || !doctors[wid]) {
+      sel.innerHTML = '<option value="">'+(wid ? '—' : "Choisissez d'abord un confrère")+'</option>';
+      go.disabled = true; chk.textContent = ''; return;
+    }
+    const opt = t => '<option value="'+esc(vacVal(t))+'">'+esc(vacLabel(t))+'</option>';
+    const theirs = myVacations(wid).filter(t=>!blockedFor(me, t, mineV) && !blockedFor(wid, mineV, t));
+    const sameSlot = t => t.date === mineV.date && t.part === mineV.part;
+    const same = theirs.filter(sameSlot), other = theirs.filter(t=>!sameSlot(t));
+    let h = '';
+    if (same.length) h += '<optgroup label="Même créneau">'+same.map(opt).join('')+'</optgroup>';
+    if (other.length) h += '<optgroup label="Autres créneaux">'+other.map(opt).join('')+'</optgroup>';
+    sel.innerHTML = h || '<option value="">Aucune vacation compatible</option>';
+    if (theirs.some(t=>vacVal(t) === prev)) sel.value = prev;
+    const tv = parseVac(sel.value);
+    go.disabled = !tv || !canWrite;
+    chk.textContent = tv
+      ? "Après l'échange : vous faites "+vacLabel(tv)+", "+dLabel(wid)+" fait "+vacLabel(mineV)+"."
+      : dLabel(wid)+" n'a aucune vacation compatible avec la vôtre (indisponibilité, garde, repos ou déjà sur cette vacation).";
+  }
+
+  function renderSwapForm(){
+    const mine = doctors[me] ? myVacations(me) : [];
+    const others = sortedDocs().filter(d=>d.id !== me);
+    const sig = (trame ? 1 : 0)+'|'+mine.map(v=>vacVal(v)+(busy(me,v.date,v.part) ? '!' : '')).join(',')+'|'+others.map(d=>d.id+d.label).join(',');
+    if (sig !== swSig) {
+      swSig = sig;
+      const pm = $('#swMine').value, pw = $('#swWith').value;
+      $('#swMine').innerHTML = mine.length
+        ? mine.map(v=>'<option value="'+esc(vacVal(v))+'">'+esc(vacLabel(v))+(busy(me,v.date,v.part) ? ' (indisponible)' : '')+'</option>').join('')
+        : '<option value="">'+(trame ? 'Aucune vacation à venir sur votre fiche' : 'Trame du service non chargée')+'</option>';
+      $('#swWith').innerHTML = '<option value="">Choisir un confrère…</option>' + others.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('');
+      if (mine.some(v=>vacVal(v) === pm)) $('#swMine').value = pm;
+      if (pw && others.some(d=>d.id === pw)) $('#swWith').value = pw;
+    }
+    fillTheirs();
+  }
+  $('#swMine').addEventListener('change', fillTheirs);
+  $('#swWith').addEventListener('change', fillTheirs);
+  $('#swJump').addEventListener('click', ()=>{ $('#swForm').scrollIntoView({block:'start'}); });
+  $('#conflicts').addEventListener('click', e=>{
+    const b = e.target.closest('[data-vac]'); if (!b) return;
+    showTab('echanges'); renderSwapForm();
+    $('#swMine').value = b.dataset.vac; fillTheirs();
+    $('#swForm').scrollIntoView({block:'start'});
+  });
+
+  $('#swForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const mineV = parseVac($('#swMine').value), tv = parseVac($('#swTheirs').value), wid = $('#swWith').value;
+    if (!doctors[me] || !doctors[wid] || !mineV || !tv) return notify('Choisissez les deux vacations.', true);
+    const w1 = vacWho(mineV.poste, mineV.date, mineV.part), w2 = vacWho(tv.poste, tv.date, tv.part);
+    if (!w1 || !w1.who.includes(me)) return notify("Vous n'êtes plus affecté à votre vacation.", true);
+    if (!w2 || !w2.who.includes(wid)) return notify(dLabel(wid)+" n'est plus affecté à cette vacation.", true);
+    if (blockedFor(me, tv, mineV) || blockedFor(wid, mineV, tv)) return notify('Cet échange crée un conflit de planning.', true);
+    if (!db || !canWrite) return notify('Lecture seule : vous ne pouvez pas échanger.', true);
+    try {
+      await db.collection('echanges').add({from: me, to: wid, poste: mineV.poste, date: mineV.date, part: mineV.part, poste2: tv.poste, date2: tv.date, part2: tv.part, status:'conclu', createdAt: Date.now(), updatedAt: Date.now()});
+      notify('Échange enregistré, la trame est à jour.');
+    } catch(err) { handleErr(err); }
+  });
+
+  $('#swLists').addEventListener('click', async e=>{
+    const b = e.target.closest('[data-act="undo"]'); if (!b) return;
+    const card = b.closest('[data-id]'); if (!card) return;
+    const id = card.dataset.id;
+    if (pendingUndo !== id) {
+      pendingUndo = id; clearTimeout(undoTimer);
+      undoTimer = setTimeout(()=>{ pendingUndo = ''; renderSwaps(); }, 5000);
+      renderSwaps(); return;
+    }
+    pendingUndo = ''; clearTimeout(undoTimer);
+    if (!db || !canWrite) return notify('Lecture seule : vous ne pouvez pas annuler.', true);
+    try { await db.doc('echanges/'+id).update({status:'annule', updatedAt: Date.now()}); notify('Échange annulé, la trame est revenue à son état précédent.'); }
+    catch(err) { handleErr(err); }
+  });
+
+  /* ---------- export calendrier (.ics) ---------- */
+  const HOURS_DEF = {hM1:'08:00', hM2:'12:30', hA1:'13:30', hA2:'18:00'};
+  function getHours(){
+    const h = Object.assign({}, HOURS_DEF);
+    try { const o = JSON.parse(localStorage.getItem('planning-hours') || '{}'); Object.keys(h).forEach(k=>{ if (/^\d{2}:\d{2}$/.test(o[k] || '')) h[k] = o[k]; }); } catch(e) {}
+    return h;
+  }
+  function initHours(){
+    const h = getHours();
+    Object.keys(h).forEach(id=>{
+      const el = $('#'+id); el.value = h[id];
+      el.addEventListener('change', ()=>{
+        const o = getHours(); if (/^\d{2}:\d{2}$/.test(el.value)) o[id] = el.value;
+        try { localStorage.setItem('planning-hours', JSON.stringify(o)); } catch(e) {}
+      });
+    });
+  }
+  const icsText = s => String(s).replace(/\\/g,'\\\\').replace(/;/g,'\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+  function icsFold(line){
+    const enc = new TextEncoder();
+    if (enc.encode(line).length <= 74) return line;
+    let out = '', cur = '', bytes = 0, first = true;
+    for (const ch of line) {
+      const n = enc.encode(ch).length;
+      if (bytes + n > (first ? 74 : 73)) { out += (first ? '' : '\r\n ') + cur; first = false; cur = ''; bytes = 0; }
+      cur += ch; bytes += n;
+    }
+    return out + (first ? '' : '\r\n ') + cur;
+  }
+  function buildIcs(id){
+    const doc = doctors[id], H = getHours();
+    const L = [], stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z');
+    const dk = k => k.replace(/-/g,''), tm = t => t.replace(':','')+'00';
+    let count = 0;
+    L.push('BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Planning Imagerie//FR','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:'+icsText('Planning Imagerie – '+doc.label));
+    const ev = (uid, extra, summary, desc, free)=>{
+      count++;
+      L.push('BEGIN:VEVENT','UID:'+uid+'@planning-imagerie','DTSTAMP:'+stamp);
+      extra.forEach(x=>L.push(x));
+      L.push('SUMMARY:'+icsText(summary));
+      if (desc) L.push('DESCRIPTION:'+icsText(desc));
+      if (free) L.push('TRANSP:TRANSPARENT');
+      L.push('END:VEVENT');
+    };
+    const start = new Date(); start.setHours(0,0,0,0);
+    for (let i=0;i<84;i++){
+      const d = addDays(start,i), k = key(d), inf = dayInfo(doc,k), nx = key(addDays(d,1));
+      if (inf.kind === 'G') ev(id+'-'+k+'-garde', ['DTSTART;VALUE=DATE:'+dk(k),'DTEND;VALUE=DATE:'+dk(nx)], 'Garde', '', false);
+      else if (inf.kind === 'R') ev(id+'-'+k+'-rdg', ['DTSTART;VALUE=DATE:'+dk(k),'DTEND;VALUE=DATE:'+dk(nx)], 'Repos de garde', '', true);
+      if ((d.getDay()+6)%7 > 4 || !trame) continue;
+      trame.postes.forEach(p=>PARTS.forEach(part=>{
+        const v = vacWho(p.id,k,part); if (!v || v.ou || !v.who.includes(id)) return;
+        const a = part === 'M' ? H.hM1 : H.hA1, b = part === 'M' ? H.hM2 : H.hA2;
+        const others = v.who.filter(x=>x !== id).map(dLabel);
+        ev(id+'-'+k+'-'+p.id+'-'+part, ['DTSTART:'+dk(k)+'T'+tm(a),'DTEND:'+dk(k)+'T'+tm(b)], postName(p.id,k), others.length ? 'Avec '+others.join(', ') : '', false);
+      }));
+    }
+    L.push('END:VCALENDAR');
+    return {text: L.map(icsFold).join('\r\n')+'\r\n', count};
+  }
+  function crc32(u8){
+    if (!crc32.t) { crc32.t = []; for (let n=0;n<256;n++){ let c = n; for (let k=0;k<8;k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; crc32.t[n] = c >>> 0; } }
+    let crc = -1;
+    for (let i=0;i<u8.length;i++) crc = crc32.t[(crc ^ u8[i]) & 255] ^ (crc >>> 8);
+    return (crc ^ -1) >>> 0;
+  }
+  function makeZip(name, u8){
+    const nm = new TextEncoder().encode(name), crc = crc32(u8), n = u8.length;
+    const lh = new Uint8Array(30+nm.length), a = new DataView(lh.buffer);
+    a.setUint32(0,0x04034b50,true); a.setUint16(4,20,true); a.setUint16(6,0x0800,true); a.setUint16(12,0x21,true);
+    a.setUint32(14,crc,true); a.setUint32(18,n,true); a.setUint32(22,n,true); a.setUint16(26,nm.length,true); lh.set(nm,30);
+    const cd = new Uint8Array(46+nm.length), c = new DataView(cd.buffer);
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(14,0x21,true);
+    c.setUint32(16,crc,true); c.setUint32(20,n,true); c.setUint32(24,n,true); c.setUint16(28,nm.length,true); cd.set(nm,46);
+    const end = new Uint8Array(22), e = new DataView(end.buffer);
+    e.setUint32(0,0x06054b50,true); e.setUint16(8,1,true); e.setUint16(10,1,true); e.setUint32(12,cd.length,true); e.setUint32(16,lh.length+n,true);
+    return new Blob([lh,u8,cd,end],{type:'application/zip'});
+  }
+  async function exportIcs(){
+    const doc = doctors[me];
+    if (!doc) return notify("Choisissez d'abord votre nom.", true);
+    const r = buildIcs(me);
+    if (!r.count) return notify('Rien à exporter sur les 12 prochaines semaines.', true);
+    const base = 'Planning-'+(slug(doc.label) || 'imagerie');
+    /* 1. feuille de partage du téléphone, si elle accepte un fichier .ics */
+    try {
+      const f = new File([r.text], base+'.ics', {type:'text/calendar'});
+      if (navigator.canShare && navigator.canShare({files:[f]})) { await navigator.share({files:[f], title:'Planning Imagerie'}); return; }
+    } catch(e) { if (e && e.name === 'AbortError') return; }
+    /* 2. sinon enregistrement d'un zip contenant le .ics */
+    let dl = null;
+    try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch(e) {}
+    if (!dl) return notify("L'enregistrement de fichiers n'est pas disponible dans cette vue.", true);
+    try {
+      await dl.save({filename: base+'.ics', data: new Blob([r.text], {type:'text/calendar'})});
+      notify('Fichier calendrier prêt : ouvrez-le pour l’ajouter au calendrier.');
+    } catch(e) {
+      if (e && e.code === 'declined') return;
+      notify("Impossible d'enregistrer le fichier calendrier ici.", true);
+    }
+  }
+  $('#icsBtn').addEventListener('click', exportIcs);
+  try { window.matchMedia('(max-width:700px)').addEventListener('change', ()=>renderTrame()); } catch(e) {}
+  initHours();
+
+  function jumpToData(){
+    if (jumped || seeding || seedState !== 'done') return;
+    const dates = SEED ? [].concat(...SEED.weeks.map(w=>w.dates)) : Object.keys(overrides);
+    if (!dates.length) return;
+    jumped = true;
+    const ws = key(weekStart), we = key(addDays(weekStart,6));
+    if (dates.some(d=>d >= ws && d <= we)) return;
+    const tk = key(new Date()); let best = null, bd = 1e18;
+    dates.forEach(d=>{ const df = Math.abs(parse(d) - parse(tk)); if (df < bd) { bd = df; best = d; } });
+    if (best) { weekStart = mondayOf(parse(best)); cwStart = weekStart; gDay = -1; renderGLabel(); renderTeam(); renderTrame(); }
+  }
+  /* ---------- premier chargement du planning ---------- */
+  async function maybeSeed(){
+    if (seeding || !SEED || seedState !== 'absent' || !trameLoaded || !loaded || !subs.aj || !subs.notes || !subs.sw || !db || !canWrite) return;
+    seeding = true;
+    try {
+      /* remise à zéro : l'ancien planning est remplacé */
+      for (const id of Object.keys(doctors)) await db.doc('medecins/'+id).delete();
+      for (const d of Object.keys(overrides)) await db.doc('ajustements/'+d).delete();
+      for (const d of Object.keys(notesBy)) await db.doc('notes/'+d).delete();
+      for (const id of Object.keys(swaps)) await db.doc('echanges/'+id).delete();
+      const t = {postes: PP.POSTES.map(p=>Object.assign({}, p)), cases: {}, off: {}, regles: []};
+      await db.doc('trame/semaine').set(t);
+      trame = normalizeTrame(t);
+      const plan = planFromWeeks(SEED.weeks, []);
+      const ok = await applyWeeks(plan);
+      if (ok) { await db.doc('meta/seed2').set({at: Date.now(), v: 2}); seedState = 'done'; }
+    } catch(e) { handleErr(e); }
+    seeding = false; renderAll(); jumpToData();
+  }
+
+  /* ---------- démarrage ---------- */
+  renderAll();
+  (async function init(){
+    if (!window.claude) await Promise.race([new Promise(r=>window.addEventListener('claude-ready', r, {once:true})), new Promise(r=>setTimeout(r, 600000))]);
+    try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch(e) { db = null; }
+    if (!db) { loaded = true; renderAll(); return; }
+    try {
+      const user = await window.claude.use('user');
+      if (user) { const c = await user.can('data.write'); if (c === false) canWrite = false; }
+    } catch(e) {}
+    db.collection('medecins').onSnapshot(snap=>{
+      const next = {};
+      snap.docs.forEach(s=>{
+        const v = s.data() || {};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}};
+      });
+      doctors = next; loaded = true; renderAll();
+    }, err=>{
+      loaded = true; notify('La connexion au planning partagé a été interrompue. Rechargez la page.', true); renderAll();
+    });
+    db.collection('echanges').onSnapshot(snap=>{
+      const next = {};
+      snap.docs.forEach(s=>{
+        const v = s.data() || {};
+        if (!isDate(v.date) || !isDate(v.date2) || !PARTS.includes(v.part) || !PARTS.includes(v.part2) || typeof v.from !== 'string' || typeof v.to !== 'string') return;
+        next[s.id] = Object.assign({}, v, {id: s.id});
+      });
+      swaps = next; subs.sw = true; renderSwaps(); renderBadge(); renderSwapForm(); renderTrame(); renderConflicts(); maybeSeed();
+    }, err=>{});
+    db.collection('ajustements').onSnapshot(snap=>{
+      const next = {};
+      snap.docs.forEach(s=>{
+        if (!isDate(s.id)) return;
+        const v = s.data() || {}, o = {};
+        Object.keys(v).forEach(k=>{ const x = v[k]; if (x && typeof x === 'object' && Array.isArray(x.w)) o[k] = {w: x.w.filter(y=>typeof y === 'string'), t: Number(x.t) || 0, x: typeof x.x === 'string' ? x.x : '', s: Array.isArray(x.s) ? x.s.filter(y=>typeof y === 'string') : []}; });
+        next[s.id] = o;
+      });
+      overrides = next; subs.aj = true; renderTrame(); renderConflicts(); renderMe(); renderSwapForm();
+      jumpToData();
+      maybeSeed();
+    }, err=>{});
+    db.doc('trame/semaine').onSnapshot(s=>{
+      trame = s.exists ? normalizeTrame(s.data()) : null; trameLoaded = true;
+      renderTrame(); renderConflicts(); renderSwaps(); renderSwapForm(); renderAll(); maybeSeed();
+    }, err=>{});
+    db.collection('notes').onSnapshot(snap=>{
+      const next = {};
+      snap.docs.forEach(s=>{ if (!isDate(s.id)) return; const v = s.data() || {}; if (Array.isArray(v.items)) next[s.id] = v.items.filter(t=>typeof t === 'string' && t); });
+      notesBy = next; subs.notes = true; renderGNotes(); renderToday(); maybeSeed();
+    }, err=>{});
+    db.doc('meta/seed2').onSnapshot(s=>{ seedState = s.exists ? 'done' : 'absent'; maybeSeed(); jumpToData(); }, err=>{});
+  })();
+})();
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getFirestore, doc, collection, getDoc, setDoc, deleteDoc, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+const app = initializeApp({"apiKey": "AIzaSyAuWYERhfesmaqpvSFY3JALu9lDI6B0GKk", "authDomain": "planning-imagerie.firebaseapp.com", "projectId": "planning-imagerie", "storageBucket": "planning-imagerie.firebasestorage.app", "messagingSenderId": "15955934670", "appId": "1:15955934670:web:3cca5021995b763e473f9f"});
+const fs = getFirestore(app);
+const TRAME = {"cases": {"bloc_0_AM": {"who": []}, "bloc_0_M": {"who": []}, "bloc_1_AM": {"who": []}, "bloc_1_M": {"who": []}, "bloc_2_AM": {"who": []}, "bloc_2_M": {"who": []}, "bloc_3_AM": {"who": []}, "bloc_3_M": {"who": []}, "bloc_4_AM": {"who": []}, "bloc_4_M": {"who": []}, "consultation_0_AM": {"who": []}, "consultation_0_M": {"who": []}, "consultation_1_M": {"who": []}, "consultation_2_M": {"who": []}, "consultation_3_AM": {"who": []}, "consultation_3_M": {"who": []}, "consultation_4_AM": {"who": []}, "echo-sa_2_AM": {"who": []}, "echo_0_AM": {"who": []}, "echo_0_M": {"who": []}, "echo_1_AM": {"who": []}, "echo_1_M": {"who": []}, "echo_2_AM": {"who": []}, "echo_2_M": {"who": []}, "echo_3_AM": {"who": []}, "echo_3_M": {"who": []}, "echo_4_AM": {"who": []}, "echo_4_M": {"who": []}, "irm_1_AM": {"who": []}, "irm_2_AM": {"who": []}, "irm_2_M": {"ou": false, "who": []}, "irm_3_M": {"who": []}, "irm_4_AM": {"who": []}, "rcp_0_M": {"who": []}, "rcp_1_AM": {"who": []}, "scanner-ext_2_AM": {"who": []}, "scanner-ext_3_M": {"who": []}, "scanner-ext_4_AM": {"who": []}, "scanner-rdc_0_AM": {"who": []}, "scanner-rdc_0_M": {"who": []}, "scanner-rdc_4_AM": {"who": []}, "scanner-rdc_4_M": {"who": []}, "scanner-sa_0_AM": {"who": []}, "scanner-sa_0_M": {"who": []}, "scanner-sa_2_AM": {"who": []}, "scanner-sa_2_M": {"who": []}, "scanner-sa_3_AM": {"who": []}, "scanner-sa_3_M": {"texte": "ostéo", "who": []}, "scanner-urg_0_AM": {"who": []}}, "off": {}, "postes": [{"id": "echo", "label": "Écho"}, {"id": "bloc", "label": "Bloc"}, {"id": "consultation", "label": "Consultation"}, {"id": "irm", "label": "IRM"}, {"id": "scanner-ext", "label": "Scanner EXT"}, {"id": "scanner-rdc", "label": "Scanner RDC", "variante": "interventionnel"}, {"id": "scanner-urg", "label": "Scanner URG"}, {"id": "scanner-sa", "label": "Scanner SA"}, {"id": "echo-sa", "label": "Écho SA"}, {"id": "rcp", "label": "RCP"}], "regles": [{"jour": 0, "poste": "scanner-rdc", "rang": 4, "variante": "diagnostique"}]};
+let seeded = false;
+const wrap = s => ({ id: s.id, exists: s.exists(), data: () => s.data() });
+const db = {
+  doc(path) {
+    const ref = doc(fs, path);
+    return {
+      id: ref.id, path,
+      get: async () => wrap(await getDoc(ref)),
+      set: d => setDoc(ref, d),
+      update: d => setDoc(ref, d, { merge: true }),
+      delete: () => deleteDoc(ref),
+      onSnapshot: (next, err) => onSnapshot(ref, s => {
+        next(wrap(s));
+      }, err)
+    };
+  },
+  collection(name) {
+    const ref = collection(fs, name);
+    return {
+      onSnapshot: (next, err) => onSnapshot(ref, qs => next({ docs: qs.docs.map(wrap) }), err),
+      add: d => addDoc(ref, d)
+    };
+  }
+};
+const downloads = { save: async ({ filename, data }) => {
+  const blob = data instanceof Blob ? data : new Blob([data]);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return { status: 'saved' };
+} };
+window.claude = { use: async n => n === 'db' ? db : n === 'user' ? { can: async () => true } : n === 'downloads' ? downloads : null };
+const CODE_HASH = "e62883514d217e41ba3f301483919006cae904b105b9f889a2ef3120361b39e7";
+const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t.trim().toLowerCase())))].map(x => x.toString(16).padStart(2, '0')).join('');
+const remembered = async () => { try { return localStorage.getItem('planning-acces') === CODE_HASH; } catch (e) { return false; } };
+async function gate() {
+  if (await remembered()) return;
+  await new Promise(resolve => {
+    const o = document.createElement('div');
+    o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#17465A;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif';
+    o.innerHTML = '<form style="background:#fff;border-radius:16px;padding:24px;max-width:340px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.25)"><h1 style="margin:0 0 6px;font-size:20px;color:#17465A">Planning Imagerie</h1><p style="margin:0 0 16px;color:#555;font-size:14px">Entrez le code d’accès du service.</p><input id="pcode" type="password" autocomplete="off" autocapitalize="off" placeholder="Code d’accès" style="width:100%;box-sizing:border-box;font-size:16px;padding:12px;border:1px solid #bbb;border-radius:10px"><p id="perr" style="margin:8px 0 0;color:#b3261e;font-size:13px;min-height:16px"></p><button style="margin-top:8px;width:100%;font-size:16px;padding:12px;border:0;border-radius:10px;background:#17465A;color:#fff;font-weight:600">Entrer</button></form>';
+    document.body.appendChild(o);
+    const inp = o.querySelector('#pcode'); inp.focus();
+    o.querySelector('form').addEventListener('submit', async e => {
+      e.preventDefault();
+      if (await sha(inp.value) === CODE_HASH) { try { localStorage.setItem('planning-acces', CODE_HASH); } catch (e2) {} o.remove(); resolve(); }
+      else { o.querySelector('#perr').textContent = 'Code incorrect.'; inp.select(); }
+    });
+  });
+}
+await gate();
+window.dispatchEvent(new Event('claude-ready'));
+</script>
+</body>
+</html>
