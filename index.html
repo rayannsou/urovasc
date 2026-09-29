@@ -284,6 +284,22 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .dayseg button small{font-size:12px;color:var(--muted)}
 .dayseg button[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .dayseg button[aria-selected=true] small{color:var(--accent-ink)}
+.plbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.sheet[hidden]{display:none}
+.sheet-bg{position:absolute;inset:0;background:rgba(10,20,25,.5)}
+.sheet-p{position:relative;background:var(--surface);color:var(--ink);width:100%;max-width:560px;max-height:82vh;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.sheet-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.sheet-h h3{font:700 18px/1.2 var(--font-display)}
+.sheet-l{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:120px}
+.plopt{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 14px;font-weight:600;font-size:16px;text-align:left}
+.plopt small{color:var(--red);font-weight:600;font-size:12px}
+.plopt .tk{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;flex:none;font-size:16px}
+.plopt[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
+.plopt[aria-pressed=true] .tk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.plopt.warn:not([aria-pressed=true]){background:var(--red-soft);border-color:var(--red-line)}
+.plopt .lt{display:flex;flex-direction:column;gap:2px}
+.pladd{min-height:44px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-weight:700;border-radius:999px;padding:0 16px}
 .plcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .plcard h3{font:700 16px/1.2 var(--font-display);display:flex;align-items:center;gap:8px}
 .plcard h3 i{width:10px;height:10px;border-radius:3px;display:inline-block}
@@ -425,10 +441,18 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <button type="button" data-plscope="always" aria-pressed="false">Toujours</button>
           </div>
           <p id="plHint" class="hint"></p>
+          <div class="plbar"><button type="button" class="ghost" id="plCopy">Copier la semaine précédente</button><span id="plSum" class="hint"></span></div>
           <div class="dayseg" id="plDays" role="tablist" aria-label="Jour"></div>
         </div>
         <div id="plGrid" class="col"></div>
-        <datalist id="plDocs"></datalist>
+        <div id="plSheet" class="sheet" hidden>
+          <div class="sheet-bg" data-plclose></div>
+          <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="plShT">
+            <div class="sheet-h"><div><h3 id="plShT"></h3><p id="plShS" class="hint"></p></div><button type="button" class="ghost" data-plclose>Terminé</button></div>
+            <input type="search" id="plShQ" placeholder="Écrire un nom…" autocomplete="off" autocapitalize="none" aria-label="Rechercher un médecin">
+            <div id="plShL" class="sheet-l"></div>
+          </div>
+        </div>
       </div>
     </section>
     <section id="view-creer" aria-labelledby="tab-creer" hidden>
@@ -836,6 +860,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   ];
   const ABS_ROWS = {'off':'Off', 'rdg':'Repos de garde', 'conges annuels':'Congés annuels', 'conges':'Congés annuels'};
   const PERSON = {'rm':'RM','ef':'EF','ylb':'YLB','hr':'HR','am':'AM','cm':'CM','np':'NP','ac':'AC','im':'IM','mb':'MB','dj':'DJ','ima':'IMA','alexandre':'Alexandre','alex':'Alexandre','romain':'Romain','rom':'Romain'};
+  const NOT_PERSON = {}; ['ferme','fermee','fermes','fermees','osteo','interne','internes','diag','gyneco','staff','annuler','manip','ouvert','ouverte','off','conge','conges','conges annuels','formation','cours','recherche','administratif','urgences','seul','seule','pm','matin','apres-midi','midi','journee','ex','irm','scanner','echo','bloc','rcp','rdg','tbd','vacances','ferie','ferie','ferme','ouvert','sur','pas','a'].forEach(w=>{ NOT_PERSON[w] = 1; });
   const gnorm = s => norm(s).replace(/[.]/g,'').trim();
   function splitCell(raw){
     let t = String(raw == null ? '' : raw).replace(/\s+/g,' ').trim();
@@ -844,7 +869,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const ou = /(^|\s)ou(\s|$)/i.test(t);
     const parts = t.split(/[\/+,]|\bet\b|\bpuis\b|\bou\b/i).map(x=>x.trim()).filter(Boolean);
     const people = [];
-    parts.forEach(pt=>{ const k = gnorm(pt); if (PERSON[k]) { if (!people.some(p=>p.label === PERSON[k])) people.push({label: PERSON[k], star:false}); } else notes.push(pt); });
+    parts.forEach(pt=>{
+      const k = gnorm(pt);
+      let lab = PERSON[k] || null;
+      /* nom inconnu : un mot commençant par une majuscule (Rayann, EJ, Théo…) est un médecin, pas une mention */
+      if (!lab && /^[A-ZÀ-Ý][A-Za-zÀ-ÿ'’-]{1,14}$/.test(pt.replace(/\.$/,'').trim()) && !NOT_PERSON[k]) { const w = pt.replace(/\.$/,'').trim(); lab = w.length <= 4 && w === w.toUpperCase() ? w : w.charAt(0) + w.slice(1).toLowerCase(); }
+      if (lab) { if (!people.some(p=>p.label === lab)) people.push({label: lab, star:false}); } else notes.push(pt);
+    });
     return {people, ou, text: notes.join(' ').replace(/\s+/g,' ').trim(), raw: t};
   }
   function guessMonday(n, ref){
@@ -1270,7 +1301,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
 
   /* ---------- onglet Créer un planning ---------- */
-  let plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
+  let plSheet = null, plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
   const plNorm = t => normS(String(t || '')).replace(/\s+/g,' ');
   function plFind(txt){
     const t = plNorm(txt); if (!t) return null;
@@ -1281,9 +1312,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   function renderCompose(){
     const grid = $('#plGrid'); if (!grid) return;
+    if (plSheet) renderSheet();
     const a = document.activeElement;
-    if (a && a.matches && a.matches('#plGrid input') && a.value) return;
-    $('#plDocs').innerHTML = sortedDocs().map(d=>'<option value="'+esc(d.label)+'"></option>').join('');
     const days = [...Array(6)].map((_,i)=>addDays(plStart,i));
     $('#plLabel').textContent = fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
     document.querySelectorAll('[data-plscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plscope === plScope)));
@@ -1298,6 +1328,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!trame || !trame.postes.length) { grid.innerHTML = '<p class="empty">'+(loaded ? 'Les postes du service ne sont pas encore chargés.' : 'Chargement…')+'</p>'; return; }
     const k = key(days[plDay]), dis = canWrite ? '' : ' disabled', docs = sortedDocs();
     const posts = trame.postes.filter(p=>!p.info && okDay(p, plDay));
+    let nFill = 0, nAll = 0;
+    posts.forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ nAll++; const v = vacWho(p.id,k,part); if (v && (v.who.length || v.texte)) nFill++; }));
+    $('#plSum').textContent = nFill+' / '+nAll+' vacations remplies ce jour';
     grid.innerHTML = posts.map(p=>{
       const parts = p.journee ? ['M'] : partsOf(p);
       const rows = parts.map(part=>{
@@ -1309,8 +1342,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         const tag = ov ? '<em>cette date</em>' : (who.length ? '<em>toujours</em>' : '');
         return '<div class="plr'+(bad ? ' cf' : '')+'"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Samedi matin' : part === 'M' ? 'Matin' : 'Après-midi')+(v && v.ou ? ' · à confirmer' : '')+'</span>'+tag+'</div>'
           + '<div class="plc">'+chips
-          + '<input type="text" list="plDocs" data-pli="'+esc(slot)+'" placeholder="+ écrire un nom…" autocomplete="off" autocapitalize="characters" aria-label="Ajouter un médecin, '+esc(p.label)+'"'+dis+'>'
-          + '<select data-pls="'+esc(slot)+'" aria-label="Choisir un médecin, '+esc(p.label)+'"'+dis+'><option value="">▾ Liste</option>'+docs.filter(d=>!who.includes(d.id)).map(d=>{ const r = reasonFor(d.id,k,part); return '<option value="'+esc(d.id)+'">'+esc(dLabel(d.id))+(r ? ' ⚠ '+esc(r) : '')+'</option>'; }).join('')+'</select></div>'
+          + '<button type="button" class="pladd" data-plopen="'+esc(slot)+'"'+dis+'>＋ '+(who.length ? 'Modifier' : 'Ajouter un médecin')+'</button></div>'
           + (why ? '<p class="plwhy">⚠ '+why+'</p>' : '')+'</div>';
       }).join('');
       return '<section class="plcard"><h3><i style="background:'+posteColor(p.id)+'"></i>'+esc(postName(p.id,k))+'</h3>'+rows+'</section>';
@@ -1342,17 +1374,52 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   $('#plJump').addEventListener('change', e=>{ if (e.target.value) { const d = parse(e.target.value); plStart = mondayOf(d); plDay = Math.min((d.getDay()+6)%7, 5); renderCompose(); } });
   document.querySelectorAll('[data-plscope]').forEach(b=>b.addEventListener('click', ()=>{ plScope = b.dataset.plscope; renderCompose(); }));
   $('#plDays').addEventListener('click', e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); });
-  $('#plGrid').addEventListener('change', e=>{
-    const sel = e.target.closest('select[data-pls]');
-    if (sel) { if (sel.value) plAdd(sel.dataset.pls, sel.value); return; }
-    const inp = e.target.closest('input[data-pli]');
-    if (inp && inp.value.trim()) {
-      const d = plFind(inp.value);
-      if (!d) { notify('« '+inp.value.trim()+' » : médecin introuvable. Choisissez dans la liste ou ajoutez-le dans Réglages.', true); return; }
-      inp.value = ''; plAdd(inp.dataset.pli, d.id);
-    }
+  function openSheet(slot){ plSheet = slot; $('#plSheet').hidden = false; $('#plShQ').value = ''; renderSheet(); setTimeout(()=>{ try { $('#plShQ').focus(); } catch(e) {} }, 60); }
+  function closeSheet(){ plSheet = null; $('#plSheet').hidden = true; renderCompose(); }
+  function renderSheet(){
+    if (!plSheet) return;
+    const a = plSheet.split('|'), p = findPost(a[0]); if (!p) return closeSheet();
+    $('#plShT').textContent = postName(a[0], a[1]);
+    $('#plShS').textContent = fmtLong.format(parse(a[1]))+' · '+(p.journee ? 'journée' : isSam(p) ? 'samedi matin' : PART_TXT[a[2]])+(plScope === 'always' ? ' · chaque semaine' : ' · cette date seulement');
+    const cur = whoOf(a[0],a[1],a[2]), q = plNorm($('#plShQ').value);
+    const docs = sortedDocs().filter(d=>!q || plNorm(d.label).includes(q));
+    $('#plShL').innerHTML = docs.map(d=>{ const on = cur.includes(d.id), r = on ? '' : reasonFor(d.id,a[1],a[2]); return '<button type="button" class="plopt'+(r ? ' warn' : '')+'" data-pld="'+esc(d.id)+'" aria-pressed="'+on+'"><span class="lt"><span>'+esc(dLabel(d.id))+'</span>'+(r ? '<small>⚠ '+esc(r)+'</small>' : '')+'</span><span class="tk">'+(on ? '✓' : '')+'</span></button>'; }).join('') || '<p class="empty">Aucun médecin ne correspond.</p>';
+  }
+  $('#plShQ').addEventListener('input', renderSheet);
+  $('#plShQ').addEventListener('keydown', e=>{
+    if (e.key !== 'Enter') return; e.preventDefault();
+    const q = plNorm($('#plShQ').value); if (!q || !plSheet) return;
+    const m = sortedDocs().filter(d=>plNorm(d.label) === q); const d = m[0] || sortedDocs().filter(d=>plNorm(d.label).startsWith(q))[0];
+    if (!d) return notify('« '+$('#plShQ').value.trim()+' » : médecin introuvable. Ajoutez-le dans Réglages.', true);
+    const a = plSheet.split('|'), cur = whoOf(a[0],a[1],a[2]);
+    if (!cur.includes(d.id)) { cur.push(d.id); plApply(a[0],a[1],a[2],cur,d.id); }
+    $('#plShQ').value = ''; renderSheet();
   });
-  $('#plGrid').addEventListener('keydown', e=>{ if (e.key === 'Enter' && e.target.matches('input[data-pli]')) { e.preventDefault(); e.target.blur(); } });
+  $('#plSheet').addEventListener('click', e=>{
+    if (e.target.closest('[data-plclose]')) return closeSheet();
+    const b = e.target.closest('[data-pld]'); if (!b || !plSheet) return;
+    const a = plSheet.split('|'), id = b.dataset.pld, cur = whoOf(a[0],a[1],a[2]), on = cur.includes(id);
+    plApply(a[0],a[1],a[2], on ? cur.filter(x=>x !== id) : cur.concat([id]), on ? null : id);
+  });
+  document.addEventListener('keydown', e=>{ if (e.key === 'Escape' && plSheet) closeSheet(); });
+  $('#plGrid').addEventListener('click', e=>{ const o = e.target.closest('[data-plopen]'); if (o) openSheet(o.dataset.plopen); });
+  async function plCopyPrev(){
+    if (!canWrite || !trame) return notify('Lecture seule : modification impossible.', true);
+    const jobs = [];
+    for (let i=0;i<6;i++) {
+      const k = key(addDays(plStart,i)), kp = key(addDays(plStart,i-7));
+      trame.postes.forEach(p=>{ if (p.info || !okDay(p,i)) return; (p.journee ? ['M'] : partsOf(p)).forEach(part=>{
+        const prev = whoOf(p.id,kp,part), cur = vacWho(p.id,k,part);
+        if (prev.length && !(cur && (cur.who.length || cur.texte))) jobs.push({p:p.id, k, part, w:prev});
+      }); });
+    }
+    if (!jobs.length) return notify('Rien à copier : les cases vides n’ont pas de vacation la semaine précédente.', true);
+    notify('Copie en cours…');
+    let ok = 0;
+    for (const j of jobs) { for (const pt of slotParts(j.p, j.part)) if (await setOverride(j.k, j.p+'_'+pt, {w: j.w, t: Date.now()})) ok++; }
+    notify(jobs.length+' vacation'+(jobs.length > 1 ? 's' : '')+' copiée'+(jobs.length > 1 ? 's' : '')+' depuis la semaine précédente.');
+  }
+  $('#plCopy').addEventListener('click', plCopyPrev);
   $('#plGrid').addEventListener('click', e=>{
     const x = e.target.closest('[data-plx]'); if (!x) return;
     const a = x.dataset.plx.split('|');
