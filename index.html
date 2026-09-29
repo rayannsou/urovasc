@@ -187,7 +187,7 @@ table.trame .who{min-width:112px;vertical-align:middle}
 .tday{display:flex;flex-direction:column;gap:12px}
 .tday h2.date{font-size:clamp(1.3rem,4.5vw,1.7rem);text-transform:capitalize}
 .slot{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
-.slot.g{border-left-color:var(--garde)}.slot.r{border-left-color:#5BA9C0}.slot.i{border-left-color:var(--ind-2)}.slot.free{border-left-color:var(--line)}.slot.bad{border-left-color:var(--red)}
+.slot.g{border-left-color:var(--garde)}.slot.r{border-left-color:#5BA9C0}.slot.i{border-left-color:var(--ind-2)}.slot.free{border-left-color:var(--line)}.slot.bad{border-left-color:var(--red)}.cfa{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.cfa button{min-height:40px;padding:8px 14px;font-size:14px}
 .slot .when{font:600 12px var(--font-mono);color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
 .slot .what{font:700 clamp(1.3rem,5vw,1.7rem)/1.15 var(--font-display)}
 .slot .with{color:var(--muted)}
@@ -410,6 +410,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <label class="filebtn primary" for="xlFile">Choisir un fichier Excel…</label>
             <input type="file" id="xlFile" accept=".xlsx,.xls,.csv" class="visually-hidden">
             <button type="button" class="ghost" id="xlModel">Télécharger le modèle (semaine affichée)</button>
+            <div style="display:flex;margin-top:12px;gap:8px;flex-wrap:wrap">
+              <input type="url" id="gsLink" inputmode="url" placeholder="Ou collez un lien Google Sheets…" aria-label="Lien Google Sheets" style="flex:1 1 220px;min-width:0">
+              <button type="button" class="ghost" id="gsGo">Importer le lien</button>
+            </div>
+            <p class="hint" style="margin-top:6px">Le classeur doit être partagé en « Toute personne disposant du lien ». Toutes les feuilles sont lues.</p>
           </fieldset>
           <div id="xlPreview" hidden></div>
         </div>
@@ -863,20 +868,53 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     return weeks.map(w=>({monday:w.monday, dates:w.hasSat ? w.dates.concat([w.sat]) : w.dates, cells:Object.values(w.cells), absences:w.absences, notes:w.notes}));
   }
 
-  function parseWorkbook(X, wb){
-    const weeks = [];
-    wb.SheetNames.forEach(n=>{
-      const w = parseSheet(X, wb.Sheets[n]);
-      if (w) { weeks.push(w); return; }
-      try {
-        const aoa = X.utils.sheet_to_json(wb.Sheets[n], {header:1, defval:'', raw:false});
-        const g = parseMonthGrid(aoa); if (g) g.forEach(x=>weeks.push(x));
-      } catch(e) {}
-    });
-    weeks.sort((a,b)=>a.monday < b.monday ? -1 : 1);
-    return weeks;
+  const MOIS_ALIAS = [['janvier','janv'],['fevrier','fevr'],['mars'],['avril','avr'],['mai'],['juin'],['juillet','juil'],['aout'],['septembre','sept'],['octobre','oct'],['novembre','nov'],['decembre','dec']];
+  function monthHint(text){
+    const t = gnorm(String(text || '')); if (!t) return null;
+    const words = t.split(/[^a-z0-9]+/).filter(Boolean);
+    let mi = -1;
+    words.forEach(w=>{ MOIS_ALIAS.forEach((al,i)=>{ if (mi < 0 && al.includes(w)) mi = i; }); });
+    if (mi < 0) return null;
+    const ym = t.match(/\b(20\d\d)\b/);
+    const now = new Date(); let y;
+    if (ym) y = Number(ym[1]);
+    else { y = now.getFullYear(); let best = 1e18; [y-1,y,y+1].forEach(c=>{ const d = Math.abs(new Date(c, mi, 15) - now); if (d < best) { best = d; y = c; } }); }
+    return new Date(y, mi, 15);
   }
-  root.PlanningParser = {POSTES: POSTES_MOIS, POSTES_OLD: POSTES, parseMonthGrid, parseSheet, parseWorkbook, personLabel, norm};
+  function mergeWeeks(list){
+    const by = {};
+    list.forEach(w=>{
+      const o = by[w.monday] = by[w.monday] || {monday:w.monday, dates:[], cells:{}, absences:[], notes:[]};
+      w.dates.forEach(d=>{ if (!o.dates.includes(d)) o.dates.push(d); });
+      w.cells.forEach(c=>{ o.cells[c.poste+'|'+c.date+'|'+c.part] = c; });
+      w.absences.forEach(a=>{ if (!o.absences.some(b=>b.label === a.label && b.date === a.date && b.part === a.part)) o.absences.push(a); });
+      w.notes.forEach(n=>{ if (!o.notes.some(m=>m.date === n.date && m.text === n.text)) o.notes.push(n); });
+    });
+    const out = Object.values(by).map(o=>({monday:o.monday, dates:o.dates.sort(), cells:Object.values(o.cells), absences:o.absences, notes:o.notes}));
+    out.sort((a,b)=>a.monday < b.monday ? -1 : 1);
+    return out;
+  }
+  function parseWorkbook(X, wb){
+    const weeks = [], report = {ok:[], skip:[]};
+    wb.SheetNames.forEach(n=>{
+      let got = false;
+      try {
+        const w = parseSheet(X, wb.Sheets[n]);
+        if (w) { weeks.push(w); got = true; }
+        else {
+          const aoa = X.utils.sheet_to_json(wb.Sheets[n], {header:1, defval:'', raw:false});
+          let hint = monthHint(n);
+          for (let r=0; !hint && r<Math.min(3, aoa.length); r++) for (let c=0; !hint && c<Math.min(4, (aoa[r]||[]).length); c++) hint = monthHint(aoa[r][c]);
+          const g = parseMonthGrid(aoa, hint ? {ref: hint} : {});
+          if (g) { g.forEach(x=>weeks.push(x)); got = true; }
+        }
+      } catch(e) {}
+      (got ? report.ok : report.skip).push(n);
+    });
+    const out = mergeWeeks(weeks); out.report = report;
+    return out;
+  }
+  root.PlanningParser = {mergeWeeks, monthHint, POSTES: POSTES_MOIS, POSTES_OLD: POSTES, parseMonthGrid, parseSheet, parseWorkbook, personLabel, norm};
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
@@ -1063,18 +1101,22 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const STAT = {G:['g','Vous êtes de garde'], R:['r','Repos de garde'], A:['a','Astreinte du samedi matin'], I:['i','Vous êtes indisponible']};
     const slot = (kk, part, showHours)=>{
       const st = dayInfo(doc,kk)[part], vs = dayVacs(me,kk).filter(v=>v.part === part);
-      const bad = vs.length && st && st !== undefined;
+      const acc = !!(vs.length && st && doc.ok && doc.ok[kk+'_'+part]);
       let cls = 'slot', what = '', sub = '';
       const sty = vs.length ? ' style="--pc:'+posteColor(vs[0].poste)+'"' : '';
       if (vs.length) {
         what = vs.map(v=>esc(postName(v.poste,kk))).join(' + ');
         sub = vs.map(v=>v.ou ? 'À confirmer : '+v.who.map(dLabel).join(' ou ') : (v.others.length ? 'Avec '+v.others.map(dLabel).join(', ') : 'Seul(e) sur ce poste')).join(' · ');
-        cls += st ? ' bad' : '';
-        if (st) sub += ' — ⚠ mais vous êtes '+(st === 'G' ? 'de garde' : st === 'R' ? 'en repos de garde' : 'indisponible');
+        cls += st && !acc ? ' bad' : '';
+        if (st && !acc) sub += ' — ⚠ mais vous êtes '+(st === 'G' ? 'de garde' : st === 'R' ? 'en repos de garde' : 'indisponible');
+        if (acc) sub += ' — ✓ acceptée malgré votre '+(st === 'G' ? 'garde' : st === 'R' ? 'repos de garde' : 'indisponibilité');
       } else if (st) { cls += ' '+STAT[st][0]; what = STAT[st][1]; }
       else { cls += ' free'; what = 'Pas de vacation'; }
       if (!vs.length && !st) return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what lone">'+what+'</span></div>';
-      return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what">'+what+'</span>'+(sub ? '<span class="with">'+esc(sub)+'</span>' : '')+'</div>';
+      const acts = vs.length && st ? '<span class="cfa">'+(acc
+        ? '<button type="button" class="ghost" data-cfk="'+kk+'" data-cfp="'+part+'" data-cfa="0">Annuler l’acceptation</button>'
+        : '<button type="button" class="ghost" data-cfv="'+kk+'">Voir</button><button type="button" class="primary" data-cfk="'+kk+'" data-cfp="'+part+'" data-cfa="1"'+(canWrite ? '' : ' disabled')+'>Accepter quand même la vacation</button>')+'</span>' : '';
+      return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what">'+what+'</span>'+(sub ? '<span class="with">'+esc(sub)+'</span>' : '')+acts+'</div>';
     };
     const startD = addDays(mondayOf(now), 7*wkOff);
     const tomorrowK = key(addDays(now,1));
@@ -1181,7 +1223,17 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); }
   }
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
-  $('#auBody').addEventListener('click', e=>{ const b = e.target.closest('[data-wk]'); if (!b) return; const v = Number(b.dataset.wk); wkOff = v === 0 ? 0 : wkOff + v; renderToday(); });
+  $('#auBody').addEventListener('click', async e=>{
+    const cv = e.target.closest('[data-cfv]');
+    if (cv) { weekStart = mondayOf(parse(cv.dataset.cfv)); gDay = -1; showTab('general'); renderGLabel(); renderTeam(); renderTrame(); return; }
+    const a = e.target.closest('[data-cfk]');
+    if (a) {
+      if (!db || !canWrite || !me) return;
+      const on = a.dataset.cfa === '1';
+      try { await db.doc('medecins/'+me).update({ok: {[a.dataset.cfk+'_'+a.dataset.cfp]: on}}); notify(on ? 'Vacation acceptée malgré le conflit.' : 'Acceptation annulée.'); } catch(err) { handleErr(err); }
+      return;
+    }
+    const b = e.target.closest('[data-wk]'); if (!b) return; const v = Number(b.dataset.wk); wkOff = v === 0 ? 0 : wkOff + v; renderToday(); });
   let swX = 0, swY = 0;
   $('#auBody').addEventListener('touchstart', e=>{ const t = e.touches[0]; swX = t.clientX; swY = t.clientY; }, {passive:true});
   $('#auBody').addEventListener('touchend', e=>{ const t = e.changedTouches[0], dx = t.clientX - swX, dy = t.clientY - swY; if (Math.abs(dx) > 60 && Math.abs(dx) > 1.6*Math.abs(dy)) { wkOff += dx < 0 ? 1 : -1; renderToday(); window.scrollTo(0,0); } }, {passive:true});
@@ -1386,6 +1438,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   /* pourquoi id ne peut pas être sur ce créneau ('' si tout va bien) */
   function reasonFor(id, date, part){
     const doc = doctors[id];
+    if (doc && doc.ok && doc.ok[date+'_'+part]) return '';
     if (doc) {
       const s = dayInfo(doc, date)[part];
       if (s === 'G') return 'de garde';
@@ -1752,26 +1805,44 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + '<p class="hint" style="color:var(--ink)">Les semaines déjà présentes sont remplacées. Vos gardes ne sont pas touchées.</p>'
       + '<div class="xa"><button type="button" class="primary" id="xlApply"'+(filled && canWrite ? '' : ' disabled')+'>Importer '+pl.weeks.length+' semaine'+(pl.weeks.length > 1 ? 's' : '')+'</button><button type="button" class="ghost" id="xlCancel">Annuler</button></div></div>';
   }
-  async function readFile(file){
+  async function readFile(file){ let buf; try { buf = await file.arrayBuffer(); } catch(e) { return notify('Fichier illisible.', true); } return readBuffer(buf); }
+  async function readLink(url){
+    const m = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(url || '');
+    if (!m) return notify('Lien Google Sheets non reconnu.', true);
+    let buf;
+    try {
+      const r = await fetch('https://docs.google.com/spreadsheets/d/'+m[1]+'/export?format=xlsx');
+      if (!r.ok) throw new Error('http '+r.status);
+      buf = await r.arrayBuffer();
+      if (new Uint8Array(buf.slice(0,2))[0] !== 0x50) throw new Error('not xlsx');
+    } catch(e) {
+      return notify("Impossible de lire ce lien. Vérifiez qu'il est partagé « Toute personne disposant du lien », sinon téléchargez le .xlsx (Fichier → Télécharger) et importez-le.", true);
+    }
+    return readBuffer(buf);
+  }
+  async function readBuffer(buf){
     const X = window.XLSX;
     if (!X) return notify("La lecture des fichiers Excel n'est pas disponible dans cette vue.", true);
     if (!trame || !trame.postes.length) return notify('Les postes du service doivent être chargés.', true);
     try {
-      const buf = await file.arrayBuffer();
       const wb = X.read(new Uint8Array(buf), {type:'array', cellDates:true});
       let weeks = PP.parseWorkbook(X, wb), ignored = [];
-      if (!weeks.length) {
-        let parsed = null;
-        for (const name of wb.SheetNames) {
-          const rows = X.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:'', raw:true});
-          parsed = parseGrid(rows) || parseFlat(rows);
-          if (parsed && parsed.cells.length) break;
-        }
-        if (parsed) {
-          const mon = parsed.monday || cwStart; ignored = parsed.ignored;
-          weeks = [{monday: key(mon), dates: [0,1,2,3,4].map(i=>key(addDays(mon,i))), cells: parsed.cells.map(c=>({poste: c.poste, date: key(addDays(mon,c.day)), part: c.part, people: c.names.map(n=>({label: PP.personLabel(n), star: false})), x: ''})), absences: [], notes: []}];
-        }
+      const report = weeks.report || {ok:[], skip:[]}; weeks = weeks.slice();
+      /* feuilles au format simple (modèle) : chacune lue séparément */
+      let nextMon = weeks.length ? addDays(parse(weeks[weeks.length-1].monday),7) : cwStart;
+      const extra = [], stillSkipped = [];
+      for (const name of report.skip) {
+        const rows = X.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:'', raw:true});
+        let parsed = null; try { parsed = parseGrid(rows) || parseFlat(rows); } catch(e) {}
+        if (!parsed || !parsed.cells.length) { stillSkipped.push(name); continue; }
+        const mon = parsed.monday ? mondayOf(parsed.monday) : nextMon; nextMon = addDays(mon,7);
+        ignored = ignored.concat(parsed.ignored || []);
+        extra.push({monday: key(mon), dates: [0,1,2,3,4].map(i=>key(addDays(mon,i))), cells: parsed.cells.map(c=>({poste: c.poste, date: key(addDays(mon,c.day)), part: c.part, people: c.names.map(n=>({label: PP.personLabel(n), star: false})), x: ''})), absences: [], notes: []});
+        report.ok.push(name);
       }
+      if (extra.length) weeks = PP.mergeWeeks(weeks.concat(extra));
+      report.skip = stillSkipped;
+      if (weeks.length && (report.skip.length || report.ok.length > 1)) setTimeout(()=>notify(report.ok.length+' feuille'+(report.ok.length > 1 ? 's' : '')+' lue'+(report.ok.length > 1 ? 's' : '')+(report.skip.length ? ' · ignorée'+(report.skip.length > 1 ? 's' : '')+' : '+report.skip.join(', ') : '')+'.'), 300);
       if (!weeks.length) { xlPlan = null; renderPlan(); return notify("Format non reconnu. Utilisez le fichier du planning du service ou le modèle.", true); }
       xlPlan = planFromWeeks(weeks, ignored); renderPlan();
     } catch(e) { xlPlan = null; renderPlan(); notify('Fichier illisible. Utilisez un .xlsx ou .csv.', true); }
@@ -1853,6 +1924,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     try { await dl.save({filename: 'planning-semaine-'+key(days[0])+'.xlsx', data: new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}); notify('Modèle enregistré.'); }
     catch(e) { if (!e || e.code !== 'declined') notify("Impossible d'enregistrer le fichier ici.", true); }
   }
+  $('#gsGo').addEventListener('click', ()=>{ const v = $('#gsLink').value.trim(); if (v) readLink(v); else notify('Collez un lien Google Sheets.', true); });
   $('#xlFile').addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
   $('#xlModel').addEventListener('click', downloadModel);
   $('#xlPreview').addEventListener('click', e=>{
@@ -2413,7 +2485,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : ''};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}};
       });
       doctors = next; loaded = true; renderAll();
     }, err=>{
