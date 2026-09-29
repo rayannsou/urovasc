@@ -353,7 +353,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .lview .astr{margin-top:-2px}
 .subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
 .subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
-.gastrow{padding:12px 14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
+.gastrow{padding:12px 14px;cursor:pointer}.gaed{margin-left:8px;color:var(--muted);font-size:14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
 .swraw{display:none!important}.tag.wait{background:var(--accent-soft);color:var(--accent)}.tag.no{background:var(--red-soft);color:var(--red)}.sw-a{display:flex;gap:8px;flex-wrap:wrap}.swst{margin:14px 0 6px;font-weight:700;font-size:15px}.swst b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);margin-right:8px;font-size:13px}.swlist{display:flex;flex-direction:column;gap:6px}.swchips{display:flex;flex-wrap:wrap;gap:6px}.swopt{min-height:46px;text-align:left;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 12px;font-weight:600}.swchips .swopt{border-radius:999px;text-align:center}.swopt[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.swgrp{margin:8px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 @media(max-width:700px){#swBody .swmodecol{order:-2}#swBody .swformcol{order:-1}#swJump{display:none}}
 .subtabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent)}
@@ -727,6 +727,14 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <button type="button" id="gaToday" class="ghost">Aujourd’hui</button>
           </div>
           <div id="gaList" class="col"></div>
+        <div id="gaSheet" class="sheet" hidden>
+          <div class="sheet-bg" data-gax></div>
+          <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="gaShT">
+            <div class="sheet-h"><div><h3 id="gaShT"></h3><p id="gaShS" class="hint"></p></div><button type="button" class="ghost" data-gax>Fermer</button></div>
+            <div id="gaShL" class="sheet-l"></div>
+            <div id="gaShF"></div>
+          </div>
+        </div>
         </div>
       </div>
     </section>
@@ -785,7 +793,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 01h45 (validation v23)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 02h00 (modif v24)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -2530,9 +2538,33 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     list.innerHTML = sats.map(d=>{
       const k = key(d), v = vacWho(ap.id, k, 'M'), who = v ? v.who : [], mine = who.includes(me);
       const chips = who.length ? who.map(id=>{ const r = reasonFor(id, k, 'M'); return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+'>'+(r ? '⚠ ' : '')+esc(dLabel(id))+'</span>'; }).join(' ') : '<span class="hint">Personne pour le moment</span>';
-      return '<div class="card gastrow'+(mine ? ' mine' : '')+(k === today ? ' today' : '')+'"><div class="gastin"><b>'+esc(fmtLong.format(d).replace(/^./, c=>c.toUpperCase()))+'</b><span class="gastw">'+chips+'</span></div></div>';
+      return '<div class="card gastrow'+(mine ? ' mine' : '')+(k === today ? ' today' : '')+'" data-gaedit="'+k+'" role="button" tabindex="0" aria-label="Modifier l’astreinte"><div class="gastin"><b>'+esc(fmtLong.format(d).replace(/^./, c=>c.toUpperCase()))+'</b><span class="gastw">'+chips+'</span><span class="gaed" aria-hidden="true">✎</span></div></div>';
     }).join('');
   }
+  /* modifier l'astreinte d'un samedi depuis l'onglet Planning */
+  let gaEditK = '';
+  function gaSheetRender(){
+    const ap = trame && trame.postes.find(isSam), k = gaEditK; if (!ap || !k) return;
+    const v = vacWho(ap.id, k, 'M'), cur = v ? v.who : [], AC = astCounts(), ov = overrides[k] && overrides[k][ap.id+'_M'];
+    $('#gaShT').textContent = fmtLong.format(parse(k)).replace(/^./, c=>c.toUpperCase());
+    $('#gaShS').textContent = 'Astreinte · choisissez la personne (le chiffre = astreintes déjà prévues, les noms barrés en rouge sont indisponibles).';
+    const docs = sortedDocs().slice().sort((a,b)=>(AC[a.id]||0) - (AC[b.id]||0) || a.order - b.order);
+    $('#gaShL').innerHTML = '<div class="plc">'+docs.map(d=>{ const r = reasonFor(d.id, k, 'M'); return '<button type="button" class="plsg'+(cur.includes(d.id) ? '' : ' alt')+(r ? ' na' : '')+'" data-gapick="'+esc(d.id)+'" aria-pressed="'+cur.includes(d.id)+'">'+(cur.includes(d.id) ? '✓ ' : '')+esc(d.label)+'<b class="acn">'+(AC[d.id]||0)+'</b></button>'; }).join('')+'</div>';
+    $('#gaShF').innerHTML = '<div class="astpair"><button type="button" class="ghost astbtn" data-gaclear="1">Laisser vide</button>'+(ov ? '<button type="button" class="ghost astbtn" data-garevert="1">Rétablir la trame</button>' : '')+'</div>';
+  }
+  $('#gaList').addEventListener('click', e=>{
+    const r = e.target.closest('[data-gaedit]'); if (!r) return;
+    if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
+    gaEditK = r.dataset.gaedit; gaSheetRender(); $('#gaSheet').hidden = false;
+  });
+  $('#gaSheet').addEventListener('click', async e=>{
+    if (e.target.closest('[data-gax]')) { $('#gaSheet').hidden = true; return; }
+    const ap = trame && trame.postes.find(isSam); if (!ap || !gaEditK) return;
+    const p = e.target.closest('[data-gapick]');
+    if (p) { const id = p.dataset.gapick; $('#gaSheet').hidden = true; await writeWho(ap.id, gaEditK, 'M', [id], id, 'Astreinte modifiée.'); renderGAst(); return; }
+    if (e.target.closest('[data-gaclear]')) { $('#gaSheet').hidden = true; await writeWho(ap.id, gaEditK, 'M', [], null, 'Astreinte laissée vide.'); renderGAst(); return; }
+    if (e.target.closest('[data-garevert]')) { $('#gaSheet').hidden = true; if (await revertSlot(ap.id, gaEditK, 'M')) notify('Trame rétablie pour ce samedi.'); renderGAst(); }
+  });
   document.querySelectorAll('[data-gkind]').forEach(b=>b.addEventListener('click', ()=>{ gKind = b.dataset.gkind; renderGAst(); }));
   $('#gaPrev').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), -70); renderGAst(); });
   $('#gaNext').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), 70); renderGAst(); });
