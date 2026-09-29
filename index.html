@@ -338,6 +338,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .plopt[aria-pressed=true] .tk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .plopt.warn:not([aria-pressed=true]){background:var(--red-soft);border-color:var(--red-line)}
 .plopt .lt{display:flex;flex-direction:column;gap:2px}
+.plsg.alt{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.plsg.na{opacity:.5;text-decoration:line-through}
 .plsg{min-height:44px;border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700;border-radius:999px;padding:0 14px}
 .pladd{min-height:44px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-weight:700;border-radius:999px;padding:0 16px}
 .plcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
@@ -941,27 +943,46 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const blocks = [];
     for (let r=0; r<Math.min(aoa.length, 10); r++) {
       const hs = [];
-      (aoa[r] || []).forEach((v,c)=>{ const g = gnorm(S(v).replace(/\s+/g,' ')); const m = g.match(/^(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})(?:\s*[\/.-]\s*(\d{1,2})(?:\s*[\/.-]\s*(\d{2,4}))?|\s+([a-z]+)(?:\s+(\d{4}))?)?$/); const mo = m ? (m[3] ? Number(m[3]) : (m[5] ? MOIS_ALIAS.findIndex(al=>al.includes(m[5]))+1 : 0)) : 0, yy = m ? Number(m[4] || m[6] || 0) : 0; if (m && (!m[5] || mo)) hs.push({c, j:JOURS.indexOf(m[1]), n:Number(m[2]), mo, yr: yy < 100 && yy ? 2000+yy : yy}); else if (/^samedi\b/.test(g) && hs.length) hs.push({c, j:5, n:0}); });
+      (aoa[r] || []).forEach((v,c)=>{
+        const g = gnorm(S(v).replace(/\s+/g,' '));
+        const m = g.match(/^(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})(?:\s*[\/.-]\s*(\d{1,2})(?:\s*[\/.-]\s*(\d{2,4}))?|\s+([a-z]+)(?:\s+(\d{4}))?)?$/);
+        const m2 = !m && g.match(/^(\d{1,2})\s*[\/.-]\s*(\d{1,2})(?:\s*[\/.-]\s*(\d{2,4}))?$/);
+        if (m) { const mo = m[3] ? Number(m[3]) : (m[5] ? MOIS_ALIAS.findIndex(al=>al.includes(m[5]))+1 : 0), yy = Number(m[4] || m[6] || 0); if (!m[5] || mo) hs.push({c, name:JOURS.indexOf(m[1]), n:Number(m[2]), mo, yr: yy < 100 && yy ? 2000+yy : yy}); }
+        else if (m2) { const yy = Number(m2[3] || 0); if (Number(m2[2]) >= 1 && Number(m2[2]) <= 12) hs.push({c, name:-1, n:Number(m2[1]), mo:Number(m2[2]), yr: yy < 100 && yy ? 2000+yy : yy}); }
+        else if (/^samedi\b/.test(g) && hs.length) hs.push({c, sat:true});
+      });
+      /* la 1re colonne d'un bloc = 1er jour de la semaine, les suivantes = jours suivants (le nom du jour écrit n'est pas décisif) */
       let cur = null;
-      hs.forEach(h=>{ if (h.j === 0 || !cur) { cur = {hr:r, bl:[]}; blocks.push(cur); } cur.bl.push(h); });
+      hs.forEach(h=>{
+        if (h.sat) { if (cur) cur.bl.push({c:h.c, j:5, n:0}); return; }
+        if (!cur || cur.cnt >= 5 || (h.name === 0 && cur.cnt > 0)) { cur = {hr:r, bl:[], cnt:0}; blocks.push(cur); }
+        h.j = cur.cnt++; cur.bl.push(h);
+      });
     }
     const good = blocks.filter(b=>b.bl.filter(h=>h.j < 5).length >= 5 && b.bl[0].c >= 1);
     if (!good.length) return null;
     good.sort((x,y)=>x.bl[0].c - y.bl[0].c);
-    const ownMonday = h=>{
-      if (!h.mo) return null;
-      const ref = opts.ref || new Date(), ys = h.yr ? [h.yr] : [ref.getFullYear()-1, ref.getFullYear(), ref.getFullYear()+1];
+    const ownStart = h=>{
+      const ref = opts.ref || new Date();
       let best = null, bd = 1e18;
-      ys.forEach(y=>{ const d = new Date(y, h.mo-1, h.n); if (d.getMonth() === h.mo-1 && d.getDay() === 1) { const df = Math.abs(d - ref); if (df < bd) { bd = df; best = d; } } });
+      if (h.mo) {
+        (h.yr ? [h.yr] : [ref.getFullYear()-1, ref.getFullYear(), ref.getFullYear()+1]).forEach(y=>{ const d = new Date(y, h.mo-1, h.n); if (d.getMonth() === h.mo-1) { const df = Math.abs(d - ref); if (df < bd) { bd = df; best = d; } } });
+        return best;
+      }
+      for (let k=-3; k<=14; k++) {
+        const d = new Date(ref.getFullYear(), ref.getMonth()+k, h.n);
+        if (d.getDate() === h.n && (h.name < 0 || d.getDay() === (h.name+1)%7)) { const df = Math.abs(d - ref); if (df < bd) { bd = df; best = d; } }
+      }
       return best;
     };
-    let first = ownMonday(good[0].bl[0]) || guessMonday(good[0].bl[0].n, opts.ref);
+    let first = ownStart(good[0].bl[0]);
     if (opts.monday) first = opts.monday;
     if (!first) return null;
     const weeks = good.map((b,i)=>{
-      const mon = (i && ownMonday(b.bl[0])) || new Date(first.getFullYear(), first.getMonth(), first.getDate()+7*i);
-      const dates = [0,1,2,3,4].map(k=>ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+k)));
-      const sat = ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+5));
+      const st = (i && ownStart(b.bl[0])) || new Date(first.getFullYear(), first.getMonth(), first.getDate()+7*i);
+      const dates = [0,1,2,3,4].map(k=>ymd(new Date(st.getFullYear(), st.getMonth(), st.getDate()+k)));
+      const sat = ymd(new Date(st.getFullYear(), st.getMonth(), st.getDate()+5));
+      const mon = new Date(st.getFullYear(), st.getMonth(), st.getDate() - ((st.getDay()+6)%7));
       return {monday: ymd(mon), dates, sat, cells:{}, absences:[], notes:[], bl:b.bl, hr:b.hr, lc:b.bl[0].c-1, hasSat:false};
     });
     const byLabel = {}; POSTES_MOIS.forEach(p=>{ byLabel[gnorm(p.label)] = p.id; });
@@ -1427,11 +1448,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         const chips = who.map(id=>{ const r = v && v.ou ? '' : reasonFor(id,k,part); if (r) bad++; return '<span class="pch'+(r ? ' bad' : '')+'">'+esc(dLabel(id))+'<button type="button" data-plx="'+esc(slot+'|'+id)+'" aria-label="Retirer '+esc(dLabel(id))+'"'+dis+'>×</button></span>'; }).join('');
         const why = who.filter(id=>!(v && v.ou) && reasonFor(id,k,part)).map(id=>esc(dLabel(id))+' : '+esc(reasonFor(id,k,part))).join(' · ');
         const tag = ov ? '<em>cette date</em>' : (who.length ? '<em>toujours</em>' : '');
-        const sug = plSuggest(p.id, part, who, k);
+        const top = plSuggest(p.id, part, who, k), sug = top.concat(docs.map(d=>d.id).filter(id=>!who.includes(id) && !top.includes(id)));
         return '<div class="plr'+(bad ? ' cf' : '')+'"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Samedi matin' : part === 'M' ? 'Matin' : 'Après-midi')+(v && v.ou ? ' · à confirmer' : '')+'</span>'+tag+'</div>'
           + '<div class="plc">'+chips
-          + sug.map(id=>'<button type="button" class="plsg" data-plsg="'+esc(slot+'|'+id)+'"'+dis+'>＋ '+esc(dLabel(id))+'</button>').join('')
-          + '<button type="button" class="pladd" data-plopen="'+esc(slot)+'"'+dis+'>'+(sug.length || who.length ? '＋ Autre' : '＋ Ajouter un médecin')+'</button></div>'
+          + sug.map(id=>'<button type="button" class="plsg'+(top.includes(id) ? '' : ' alt')+(reasonFor(id,k,part) ? ' na' : '')+'" data-plsg="'+esc(slot+'|'+id)+'"'+dis+'>'+(top.includes(id) ? '＋ ' : '')+esc(dLabel(id))+'</button>').join('')
+          + '<button type="button" class="pladd" data-plopen="'+esc(slot)+'"'+dis+'>'+(sug.length || who.length ? '＋ Nouveau nom' : '＋ Ajouter un médecin')+'</button></div>'
           + (why ? '<p class="plwhy">⚠ '+why+'</p>' : '')+'</div>';
       }).join('');
       return '<section class="plcard"><h3><i style="background:'+posteColor(p.id)+'"></i>'+esc(postName(p.id,k))+'</h3>'+rows+'</section>';
