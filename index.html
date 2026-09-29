@@ -108,7 +108,7 @@ table.team{border-collapse:separate;border-spacing:0;font-size:12px;width:max-co
 .toast.err{background:var(--danger);color:var(--bg)}
 .badge{display:inline-block;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--garde);color:var(--garde-ink);font:700 11px/20px var(--font-mono);margin-left:8px;vertical-align:middle}
 .sec h2{margin-bottom:2px}
-.sw{background:var(--bg);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.xsw{background:var(--bg);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .sw-h{font-weight:500}
 .sw-h strong{font-family:var(--font-mono)}
 .sw-m{font-size:13px;color:var(--muted)}
@@ -187,7 +187,16 @@ table.trame .who{min-width:112px;vertical-align:middle}
 .tday{display:flex;flex-direction:column;gap:12px}
 .tday h2.date{font-size:clamp(1.3rem,4.5vw,1.7rem);text-transform:capitalize}
 .slot{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
-.slot.g{border-left-color:var(--garde)}.slot.r{border-left-color:#5BA9C0}.slot.i{border-left-color:var(--ind-2)}.slot.free{border-left-color:var(--line)}.slot.bad{border-left-color:var(--red)}.cfa{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.cfa button{min-height:40px;padding:8px 14px;font-size:14px}
+.slot.g{border-left-color:var(--garde)}.slot.r{border-left-color:#5BA9C0}.slot.i{border-left-color:var(--ind-2)}.slot.free{border-left-color:var(--line)}.slot.bad{border-left-color:var(--red)}.cfhint{font-size:13px;font-weight:700;color:var(--red)}.slot:not(.bad) .cfhint{color:var(--accent)}
+.slot[data-cfo]{cursor:pointer}
+.alertbtn{display:block;width:100%;text-align:left;font:inherit;font-size:14px;cursor:pointer;min-height:48px}
+.cfi{border:1.5px solid var(--red-line);background:var(--red-soft);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.cfi.ok{border-color:var(--line);background:var(--bg)}
+.cfi h4{font:700 15px/1.25 var(--font-body)}
+.cfi p{font-size:14px;color:var(--red);font-weight:600}
+.cfi.ok p{color:var(--muted)}
+.cfi .acts{display:flex;flex-wrap:wrap;gap:8px}
+.cfi .acts button{min-height:44px;flex:1 1 140px}
 .slot .when{font:600 12px var(--font-mono);color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
 .slot .what{font:700 clamp(1.3rem,5vw,1.7rem)/1.15 var(--font-display)}
 .slot .with{color:var(--muted)}
@@ -694,6 +703,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
 
 </div>
+<div id="cfSheet" class="sheet" hidden>
+  <div class="sheet-bg" data-cfclose></div>
+  <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="cfT">
+    <div class="sheet-h"><div><h3 id="cfT">Vacations en conflit</h3><p class="hint">Vous êtes affecté(e) alors que vous n’êtes pas disponible. Acceptez la vacation ou refusez-la pour l’échanger.</p></div><button type="button" class="ghost" data-cfclose>Fermer</button></div>
+    <div id="cfL" class="sheet-l"></div>
+  </div>
+</div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1032,6 +1048,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
   let db = null, canWrite = true, loaded = false;
   let doctors = {};
+  let cfScope = undefined;
   let me = '';
   try { me = localStorage.getItem('planning-me') || ''; } catch(e) {}
   const today = new Date();
@@ -1183,6 +1200,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#hiSub').textContent = d ? todaySummary() : (loaded && sortedDocs().length ? 'Choisissez votre nom pour voir votre semaine.' : 'Chargement du planning…');
   }
   function renderToday(){
+    if (typeof cfScope !== 'undefined' && cfScope !== undefined) renderConf();
     renderHello();
     const doc = doctors[me], empty = $('#auEmpty'), box = $('#auBody');
     if (!doc) {
@@ -1209,17 +1227,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       } else if (st) { cls += ' '+STAT[st][0]; what = STAT[st][1]; }
       else { cls += ' free'; what = 'Pas de vacation'; }
       if (!vs.length && !st) return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what lone">'+what+'</span></div>';
-      const acts = vs.length && st ? '<span class="cfa">'+(acc
-        ? '<button type="button" class="ghost" data-cfk="'+kk+'" data-cfp="'+part+'" data-cfa="0">Annuler l’acceptation</button>'
-        : '<button type="button" class="ghost" data-cfv="'+kk+'">Voir</button><button type="button" class="primary" data-cfk="'+kk+'" data-cfp="'+part+'" data-cfa="1"'+(canWrite ? '' : ' disabled')+'>Accepter quand même la vacation</button>')+'</span>' : '';
-      return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what">'+what+'</span>'+(sub ? '<span class="with">'+esc(sub)+'</span>' : '')+acts+'</div>';
+      const acts = vs.length && st ? '<span class="cfhint">'+(acc ? 'Acceptée · toucher pour modifier ›' : 'Toucher pour accepter ou refuser ›')+'</span>' : '';
+      const cfa = vs.length && st ? ' role="button" tabindex="0" data-cfo="'+kk+'|'+part+'"' : '';
+      return '<div class="'+cls+'"'+sty+cfa+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what">'+what+'</span>'+(sub ? '<span class="with">'+esc(sub)+'</span>' : '')+acts+'</div>';
     };
     const startD = addDays(mondayOf(now), 7*wkOff);
     const tomorrowK = key(addDays(now,1));
     const cap = s=>s.charAt(0).toUpperCase()+s.slice(1);
     let h = '<div class="wknav"><button type="button" data-wk="-1" aria-label="Semaine précédente">‹</button><span>'+(wkOff === 0 ? 'Cette semaine' : esc(fmtDM.format(startD))+' – '+esc(fmtDM.format(addDays(startD,6))))+'</span><button type="button" data-wk="1" aria-label="Semaine suivante">›</button>'+(wkOff ? '<button type="button" class="ghost" data-wk="0">Aujourd’hui</button>' : '')+'</div>';
     const cf = myVacations(me).filter(v=>v.date >= k && reasonFor(me,v.date,v.part)).length;
-    if (cf) h += '<div class="alert">⚠ '+cf+' vacation'+(cf > 1 ? 's' : '')+' à venir tomb'+(cf > 1 ? 'ent' : 'e')+' sur vos indisponibilités, votre garde ou votre repos de garde : à échanger.</div>';
+    if (cf) h += '<button type="button" class="alert alertbtn" data-cfall="1">⚠ '+cf+' vacation'+(cf > 1 ? 's' : '')+' à venir tomb'+(cf > 1 ? 'ent' : 'e')+' sur vos indisponibilités, votre garde ou votre repos de garde. <strong>Toucher pour accepter ou refuser ›</strong></button>';
     let shown = 0;
     for (let i=0;i<7;i++) {
       const d = addDays(startD,i), kk = key(d), wd = (d.getDay()+6)%7, inf = dayInfo(doc,kk), vs = dayVacs(me,kk), nt = dayNotes(kk);
@@ -1383,20 +1400,35 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#plShS').textContent = fmtLong.format(parse(a[1]))+' · '+(p.journee ? 'journée' : isSam(p) ? 'samedi matin' : PART_TXT[a[2]])+(plScope === 'always' ? ' · chaque semaine' : ' · cette date seulement');
     const cur = whoOf(a[0],a[1],a[2]), q = plNorm($('#plShQ').value);
     const docs = sortedDocs().filter(d=>!q || plNorm(d.label).includes(q));
-    $('#plShL').innerHTML = docs.map(d=>{ const on = cur.includes(d.id), r = on ? '' : reasonFor(d.id,a[1],a[2]); return '<button type="button" class="plopt'+(r ? ' warn' : '')+'" data-pld="'+esc(d.id)+'" aria-pressed="'+on+'"><span class="lt"><span>'+esc(dLabel(d.id))+'</span>'+(r ? '<small>⚠ '+esc(r)+'</small>' : '')+'</span><span class="tk">'+(on ? '✓' : '')+'</span></button>'; }).join('') || '<p class="empty">Aucun médecin ne correspond.</p>';
+    const rawQ = $('#plShQ').value.trim(), exact = sortedDocs().some(d=>plNorm(d.label) === q);
+    const mk = rawQ && !exact && /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{0,30}$/.test(rawQ) ? '<button type="button" class="plopt" data-plnew="'+esc(rawQ)+'"><span class="lt"><span>＋ Créer « '+esc(rawQ)+' »</span><small style="color:var(--muted)">Nouveau médecin, ajouté à la liste</small></span></button>' : '';
+    $('#plShL').innerHTML = mk + docs.map(d=>{ const on = cur.includes(d.id), r = on ? '' : reasonFor(d.id,a[1],a[2]); return '<button type="button" class="plopt'+(r ? ' warn' : '')+'" data-pld="'+esc(d.id)+'" aria-pressed="'+on+'"><span class="lt"><span>'+esc(dLabel(d.id))+'</span>'+(r ? '<small>⚠ '+esc(r)+'</small>' : '')+'</span><span class="tk">'+(on ? '✓' : '')+'</span></button>'; }).join('') || '<p class="empty">Aucun médecin ne correspond.</p>';
+  }
+  async function plCreateAndAdd(name){
+    if (!db || !canWrite) return notify('Lecture seule : modification impossible.', true);
+    const label = PP.personLabel(name), id = slug(label);
+    if (!id) return notify('Nom non valide.', true);
+    try {
+      const ref = db.doc('medecins/'+id), snap = await ref.get();
+      if (!snap.exists) { const order = Math.max(0, ...Object.values(doctors).filter(d=>d.order !== 999).map(d=>d.order)) + 1; await ref.set({label, order, days: {}}); }
+    } catch(e) { return handleErr(e); }
+    const a = plSheet.split('|'), cur = whoOf(a[0],a[1],a[2]);
+    if (!cur.includes(id)) { cur.push(id); await plApply(a[0],a[1],a[2],cur,id); }
+    $('#plShQ').value = ''; notify(label+' ajouté(e) à la liste et à la vacation.'); renderSheet();
   }
   $('#plShQ').addEventListener('input', renderSheet);
   $('#plShQ').addEventListener('keydown', e=>{
     if (e.key !== 'Enter') return; e.preventDefault();
     const q = plNorm($('#plShQ').value); if (!q || !plSheet) return;
     const m = sortedDocs().filter(d=>plNorm(d.label) === q); const d = m[0] || sortedDocs().filter(d=>plNorm(d.label).startsWith(q))[0];
-    if (!d) return notify('« '+$('#plShQ').value.trim()+' » : médecin introuvable. Ajoutez-le dans Réglages.', true);
+    if (!d) { plCreateAndAdd($('#plShQ').value.trim()); return; }
     const a = plSheet.split('|'), cur = whoOf(a[0],a[1],a[2]);
     if (!cur.includes(d.id)) { cur.push(d.id); plApply(a[0],a[1],a[2],cur,d.id); }
     $('#plShQ').value = ''; renderSheet();
   });
   $('#plSheet').addEventListener('click', e=>{
     if (e.target.closest('[data-plclose]')) return closeSheet();
+    const nw = e.target.closest('[data-plnew]'); if (nw) return plCreateAndAdd(nw.dataset.plnew);
     const b = e.target.closest('[data-pld]'); if (!b || !plSheet) return;
     const a = plSheet.split('|'), id = b.dataset.pld, cur = whoOf(a[0],a[1],a[2]), on = cur.includes(id);
     plApply(a[0],a[1],a[2], on ? cur.filter(x=>x !== id) : cur.concat([id]), on ? null : id);
@@ -1426,6 +1458,45 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     plApply(a[0],a[1],a[2],whoOf(a[0],a[1],a[2]).filter(id=>id !== a[3]), null);
   });
 
+
+  /* ---------- conflits : accepter ou refuser ---------- */
+  const RAW_WHY = {G:'de garde', R:'en repos de garde', A:'d’astreinte', I:'indisponible'};
+  function openConf(scope){ cfScope = scope; $('#cfSheet').hidden = false; renderConf(); }
+  function closeConf(){ cfScope = undefined; $('#cfSheet').hidden = true; renderToday(); }
+  function renderConf(){
+    if (cfScope === undefined) return;
+    const doc = doctors[me]; if (!doc) return closeConf();
+    const k0 = key(new Date());
+    let items = myVacations(me).filter(v=>v.date >= k0);
+    if (cfScope) { const a = cfScope.split('|'); items = items.filter(v=>v.date === a[0] && v.part === a[1]); }
+    else items = items.filter(v=>reasonFor(me,v.date,v.part));
+    items = items.filter(v=>{ const st = dayInfo(doc, v.date)[v.part]; return !!st; });
+    if (!items.length) return closeConf();
+    $('#cfL').innerHTML = items.map(v=>{
+      const st = dayInfo(doc, v.date)[v.part], acc = !!(doc.ok && doc.ok[v.date+'_'+v.part]), val = vacVal(v);
+      return '<article class="cfi'+(acc ? ' ok' : '')+'"><h4>'+esc(vacLabel(v))+'</h4><p>'+(acc ? '✓ Acceptée malgré votre situation : ' : '⚠ Vous êtes ')+esc(RAW_WHY[st] || 'indisponible')+'.</p><div class="acts">'
+        + (acc
+          ? '<button type="button" class="ghost" data-cfa="0" data-cfv="'+esc(val)+'">Retirer mon accord</button>'
+          : '<button type="button" class="primary" data-cfa="1" data-cfv="'+esc(val)+'"'+(canWrite ? '' : ' disabled')+'>Accepter la vacation</button><button type="button" class="ghost" data-cfx="'+esc(val)+'">Refuser : l’échanger</button>')
+        + '<button type="button" class="ghost" data-cfs="'+esc(v.date)+'">Voir le planning</button></div></article>';
+    }).join('');
+  }
+  $('#cfSheet').addEventListener('click', async e=>{
+    if (e.target.closest('[data-cfclose]')) return closeConf();
+    const ac = e.target.closest('[data-cfa]');
+    if (ac) {
+      if (!db || !canWrite || !me) return notify('Lecture seule : modification impossible.', true);
+      const v = parseVac(ac.dataset.cfv), on = ac.dataset.cfa === '1';
+      try { await db.doc('medecins/'+me).update({ok: {[v.date+'_'+v.part]: on}}); notify(on ? 'Vacation acceptée malgré le conflit.' : 'Accord retiré.'); } catch(err) { handleErr(err); }
+      return;
+    }
+    const sw = e.target.closest('[data-cfx]');
+    if (sw) { cfScope = undefined; $('#cfSheet').hidden = true; showTab('echanges'); renderSwapForm(); $('#swMine').value = sw.dataset.cfx; fillTheirs(); return; }
+    const vw = e.target.closest('[data-cfs]');
+    if (vw) { const d = parse(vw.dataset.cfs); cfScope = undefined; $('#cfSheet').hidden = true; weekStart = mondayOf(d); gDay = -1; showTab('general'); renderGLabel(); renderTeam(); renderTrame(); }
+  });
+  $('#auBody').addEventListener('keydown', e=>{ const co = e.target.closest && e.target.closest('[data-cfo]'); if (co && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openConf(co.dataset.cfo); } });
+
   /* ---------- interactions ---------- */
   $('#who').addEventListener('change', e=>{
     me = e.target.value;
@@ -1448,15 +1519,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
   $('#auBody').addEventListener('click', async e=>{
-    const cv = e.target.closest('[data-cfv]');
-    if (cv) { weekStart = mondayOf(parse(cv.dataset.cfv)); gDay = -1; showTab('general'); renderGLabel(); renderTeam(); renderTrame(); return; }
-    const a = e.target.closest('[data-cfk]');
-    if (a) {
-      if (!db || !canWrite || !me) return;
-      const on = a.dataset.cfa === '1';
-      try { await db.doc('medecins/'+me).update({ok: {[a.dataset.cfk+'_'+a.dataset.cfp]: on}}); notify(on ? 'Vacation acceptée malgré le conflit.' : 'Acceptation annulée.'); } catch(err) { handleErr(err); }
-      return;
-    }
+    const co = e.target.closest('[data-cfo]'); if (co) return openConf(co.dataset.cfo);
+    if (e.target.closest('[data-cfall]')) return openConf(null);
     const b = e.target.closest('[data-wk]'); if (!b) return; const v = Number(b.dataset.wk); wkOff = v === 0 ? 0 : wkOff + v; renderToday(); });
   let swX = 0, swY = 0;
   $('#auBody').addEventListener('touchstart', e=>{ const t = e.touches[0]; swX = t.clientX; swY = t.clientY; }, {passive:true});
@@ -2351,7 +2415,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   function xCard(x, canUndo){
     const dis = canWrite ? '' : ' disabled';
     const concerned = x.to === me && x.from !== me;
-    let h = '<article class="sw" data-id="'+esc(x.id)+'"><div class="sw-h"><strong>'+esc(dLabel(x.from))+'</strong> ⇄ <strong>'+esc(dLabel(x.to))+'</strong>'+(concerned ? '<span class="tag">Vous êtes concerné</span>' : '')+'</div>';
+    let h = '<article class="xsw" data-id="'+esc(x.id)+'"><div class="sw-h"><strong>'+esc(dLabel(x.from))+'</strong> ⇄ <strong>'+esc(dLabel(x.to))+'</strong>'+(concerned ? '<span class="tag">Vous êtes concerné</span>' : '')+'</div>';
     h += '<div class="sw-m">'+esc(dLabel(x.from))+' cède : '+esc(vacLabel({poste:x.poste, date:x.date, part:x.part}))+'</div>';
     h += '<div class="sw-m">'+esc(dLabel(x.to))+' cède : '+esc(vacLabel({poste:x.poste2, date:x.date2, part:x.part2}))+'</div>';
     if (canUndo) h += '<div class="sw-a"><button type="button" data-act="undo"'+(pendingUndo === x.id ? ' class="danger"' : '')+dis+'>'+(pendingUndo === x.id ? "Confirmer l'annulation" : 'Annuler cet échange')+'</button></div>';
