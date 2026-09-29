@@ -23,7 +23,7 @@
    "Mon planning" = calendrier mensuel + saisie ; "Équipe" = grille de semaine M / AM comme la trame du service. */
 :root{
   --page:#FFFFFF; --bg:#F1F4F2; --surface:#FFFFFF; --ink:#13201D; --muted:#586964; --line:#D6DEDA;
-  --accent:#1D5266; --accent-ink:#FFFFFF; --accent-soft:#DCEBF0;
+  --accent:#123F55; --accent-ink:#FFFFFF; --accent-soft:#DCEBF0;
   --garde:#3B3A8C; --garde-ink:#FFFFFF;
   --rdg:#BFE2EC; --rdg-ink:#0C3A49;
   --ind:#FBEFD3; --ind-2:#EBCB86; --ind-ink:#5A3A00;
@@ -278,30 +278,82 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .cwr.empty{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 12px}
 .cwr.empty select{flex:1 1 180px;max-width:280px;min-height:40px}
 .cwr input[type=text]{min-height:40px}
+
+/* ===== v14 : accueil, semaine, gardes, réglages ===== */
+:root{--ast:#E7E0F6;--ast-ink:#3B2A78}
+.k-A{background:var(--ast);color:var(--ast-ink)}
+.st-a{background:var(--ast);color:var(--ast-ink)}
+.slot.a{border-left-color:#7A5CC8}.slot.a .what{color:#5B3FA6}
+.top{background:linear-gradient(160deg,#B4D2DF 0%,#DCEAEF 85%);color:var(--ink);border:1px solid var(--line);padding:20px 20px 18px;align-items:flex-end}
+.top h1{color:var(--ink)}.top .sub{color:var(--muted);opacity:1;font-size:15px;margin-top:8px}
+.top label{color:var(--muted)}.top #who{border-color:var(--line)}
+.hello .eyebrow{font:600 12px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.hello .hidate{color:var(--muted);margin-top:2px;font-size:14px}
+.hello h1{margin-top:8px;font-size:clamp(2rem,7vw,2.8rem)}
+.hello h1 em{font-style:normal;color:var(--accent)}
+.top .renme{margin-top:8px;background:#fff;border:1px solid var(--line);color:var(--accent);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;min-height:36px}
+.wknav{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.wknav span{flex:1;text-align:center;font:600 14px var(--font-display);min-width:120px}
+.wknav button{min-width:44px;padding:0 12px}
+.dcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.dcard.today{border:2px solid var(--accent);box-shadow:0 4px 18px rgba(29,82,102,.12)}
+.dcard>header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
+.dcard>header h2{font-size:1.15rem}
+.dcard>header .dd{color:var(--muted);font-size:14px}
+.dcard>header .st{margin-left:auto}
+.dcard:not(.today) .slot{padding:10px 14px}
+.dcard:not(.today) .slot .what{font-size:1.05rem}
+.dcard .dnote{font-size:13px}
+.backreg{align-self:flex-start}
+.glist{display:flex;flex-direction:column;gap:8px}
+.grow{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}
+.grow.sat{background:#FBF9FE}.grow.sun{background:#F6F8F7}.grow.today{border:2px solid var(--accent)}
+.gdate{display:flex;flex-direction:column;align-items:center;min-width:44px;font-family:var(--font-display)}
+.gdate b{font-size:1.4rem;line-height:1}.gdate span{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.gsel{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.gsel label{margin-top:2px}
+.goff{font-size:13px;color:var(--ast-ink)}
+.goff b{background:var(--rdg);color:var(--rdg-ink);border-radius:6px;padding:1px 7px}
+.team-list li{padding:2px 2px 2px 8px}
+.team-list li input[type=text]{width:130px}
+.team-list li select{min-height:36px;width:auto;font-size:12px;padding:2px 8px;border-radius:6px}
+.addset{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;width:100%}
+.addset .grow{flex:1 1 160px}
+.role{font-size:10px;color:var(--muted);font-weight:600}
+@media (max-width:700px){.dcard{padding:12px}}
+
+.grid2>.full{grid-column:1/-1}
+.astcard{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:#F3EFFB;border-color:#D5CBEE}
+.astcard b{font:600 15px var(--font-display);color:var(--ast-ink)}
+.astcard .f{flex:1 1 200px;min-width:0}
+
+.renform{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.renform input{flex:1 1 140px;min-width:0}.renform button{min-height:44px}
 </style>
 
 <div class="wrap">
   <header class="top">
-    <div>
-      <h1>Planning Imagerie</h1>
-      <p class="sub">Indisponibilités, gardes et repos de garde</p>
+    <div class="hello">
+      <p class="eyebrow">Planning Imagerie</p>
+      <p class="hidate" id="hiDate"></p>
+      <h1 id="hiTitle">Bonjour,</h1>
+      <p class="sub" id="hiSub">Choisissez votre nom pour voir votre semaine.</p>
     </div>
     <div class="who-box">
       <label for="who">Je suis</label>
       <select id="who"><option value="">Chargement…</option></select>
       <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
+      <form id="renForm" class="renform" hidden><input type="text" id="renInput" maxlength="24" autocomplete="off" aria-label="Votre prénom"><button type="submit" class="primary">Enregistrer</button><button type="button" id="renCancel" class="ghost">Annuler</button></form>
     </div>
   </header>
 
   <div id="notice" class="notice" hidden></div>
 
   <nav class="tabs" role="tablist" aria-label="Vues du planning">
-    <button type="button" role="tab" id="tab-auj" aria-selected="true" data-tab="auj"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="tl">Aujourd’hui</span><span class="ts">Aujourd’hui</span></button>
-    <button type="button" role="tab" id="tab-moi" aria-selected="false" data-tab="moi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span class="tl">Mon planning</span><span class="ts">Planning</span></button>
-    <button type="button" role="tab" id="tab-general" aria-selected="false" data-tab="general"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 10h18M9 4v17M15 10v11"/></svg><span class="tl">Planning général</span><span class="ts">Général</span><span id="gBadge" class="badge red" hidden></span></button>
-    <button type="button" role="tab" id="tab-creer" aria-selected="false" data-tab="creer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span class="tl">Créer planning</span><span class="ts">Créer</span></button>
+    <button type="button" role="tab" id="tab-auj" aria-selected="true" data-tab="auj"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15.5" r="1.6"/></svg><span class="tl">Ma semaine</span><span class="ts">Ma semaine</span></button>
+    <button type="button" role="tab" id="tab-general" aria-selected="false" data-tab="general"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 10h18M9 4v17M15 10v11"/></svg><span class="tl">Planning général</span><span class="ts">Planning</span><span id="gBadge" class="badge red" hidden></span></button>
     <button type="button" role="tab" id="tab-indispos" aria-selected="false" data-tab="indispos"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span class="tl">Mes indisponibilités</span><span class="ts">Indispos</span></button>
     <button type="button" role="tab" id="tab-echanges" aria-selected="false" data-tab="echanges"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15l-3.5-3.5M20 16H5l3.5 3.5"/></svg><span class="tl">Échanges</span><span class="ts">Échanges</span><span id="swapBadge" class="badge" hidden></span></button>
+    <button type="button" role="tab" id="tab-reglages" aria-selected="false" data-tab="reglages"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg><span class="tl">Réglages</span><span class="ts">Réglages</span></button>
   </nav>
 
   <main>
@@ -331,25 +383,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <li><span class="ch bad">M</span>Vacation en conflit avec une indisponibilité</li>
           </ul>
         </div>
-        <div class="card">
-          <h2>Importer dans mon calendrier</h2>
-          <p class="hint">Vos vacations, gardes et repos de garde des 12 prochaines semaines, dans un fichier calendrier (.ics) pour l'iPhone, Google Agenda ou Outlook.</p>
-          <button type="button" class="primary" id="icsBtn">Importer mon emploi du temps sur le calendrier</button>
-          <p class="hint">Sur iPhone : ouvrez le fichier reçu, puis touchez « Ajouter tout ». Réimporter met le calendrier à jour sans doublon.</p>
-          <details class="hours"><summary>Horaires des vacations</summary>
-            <div class="hrow">
-              <div class="f"><label for="hM1">Matin début</label><input type="time" id="hM1"></div>
-              <div class="f"><label for="hM2">Matin fin</label><input type="time" id="hM2"></div>
-              <div class="f"><label for="hA1">Après-midi début</label><input type="time" id="hA1"></div>
-              <div class="f"><label for="hA2">Après-midi fin</label><input type="time" id="hA2"></div>
-            </div>
-          </details>
-        </div>
+
       </div>
     </section>
 
     <section id="view-creer" aria-labelledby="tab-creer" hidden>
       <div class="col">
+        <button type="button" class="ghost backreg" id="backReg">‹ Retour aux réglages</button>
         <div class="card">
           <h2>Créer le planning d’une semaine</h2>
           <p class="hint">Choisissez la semaine, puis ouvrez chaque poste (échographie, scanner…) et choisissez les médecins jour par jour dans les menus. Le plus rapide : importer le fichier Excel du planning du mois ci-dessous.</p>
@@ -362,6 +402,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <p id="cwStatus" class="hint"></p>
           <fieldset data-edit id="cwSet"><button type="button" class="ghost" id="cwReset">Vider les vacations de la semaine</button></fieldset>
         </div>
+        <div id="impSlotC"></div>
         <div class="card" id="cwImport">
           <h2>Importer le planning Excel</h2>
           <p class="hint">Importez le fichier du service (une feuille par semaine : postes, congés, absences, astreintes, notes). Toutes les semaines du fichier sont créées d’un coup et les médecins inconnus sont ajoutés à la liste. Un tableau simple (postes en lignes, jours en colonnes) est aussi accepté.</p>
@@ -413,16 +454,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         <div class="col">
           <form id="period" class="card">
             <h2>Saisir une période</h2>
-            <p class="hint">Congés, semaine entière ou série de gardes. Le repos de garde se pose tout seul le lendemain.</p>
+            <p class="hint">Congés, semaine entière ou série de gardes : choisissez les dates de début et de fin. Le repos de garde se pose tout seul le lendemain.</p>
             <fieldset data-edit id="pSet">
-              <div class="chips" role="group" aria-label="Raccourcis de dates">
-                <button type="button" data-w="0">Cette semaine</button>
-                <button type="button" data-w="1">Semaine prochaine</button>
-                <button type="button" data-w="2">Dans 2 semaines</button>
-              </div>
               <div class="row2">
-                <div class="f"><label for="pFrom">Du</label><input type="date" id="pFrom"></div>
-                <div class="f"><label for="pTo">Au</label><input type="date" id="pTo"></div>
+                <div class="f"><label for="pFrom">Du</label><select id="pFrom"></select></div>
+                <div class="f"><label for="pTo">Au</label><select id="pTo"></select></div>
               </div>
               <div class="f">
                 <label for="pType">Type</label>
@@ -434,11 +470,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
                   <option value="">Disponible (effacer)</option>
                 </select>
               </div>
-              <label class="check"><input type="checkbox" id="pWe" checked>Inclure samedi et dimanche</label>
+              <label class="check"><input type="checkbox" id="pWe" checked>Inclure le samedi</label>
               <button type="submit" class="primary">Appliquer à ma fiche</button>
               <p class="hint">Une indisponibilité ne remplace pas une garde déjà saisie.</p>
             </fieldset>
           </form>
+          <div class="card">
+            <h2>Exporter en Excel</h2>
+            <p class="hint">Un fichier avec les indisponibilités, gardes et Off de toute l'équipe pour le mois affiché.</p>
+            <button type="button" class="primary" id="exIndispQuick">Exporter les indisponibilités</button>
+          </div>
         </div>
       </div>
     </section>
@@ -483,11 +524,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             </fieldset>
           </form>
         </div>
+        <div id="impSlotG"></div>
         <div id="gMed" class="col" hidden>
           <div id="teamWrap" class="tw"></div>
           <ul class="legend">
             <li><span class="sw k-G">G</span>Garde</li>
             <li><span class="sw k-R">R</span>Repos de garde</li>
+            <li><span class="sw k-A">A</span>Astreinte (samedi matin)</li>
             <li><span class="sw k-I">×</span>Indisponible</li>
             <li>Dernière ligne : nombre de médecins absents sur la demi-journée</li>
           </ul>
@@ -517,21 +560,65 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         </div>
       </div>
     </section>
+
+
+    <section id="view-reglages" aria-labelledby="tab-reglages" hidden>
+      <div class="col">
+        <div class="card">
+          <h2>Planning du mois</h2>
+          <p class="hint">Créer une semaine, importer un fichier Excel ou ajouter une vacation exceptionnelle.</p>
+          <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
+        </div>
+        <div id="impSlotR"></div>
+        <div class="card" id="exportCard">
+          <h2>Exporter en Excel</h2>
+          <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
+          <div class="f"><label for="exMonth">Mois</label><select id="exMonth"></select></div>
+          <button type="button" class="primary" id="exIndisp">Indisponibilités, gardes et Off</button>
+          <button type="button" class="ghost" id="exPlan">Planning des vacations</button>
+        </div>
+        <div class="card" id="teamCard">
+          <h2>Équipe</h2>
+          <p class="hint">Ajoutez un médecin, un interne ou toute autre personne. Pour renommer, modifiez le nom puis validez (Entrée). Les vacations et indisponibilités sont conservées.</p>
+          <ul id="people" class="people team-list"></ul>
+          <form id="addForm" class="addrow wrapf">
+            <fieldset data-edit id="aSet" class="addset">
+              <div class="f grow"><label for="newName">Prénom ou initiales</label><input type="text" id="newName" maxlength="24" autocomplete="off"></div>
+              <div class="f"><label for="newRole">Fonction</label><select id="newRole"><option>Médecin</option><option>Interne</option><option>Autre</option></select></div>
+              <button type="submit" class="primary">Ajouter</button>
+            </fieldset>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Postes du service</h2>
+          <p class="hint">Renommez, ajoutez ou retirez un poste (échographie, scanner, IRM…). Retirer un poste le masque du planning.</p>
+          <ul id="postesList" class="people team-list"></ul>
+          <form id="postAdd" class="addrow wrapf">
+            <fieldset data-edit class="addset">
+              <div class="f grow"><label for="newPoste">Nouveau poste</label><input type="text" id="newPoste" maxlength="40" autocomplete="off"></div>
+              <button type="submit" class="primary">Ajouter</button>
+            </fieldset>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Mon calendrier</h2>
+          <p class="hint">Vos vacations, gardes et repos de garde des 12 prochaines semaines, dans un fichier calendrier (.ics) pour l'iPhone, Google Agenda ou Outlook.</p>
+          <button type="button" class="primary" id="icsBtn">Importer mon emploi du temps sur le calendrier</button>
+          <p class="hint">Sur iPhone : ouvrez le fichier reçu puis touchez « Ajouter tout ». Réimporter met le calendrier à jour sans doublon.</p>
+          <details class="hours"><summary>Horaires des vacations</summary>
+            <div class="hrow">
+              <div class="f"><label for="hM1">Matin début</label><input type="time" id="hM1"></div>
+              <div class="f"><label for="hM2">Matin fin</label><input type="time" id="hM2"></div>
+              <div class="f"><label for="hA1">Après-midi début</label><input type="time" id="hA1"></div>
+              <div class="f"><label for="hA2">Après-midi fin</label><input type="time" id="hA2"></div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <details class="manage" id="manage">
-    <summary>Médecins : renommer, ajouter, retirer</summary>
-    <div class="manage-body">
-      <p class="hint">Pour renommer, modifiez le nom dans la case puis validez (Entrée). Les vacations et indisponibilités sont conservées.</p>
-      <ul id="people" class="people"></ul>
-      <form id="addForm" class="addrow">
-        <fieldset data-edit id="aSet" style="flex-direction:row;align-items:flex-end;width:100%">
-          <div class="f" style="flex:1"><label for="newName">Ajouter (initiales ou nom)</label><input type="text" id="newName" maxlength="24" autocomplete="off"></div>
-          <button type="submit" class="primary">Ajouter</button>
-        </fieldset>
-      </form>
-    </div>
-  </details>
+
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
@@ -694,7 +781,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     {id:'cours', label:'Cours fac'},
     {id:'formation', label:'Formation'},
     {id:'recherche', label:'Recherche'},
-    {id:'admin', label:'Administratif'}
+    {id:'admin', label:'Administratif'},
+    {id:'astreinte', label:'Astreinte', samedi:true}
   ];
   const ABS_ROWS = {'off':'Off', 'rdg':'Repos de garde', 'conges annuels':'Congés annuels', 'conges':'Congés annuels'};
   const PERSON = {'rm':'RM','ef':'EF','ylb':'YLB','hr':'HR','am':'AM','cm':'CM','np':'NP','ac':'AC','im':'IM','mb':'MB','dj':'DJ','ima':'IMA','alexandre':'Alexandre','alex':'Alexandre','romain':'Romain','rom':'Romain'};
@@ -724,8 +812,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     let hr = -1, heads = [];
     for (let r=0; r<Math.min(aoa.length, 6) && hr < 0; r++) {
       const hs = [];
-      (aoa[r] || []).forEach((v,c)=>{ const m = gnorm(S(v)).match(/^(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})$/); if (m) hs.push({c, j:JOURS.indexOf(m[1]), n:Number(m[2])}); });
-      if (hs.length >= 5) { hr = r; heads = hs; }
+      (aoa[r] || []).forEach((v,c)=>{ const g = gnorm(S(v)); const m = g.match(/^(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})$/); if (m) hs.push({c, j:JOURS.indexOf(m[1]), n:Number(m[2])}); else if (/^samedi\b/.test(g) && hs.length) hs.push({c, j:5, n:0}); });
+      if (hs.filter(h=>h.j < 5).length >= 5) { hr = r; heads = hs; }
     }
     if (hr < 0) return null;
     /* semaines : une nouvelle semaine commence à chaque « lundi » */
@@ -736,10 +824,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const weeks = blocks.map((bl,i)=>{
       const mon = new Date(first.getFullYear(), first.getMonth(), first.getDate()+7*i);
       const dates = [0,1,2,3,4].map(k=>ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+k)));
-      return {monday: ymd(mon), dates, cells:{}, absences:[], notes:[], bl};
+      const sat = ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+5));
+      return {monday: ymd(mon), dates, sat, cells:{}, absences:[], notes:[], bl, hasSat:false};
     });
     const byLabel = {}; POSTES_MOIS.forEach(p=>{ byLabel[gnorm(p.label)] = p.id; });
-    const alias = {'echo':'echo','bloc':'bloc','bloc urgences':'bloc-urg','consultation':'consultation','irm':'irm','scanner ext':'scanner-ext','scanner rdc / ri':'scanner-rdc','scanner urg':'scanner-urg','scanner sa':'scanner-sa','echo sa':'echo-sa','scanner photonique xa':'scanner-xa','rcp':'rcp','cours fac':'cours','formation':'formation','recherche':'recherche','administratif':'admin'};
+    const alias = {'echo':'echo','bloc':'bloc','bloc urgences':'bloc-urg','consultation':'consultation','irm':'irm','scanner ext':'scanner-ext','scanner rdc / ri':'scanner-rdc','scanner urg':'scanner-urg','scanner sa':'scanner-sa','echo sa':'echo-sa','scanner photonique xa':'scanner-xa','rcp':'rcp','cours fac':'cours','formation':'formation','recherche':'recherche','administratif':'admin','astreinte':'astreinte'};
     Object.keys(alias).forEach(k=>{ byLabel[k] = alias[k]; });
     let total = 0;
     for (let r=hr+1; r<aoa.length; r++) {
@@ -752,8 +841,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       weeks.forEach(w=>{
         w.bl.forEach(h=>{
           ['M','AM'].forEach((part,k)=>{
+            if (h.j === 5 && (k > 0 || poste !== 'astreinte')) return;
             const raw = S(row[h.c+k]); if (!raw) return;
-            const date = w.dates[h.j], sc = splitCell(raw);
+            const date = h.j === 5 ? w.sat : w.dates[h.j], sc = splitCell(raw);
+            if (h.j === 5) w.hasSat = true;
             if (poste) {
               const key = poste+'|'+date+'|'+part;
               const x = sc.ou ? raw : sc.text;
@@ -769,7 +860,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       });
     }
     if (!total) return null;
-    return weeks.map(w=>({monday:w.monday, dates:w.dates, cells:Object.values(w.cells), absences:w.absences, notes:w.notes}));
+    return weeks.map(w=>({monday:w.monday, dates:w.hasSat ? w.dates.concat([w.sat]) : w.dates, cells:Object.values(w.cells), absences:w.absences, notes:w.notes}));
   }
 
   function parseWorkbook(X, wb){
@@ -824,6 +915,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const prev = days[key(addDays(parse(k),-1))] || null;
     if (v === 'G') return {kind:'G', M:'G', AM:'G'};
     if (prev === 'G') return {kind:'R', M:'R', AM:'R'};
+    if (v === 'A') return {kind:'A', M:'A', AM:null};
     if (v === 'J') return {kind:'I', M:'I', AM:'I', part:'J'};
     if (v === 'M') return {kind:'I', M:'I', AM:null, part:'M'};
     if (v === 'AM') return {kind:'I', M:null, AM:'I', part:'AM'};
@@ -897,7 +989,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const lab = fmtDM.format(days[0])+' – '+fmtDM.format(days[6])+' '+days[6].getFullYear();
     $('#mwLabel').textContent = lab; $('#iwLabel').textContent = lab;
     const IND = {J:'Indisponible toute la journée', M:'Indisponible le matin', AM:"Indisponible l'après-midi"};
-    const opts = [['','Disponible'],['J',IND.J],['M',IND.M],['AM',IND.AM],['G','De garde']];
+    const opts = [['','Disponible'],['J',IND.J],['M',IND.M],['AM',IND.AM],['G','De garde · Off le lendemain']];
     const vacHtml = (k)=>dayVacs(me,k).map(v=>{
       const r = reasonFor(me,k,v.part);
       const who = v.ou ? 'à confirmer : '+v.who.map(dLabel).join(' ou ') : (v.others.length ? 'avec '+v.others.map(dLabel).join(', ') : '');
@@ -912,6 +1004,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       let pill = '', body = '';
       if (own === 'G') { pill = '<span class="st st-g">De garde</span>'; body += '<span class="none-txt">Repos de garde posé le '+esc(fmtShort.format(addDays(d,1)))+'</span>'; }
       else if (inf.kind === 'R') pill = '<span class="st st-r">Repos de garde</span>';
+      else if (inf.kind === 'A') pill = '<span class="st st-a">Astreinte (matin)</span>';
       else if (IND[own]) pill = '<span class="st st-i">'+IND[own]+'</span>';
       body += vacHtml(k);
       if (!body && trame && i < 5) body = '<span class="none-txt">Pas de vacation</span>';
@@ -920,6 +1013,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
     /* onglet Mes indisponibilités : menu déroulant par jour */
     $('#myDays').innerHTML = days.map((d,i)=>{
+      if (i === 6) return '';
       const k = key(d), inf = dayInfo(doc,k), own = doc.days[k] || '';
       let body = '';
       if (own === 'G') body += '<span class="none-txt">Repos de garde posé le '+esc(fmtShort.format(addDays(d,1)))+'</span>';
@@ -928,12 +1022,34 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       body += cf.map(v=>'<div class="vac bad"><span class="vp">'+v.part+'</span><span>'+esc(postName(v.poste,k))+' <small>vous y êtes affecté(e) : à échanger</small></span></div>').join('');
       const head = '<label class="dr-date" for="ds-'+k+'">'+dateTxt(d,k)+'</label>'
         + '<select id="ds-'+k+'" class="dr-sel'+(own === 'G' ? ' sel-G' : own ? ' sel-I' : '')+'" data-k="'+k+'"'+(canWrite ? '' : ' disabled')+'>'
-        + opts.map(o=>'<option value="'+o[0]+'"'+(o[0] === own ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>';
+        + (own === 'A' ? opts.concat([['A','Astreinte (samedi matin)']]) : opts).map(o=>'<option value="'+o[0]+'"'+(o[0] === own ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>';
       return rowWrap(d,i,k,head,body);
     }).join('');
   }
 
+  let wkOff = 0;
+  function todaySummary(){
+    const doc = doctors[me]; if (!doc) return '';
+    const n = new Date(), k = key(n), wd = (n.getDay()+6)%7, inf = dayInfo(doc,k), vs = dayVacs(me,k);
+    if (inf.kind === 'G') return 'Vous êtes de garde aujourd’hui. Le lendemain, vous serez en Off.';
+    if (inf.kind === 'R') return 'Vous êtes en Off aujourd’hui (repos de garde). Profitez-en !';
+    const parts = [];
+    ['M','AM'].forEach(p=>{ const v = vs.filter(x=>x.part === p); if (v.length) parts.push(v.map(x=>postName(x.poste,k)).join(' + ')+(p === 'M' ? ' le matin' : ' l’après-midi')); });
+    if (inf.kind === 'A') parts.unshift('astreinte ce matin');
+    if (parts.length) return 'Aujourd’hui : '+parts.join(', ')+'.';
+    if (wd > 4) return 'Bon week-end !';
+    return inf.kind === 'I' ? 'Vous êtes indisponible aujourd’hui.' : 'Pas de vacation prévue aujourd’hui.';
+  }
+  function renderHello(){
+    const n = new Date(), d = doctors[me], hh = n.getHours();
+    const hello = hh >= 18 ? 'Bonsoir' : 'Bonjour';
+    const ds = fmtLong.format(n);
+    $('#hiDate').textContent = ds.charAt(0).toUpperCase()+ds.slice(1);
+    $('#hiTitle').innerHTML = d ? hello+', <em>'+esc(d.label)+'</em>' : hello+',';
+    $('#hiSub').textContent = d ? todaySummary() : (loaded && sortedDocs().length ? 'Choisissez votre nom pour voir votre semaine.' : 'Chargement du planning…');
+  }
   function renderToday(){
+    renderHello();
     const doc = doctors[me], empty = $('#auEmpty'), box = $('#auBody');
     if (!doc) {
       box.hidden = true; empty.hidden = false;
@@ -944,7 +1060,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const H = getHours(), now = new Date(), k = key(now), dow = (now.getDay()+6)%7;
     const PLAB = {M:'Matin', AM:'Après-midi'};
     const hr = {M:H.hM1.replace(':','h')+' – '+H.hM2.replace(':','h'), AM:H.hA1.replace(':','h')+' – '+H.hA2.replace(':','h')};
-    const STAT = {G:['g','Vous êtes de garde'], R:['r','Repos de garde'], I:['i','Vous êtes indisponible']};
+    const STAT = {G:['g','Vous êtes de garde'], R:['r','Repos de garde'], A:['a','Astreinte du samedi matin'], I:['i','Vous êtes indisponible']};
     const slot = (kk, part, showHours)=>{
       const st = dayInfo(doc,kk)[part], vs = dayVacs(me,kk).filter(v=>v.part === part);
       const bad = vs.length && st && st !== undefined;
@@ -960,27 +1076,34 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       if (!vs.length && !st) return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what lone">'+what+'</span></div>';
       return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what">'+what+'</span>'+(sub ? '<span class="with">'+esc(sub)+'</span>' : '')+'</div>';
     };
-    let h = '<div class="tday"><h2 class="date">'+esc(fmtLong.format(now))+'</h2>';
-    if (dow > 4 && !dayInfo(doc,k).kind && !dayVacs(me,k).length) h += '<p class="empty">C’est le week-end : pas de vacation prévue.</p>';
-    else h += slot(k,'M',true)+slot(k,'AM',true);
-    h += '</div>';
-    /* prochaine vacation si rien aujourd'hui */
-    const todayNone = !dayVacs(me,k).length;
-    const nv = myVacations(me).filter(v=>v.date > k || (v.date === k && false))[0];
-    if (todayNone && nv) h += '<div class="next-v"><strong>Prochaine vacation</strong> : '+esc(vacLabel(nv))+'</div>';
-    /* demain (prochain jour ouvré) */
-    let t = addDays(now,1); while ((t.getDay()+6)%7 > 4) t = addDays(t,1);
-    const tk = key(t);
-    const line = part=>{
-      const vs = dayVacs(me,tk).filter(v=>v.part === part), st = dayInfo(doc,tk)[part];
-      return '<b>'+(part === 'M' ? 'MATIN' : 'APRÈS-MIDI')+'</b><span>'+(vs.length ? vs.map(v=>esc(postName(v.poste,tk))+(v.others.length ? ' <span class="muted">avec '+esc(v.others.map(dLabel).join(', '))+'</span>' : '')).join(' + ') : st ? '<span class="muted">'+STAT[st][1]+'</span>' : '<span class="muted">Pas de vacation</span>')+'</span>';
-    };
-    h += '<div class="card"><h2>'+(key(addDays(now,1)) === tk ? 'Demain' : 'Prochain jour')+' · '+esc(fmtShort.format(t))+'</h2><div class="tom">'+line('M')+line('AM')+'</div></div>';
-    const nt = dayNotes(k).concat(dayNotes(tk).map(x=>'Demain : '+x));
-    if (nt.length) h += '<div class="card"><h2>Notes du service</h2><ul class="notelist">'+nt.map(t=>'<li class="dnote">'+esc(t)+'</li>').join('')+'</ul></div>';
-    /* alerte de conflit */
+    const startD = addDays(mondayOf(now), 7*wkOff);
+    const tomorrowK = key(addDays(now,1));
+    const cap = s=>s.charAt(0).toUpperCase()+s.slice(1);
+    let h = '<div class="wknav"><button type="button" data-wk="-1" aria-label="Semaine précédente">‹</button><span>'+(wkOff === 0 ? 'Cette semaine' : esc(fmtDM.format(startD))+' – '+esc(fmtDM.format(addDays(startD,6))))+'</span><button type="button" data-wk="1" aria-label="Semaine suivante">›</button>'+(wkOff ? '<button type="button" class="ghost" data-wk="0">Aujourd’hui</button>' : '')+'</div>';
     const cf = myVacations(me).filter(v=>v.date >= k && reasonFor(me,v.date,v.part)).length;
-    if (cf) h += '<div class="alert">⚠ '+cf+' vacation'+(cf > 1 ? 's' : '')+' à venir tomb'+(cf > 1 ? 'ent' : 'e')+' sur vos indisponibilités : voir « Mon planning ».</div>';
+    if (cf) h += '<div class="alert">⚠ '+cf+' vacation'+(cf > 1 ? 's' : '')+' à venir tomb'+(cf > 1 ? 'ent' : 'e')+' sur vos indisponibilités, votre garde ou votre repos de garde : à échanger.</div>';
+    let shown = 0;
+    for (let i=0;i<7;i++) {
+      const d = addDays(startD,i), kk = key(d), wd = (d.getDay()+6)%7, inf = dayInfo(doc,kk), vs = dayVacs(me,kk), nt = dayNotes(kk);
+      if (wkOff === 0 && kk < k) continue;
+      const weekend = wd > 4, isToday = kk === k;
+      if (weekend && !inf.kind && !vs.length && !isToday) continue;
+      const title = isToday ? 'Aujourd’hui' : kk === tomorrowK ? 'Demain' : cap(new Intl.DateTimeFormat('fr-FR',{weekday:'long'}).format(d));
+      let badge = '';
+      if (inf.kind === 'G') badge = '<span class="st st-g">Garde</span>'; else if (inf.kind === 'R') badge = '<span class="st st-r">Off · repos de garde</span>'; else if (inf.kind === 'A') badge = '<span class="st st-a">Astreinte</span>';
+      h += '<section class="dcard'+(isToday ? ' today' : '')+'"><header><h2>'+title+'</h2><span class="dd">'+esc(fmtLong.format(d))+'</span>'+badge+'</header>';
+      if (weekend && !vs.length) {
+        if (inf.kind === 'A') h += slot(kk,'M',isToday);
+        else if (inf.kind === 'G') h += '<p class="muted">Vous êtes de garde ce jour-là.</p>';
+        else if (inf.kind === 'R') h += '<p class="muted">Repos après votre garde.</p>';
+        else h += '<p class="muted">C’est le week-end : pas de vacation prévue.</p>';
+      } else if (weekend) h += ['M','AM'].filter(pp=>vs.some(v=>v.part === pp) || inf[pp]).map(pp=>slot(kk,pp,isToday)).join('');
+      else h += slot(kk,'M',isToday)+slot(kk,'AM',isToday);
+      if (nt.length) h += '<ul class="notelist">'+nt.map(t=>'<li class="dnote">'+esc(t)+'</li>').join('')+'</ul>';
+      h += '</section>';
+      shown++;
+    }
+    if (!shown) h += '<p class="empty">Rien de prévu sur ces jours.</p>';
     box.innerHTML = h;
   }
 
@@ -1001,13 +1124,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + keys.map((d,i)=>'<th colspan="2" scope="colgroup" class="end'+(i>4?' we':'')+'">'+DOW[i]+' '+d.getDate()+'</th>').join('')
       + '</tr><tr class="sub">' + keys.map(()=>'<th scope="col">M</th><th scope="col" class="end">AM</th>').join('') + '</tr></thead><tbody>';
     list.forEach(doc=>{
-      h += '<tr'+(doc.id===me?' class="me"':'')+'><th class="who" scope="row">'+esc(doc.label)+'</th>';
+      h += '<tr'+(doc.id===me?' class="me"':'')+'><th class="who" scope="row">'+esc(doc.label)+(doc.role && doc.role !== 'Médecin' ? ' <small class="role">'+esc(doc.role)+'</small>' : '')+'</th>';
       keys.forEach((d,i)=>{
         const inf = dayInfo(doc,key(d));
         ['M','AM'].forEach((p,j)=>{
           const s = inf[p]; if (s) counts[i*2+j]++;
-          const txt = s==='G' ? 'G' : s==='R' ? 'R' : s==='I' ? '×' : '';
-          const lab = s==='G' ? 'de garde' : s==='R' ? 'repos de garde' : s==='I' ? 'indisponible' : 'disponible';
+          const txt = s==='G' ? 'G' : s==='R' ? 'R' : s==='A' ? 'A' : s==='I' ? '×' : '';
+          const lab = s==='G' ? 'de garde' : s==='R' ? 'repos de garde' : s==='A' ? 'astreinte' : s==='I' ? 'indisponible' : 'disponible';
           h += '<td class="c'+(s?' k-'+s:'')+(j?' end':'')+'" aria-label="'+esc(doc.label)+', '+DOW[i]+' '+d.getDate()+', '+(p==='M'?'matin':'après-midi')+' : '+lab+'">'+txt+'</td>';
         });
       });
@@ -1019,14 +1142,14 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
   function renderManage(){
     const list = sortedDocs();
-    const sig = list.map(d=>d.id+':'+d.label).join('|')+'#'+pendingRemove+'#'+canWrite;
+    const sig = list.map(d=>d.id+':'+d.label+':'+(d.role||'')).join('|')+'#'+pendingRemove+'#'+canWrite;
     if (sig === manSig) return;
     const a = document.activeElement;
     if (a && a.matches && a.matches('[data-ren]')) return;
     manSig = sig;
     $('#people').innerHTML = list.length ? list.map(d=>{
       const c = pendingRemove === d.id;
-      return '<li><input type="text" data-ren="'+esc(d.id)+'" value="'+esc(d.label)+'" maxlength="24" autocomplete="off" aria-label="Nom de '+esc(d.label)+' (modifiable)"'+(canWrite?'':' disabled')+'><button type="button" data-rm="'+esc(d.id)+'" class="'+(c?'confirm':'')+'"'+(canWrite?'':' disabled')+' aria-label="Retirer '+esc(d.label)+'">'+(c?'Confirmer le retrait':'Retirer')+'</button></li>';
+      return '<li><input type="text" data-ren="'+esc(d.id)+'" value="'+esc(d.label)+'" maxlength="24" autocomplete="off" aria-label="Nom de '+esc(d.label)+' (modifiable)"'+(canWrite?'':' disabled')+'><select data-role="'+esc(d.id)+'" aria-label="Fonction de '+esc(d.label)+'"'+(canWrite?'':' disabled')+'>'+['Médecin','Interne','Autre'].map(r=>'<option'+((d.role||'Médecin') === r ? ' selected' : '')+'>'+r+'</option>').join('')+'</select><button type="button" data-rm="'+esc(d.id)+'" class="'+(c?'confirm':'')+'"'+(canWrite?'':' disabled')+' aria-label="Retirer '+esc(d.label)+'">'+(c?'Confirmer le retrait':'Retirer')+'</button></li>';
     }).join('') : '<li class="muted" style="border:0;font-family:inherit">Aucun médecin.</li>';
   }
 
@@ -1035,7 +1158,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
 
   function renderAll(){
-    renderRenMe(); renderPicker(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderHello(); renderPostes(); renderPicker(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
   /* ---------- interactions ---------- */
@@ -1047,11 +1170,23 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
   function showTab(t){
     document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected', String(x.dataset.tab === t)));
-    ['auj','moi','general','creer','indispos','echanges'].forEach(v=>{ $('#view-'+v).hidden = v !== t; });
+    ['auj','moi','general','creer','indispos','echanges','reglages'].forEach(v=>{ $('#view-'+v).hidden = v !== t; });
+    const hl = t === 'creer' ? 'reglages' : t === 'moi' ? 'auj' : t;
+    document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected', String(x.dataset.tab === hl)));
+    window.scrollTo(0,0);
     if (typeof renderBadge === 'function') renderBadge();
     if (t === 'auj') renderToday();
+    const slot = t === 'general' ? '#impSlotG' : t === 'reglages' ? '#impSlotR' : '#impSlotC';
+    $(slot).appendChild($('#cwImport'));
+    if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); }
   }
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+  $('#auBody').addEventListener('click', e=>{ const b = e.target.closest('[data-wk]'); if (!b) return; const v = Number(b.dataset.wk); wkOff = v === 0 ? 0 : wkOff + v; renderToday(); });
+  let swX = 0, swY = 0;
+  $('#auBody').addEventListener('touchstart', e=>{ const t = e.touches[0]; swX = t.clientX; swY = t.clientY; }, {passive:true});
+  $('#auBody').addEventListener('touchend', e=>{ const t = e.changedTouches[0], dx = t.clientX - swX, dy = t.clientY - swY; if (Math.abs(dx) > 60 && Math.abs(dx) > 1.6*Math.abs(dy)) { wkOff += dx < 0 ? 1 : -1; renderToday(); window.scrollTo(0,0); } }, {passive:true});
+  $('#goCreer').addEventListener('click', ()=>showTab('creer'));
+  $('#backReg').addEventListener('click', ()=>showTab('reglages'));
 
   function renderGLabel(){
     const b = addDays(weekStart,6);
@@ -1083,13 +1218,19 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (ok) notify(v === 'G' ? 'Garde enregistrée, repos posé le lendemain.' : 'Enregistré.'); else renderMe();
   });
 
-  document.querySelectorAll('[data-w]').forEach(b=>b.addEventListener('click',()=>{
-    const n = Number(b.dataset.w);
-    const start = n === 0 ? new Date() : mondayOf(addDays(new Date(), n*7));
-    const end = addDays(mondayOf(start), 6);
-    $('#pFrom').value = key(start); $('#pTo').value = key(end);
-  }));
-  $('#pFrom').value = key(today); $('#pTo').value = key(today);
+  function fillPeriod(){
+    const start = mondayOf(today), yr = today.getFullYear();
+    let o = '';
+    for (let i=0;i<460;i++) {
+      const d = addDays(start,i); if (d.getDay() === 0) continue;
+      o += '<option value="'+key(d)+'">'+esc(fmtShort.format(d))+(d.getFullYear() !== yr ? ' '+d.getFullYear() : '')+'</option>';
+    }
+    $('#pFrom').innerHTML = o; $('#pTo').innerHTML = o;
+    const t0 = today.getDay() === 0 ? addDays(today,1) : today;
+    $('#pFrom').value = key(t0); $('#pTo').value = key(t0);
+  }
+  fillPeriod();
+  $('#pFrom').addEventListener('change', ()=>{ if ($('#pTo').value < $('#pFrom').value) $('#pTo').value = $('#pFrom').value; });
 
   $('#period').addEventListener('submit', async e=>{
     e.preventDefault();
@@ -1104,7 +1245,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const patch = {}; let count = 0, kept = 0;
     for (let i=0;i<n;i++){
       const d = addDays(a,i), wd = (d.getDay()+6)%7, k = key(d);
-      if (!we && wd >= 5) continue;
+      if (wd === 6 || (!we && wd === 5)) continue;
       if (type === '') patch[k] = null;
       else if (type === 'G') patch[k] = 'G';
       else { if (days[k] === 'G') { kept++; continue; } patch[k] = type; }
@@ -1124,12 +1265,17 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (doctors[id]) return notify('Ce médecin est déjà dans la liste.', true);
     const order = Math.max(0, ...Object.values(doctors).filter(d=>d.order!==999).map(d=>d.order)) + 1;
     try {
-      await db.doc('medecins/'+id).set({label: raw, order, days: {}});
+      await db.doc('medecins/'+id).set({label: raw, order, days: {}, role: $('#newRole').value});
       $('#newName').value = '';
       notify(raw+' ajouté à la liste.');
     } catch(err) { handleErr(err); }
   });
 
+  $('#people').addEventListener('change', async e=>{
+    const sel = e.target.closest('select[data-role]'); if (!sel) return;
+    if (!db || !canWrite) return notify('Lecture seule : modification impossible.', true);
+    try { await db.doc('medecins/'+sel.dataset.role).update({role: sel.value}); notify('Fonction enregistrée.'); } catch(err) { handleErr(err); }
+  });
   $('#people').addEventListener('click', async e=>{
     const b = e.target.closest('[data-rm]'); if (!b) return;
     const id = b.dataset.rm;
@@ -1146,16 +1292,22 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     } catch(err) { handleErr(err); }
   });
 
-  function renderRenMe(){ const b = $('#renMe'); if (b) b.hidden = !(me && doctors[me]); }
-  $('#renMe').addEventListener('click', async ()=>{
+  function renderRenMe(){ const b = $('#renMe'); if (b) b.hidden = !(me && doctors[me]); if (!(me && doctors[me])) $('#renForm').hidden = true; }
+  $('#renMe').addEventListener('click', ()=>{
     const d = doctors[me]; if (!d) return;
-    let v = null; try { v = window.prompt('Votre prénom (ou nom affiché) :', d.label); } catch(e) {}
-    if (v == null) return;
-    v = v.trim().replace(/\s+/g,' ');
-    if (!v || v === d.label) return;
+    const f = $('#renForm'); f.hidden = !f.hidden;
+    if (!f.hidden) { $('#renInput').value = d.label; $('#renInput').focus(); $('#renInput').select(); }
+  });
+  $('#renCancel').addEventListener('click', ()=>{ $('#renForm').hidden = true; });
+  $('#renForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const d = doctors[me]; if (!d) return;
+    const v = $('#renInput').value.trim().replace(/\s+/g,' ');
+    if (!v) return notify('Saisissez un prénom.', true);
+    if (v === d.label) { $('#renForm').hidden = true; return; }
     if (sortedDocs().some(x=>x.id !== me && x.label.toLowerCase() === v.toLowerCase())) return notify('Ce nom existe déjà dans la liste.', true);
     if (!db || !canWrite) return notify('Lecture seule : vous ne pouvez pas renommer.', true);
-    try { await db.doc('medecins/'+me).update({label: v}); notify('Renommé en '+v+'.'); } catch(err) { handleErr(err); }
+    try { await db.doc('medecins/'+me).update({label: v}); $('#renForm').hidden = true; notify('Renommé en '+v+'.'); } catch(err) { handleErr(err); }
   });
   $('#people').addEventListener('change', async e=>{
     const inp = e.target.closest('[data-ren]'); if (!inp) return;
@@ -1169,6 +1321,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
   /* ---------- trame du service ---------- */
   const PARTS = ['M','AM'];
+  const isSam = p => !!(p && p.samedi);
+  const okDay = (p, i) => isSam(p) ? i === 5 : i < 5;
+  const partsOf = p => isSam(p) ? ['M'] : PARTS;
   const PART_TXT = {M:'matin', AM:'après-midi'};
   const DOWFULL = ['lundi','mardi','mercredi','jeudi','vendredi'];
   const ABREV = {interventionnel:'interv.', diagnostique:'diag.'};
@@ -1183,7 +1338,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const docStyle = id => { let h = 0; for (const ch of String(id)) h = (h*31 + ch.charCodeAt(0)) % 360; return 'background:hsl('+h+' 70% 89%);color:hsl('+h+' 60% 20%)'; };
   const chipSty = (id, extra) => (id !== me && !extra) ? ' style="'+docStyle(id)+'"' : '';
   const SEED = {"weeks":[{"monday":"2026-08-03","dates":["2026-08-03","2026-08-04","2026-08-05","2026-08-06","2026-08-07"],"cells":[{"poste":"echo","date":"2026-08-03","part":"M","people":[{"label":"RM","star":false},{"label":"EF","star":false},{"label":"Alexandre","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"echo","date":"2026-08-03","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-04","part":"M","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"echo","date":"2026-08-04","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"echo","date":"2026-08-05","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-05","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-06","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-06","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-07","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"echo","date":"2026-08-07","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"bloc","date":"2026-08-03","part":"M","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-03","part":"AM","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-04","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":"ostéo"},{"poste":"bloc","date":"2026-08-04","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-05","part":"M","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-05","part":"AM","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-06","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"bloc","date":"2026-08-06","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"bloc","date":"2026-08-07","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"bloc","date":"2026-08-07","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-03","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-03","part":"AM","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-04","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-05","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-06","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"consultation","date":"2026-08-06","part":"AM","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-07","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"irm","date":"2026-08-04","part":"AM","people":[{"label":"Alexandre","star":false}],"x":"(PM)"},{"poste":"irm","date":"2026-08-05","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"irm","date":"2026-08-05","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"irm","date":"2026-08-06","part":"M","people":[{"label":"AC","star":false}],"x":""},{"poste":"irm","date":"2026-08-07","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-05","part":"AM","people":[{"label":"IMA","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-06","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-07","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-03","part":"M","people":[{"label":"RM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-03","part":"AM","people":[{"label":"IMA","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-04","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-rdc","date":"2026-08-07","part":"M","people":[{"label":"Alexandre","star":false},{"label":"EF","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-07","part":"AM","people":[{"label":"Alexandre","star":false}],"x":"(RM pendant cs)"},{"poste":"scanner-urg","date":"2026-08-03","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-06","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-03","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-03","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-05","part":"M","people":[{"label":"MB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-05","part":"AM","people":[{"label":"MB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-06","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-sa","date":"2026-08-06","part":"AM","people":[{"label":"AC","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-07","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo-sa","date":"2026-08-05","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-xa","date":"2026-08-07","part":"M","people":[{"label":"IMA","star":false}],"x":""},{"poste":"rcp","date":"2026-08-03","part":"M","people":[{"label":"RM","star":false},{"label":"NP","star":false}],"x":""},{"poste":"rcp","date":"2026-08-04","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"rcp","date":"2026-08-07","part":"M","people":[{"label":"EF","star":false},{"label":"RM","star":false}],"x":""}],"absences":[{"label":"AM","date":"2026-08-03","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-04","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-05","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-06","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-07","part":"AM","note":"Absent(e)"},{"label":"RM","date":"2026-08-04","part":"M","note":"Off"},{"label":"EF","date":"2026-08-04","part":"M","note":"Off"},{"label":"YLB","date":"2026-08-04","part":"M","note":"Off"},{"label":"RM","date":"2026-08-04","part":"AM","note":"Off"},{"label":"EF","date":"2026-08-04","part":"AM","note":"Off"},{"label":"YLB","date":"2026-08-04","part":"AM","note":"Off"},{"label":"HR","date":"2026-08-05","part":"AM","note":"Off"},{"label":"Alexandre","date":"2026-08-06","part":"M","note":"Off"},{"label":"HR","date":"2026-08-06","part":"AM","note":"Off"},{"label":"CM","date":"2026-08-03","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-03","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-03","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-03","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-03","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-03","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-04","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-04","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-04","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-04","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-04","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-04","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-05","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-05","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-05","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-05","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-05","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-05","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-06","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-06","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-06","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-06","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-06","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-06","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-07","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-07","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-07","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-07","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-07","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-07","part":"AM","note":"Congés annuels"},{"label":"AC","date":"2026-08-07","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-07","part":"AM","note":"Absent(e)"},{"label":"Romain","date":"2026-08-05","part":"M","note":"Absent(e)"},{"label":"Romain","date":"2026-08-05","part":"AM","note":"Absent(e)"},{"label":"Romain","date":"2026-08-06","part":"M","note":"Absent(e)"},{"label":"Romain","date":"2026-08-06","part":"AM","note":"Absent(e)"},{"label":"Romain","date":"2026-08-07","part":"M","note":"Absent(e)"},{"label":"Romain","date":"2026-08-07","part":"AM","note":"Absent(e)"}],"notes":[]},{"monday":"2026-08-10","dates":["2026-08-10","2026-08-11","2026-08-12","2026-08-13","2026-08-14"],"cells":[{"poste":"echo","date":"2026-08-10","part":"M","people":[{"label":"AM","star":false},{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-10","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-11","part":"M","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-11","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-12","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-12","part":"AM","people":[{"label":"DJ","star":false}],"x":""},{"poste":"echo","date":"2026-08-13","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-13","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-14","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-14","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"bloc","date":"2026-08-10","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-10","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-11","part":"M","people":[{"label":"HR","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-11","part":"AM","people":[{"label":"HR","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-12","part":"M","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-12","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"bloc","date":"2026-08-13","part":"M","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-13","part":"AM","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-14","part":"M","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-14","part":"AM","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"consultation","date":"2026-08-10","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-10","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-11","part":"M","people":[{"label":"AM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-12","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-13","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-14","part":"AM","people":[{"label":"Alexandre","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"irm","date":"2026-08-11","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"irm","date":"2026-08-12","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"irm","date":"2026-08-12","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"irm","date":"2026-08-13","part":"M","people":[{"label":"AC","star":false}],"x":""},{"poste":"irm","date":"2026-08-14","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-12","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-13","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-14","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-10","part":"M","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-10","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-14","part":"M","people":[{"label":"Alexandre","star":false},{"label":"HR","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-14","part":"AM","people":[{"label":"Alexandre","star":false},{"label":"HR","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-10","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-13","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-10","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-10","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-12","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-12","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-13","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-sa","date":"2026-08-13","part":"AM","people":[{"label":"AC","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-14","part":"M","people":[{"label":"AC","star":false}],"x":""},{"poste":"echo-sa","date":"2026-08-12","part":"AM","people":[],"x":"Fermée"},{"poste":"scanner-xa","date":"2026-08-14","part":"M","people":[],"x":"fermée"},{"poste":"rcp","date":"2026-08-10","part":"M","people":[],"x":"Pas de staff"},{"poste":"rcp","date":"2026-08-11","part":"AM","people":[{"label":"AM","star":false}],"x":""}],"absences":[{"label":"AM","date":"2026-08-10","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-11","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-12","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-13","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-14","part":"AM","note":"Absent(e)"},{"label":"HR","date":"2026-08-13","part":"AM","note":"Off"},{"label":"EF","date":"2026-08-10","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-10","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-10","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-10","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-10","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-10","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-10","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-10","part":"AM","note":"Congés annuels"},{"label":"EF","date":"2026-08-11","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-11","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-11","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-11","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-11","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-11","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-11","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-11","part":"AM","note":"Congés annuels"},{"label":"EF","date":"2026-08-12","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-12","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-12","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-12","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-12","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-12","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-12","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-12","part":"AM","note":"Congés annuels"},{"label":"EF","date":"2026-08-13","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-13","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-13","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-13","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-13","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-13","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-13","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-13","part":"AM","note":"Congés annuels"},{"label":"EF","date":"2026-08-14","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-14","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-14","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-14","part":"M","note":"Congés annuels"},{"label":"EF","date":"2026-08-14","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-14","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-14","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-14","part":"AM","note":"Congés annuels"},{"label":"AC","date":"2026-08-10","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-10","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-10","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-10","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-11","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-11","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-12","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-12","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-13","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-13","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-14","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-14","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-10","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-10","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-11","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-11","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-12","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-12","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-13","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-13","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-14","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-14","part":"AM","note":"Absent(e)"}],"notes":[]},{"monday":"2026-08-17","dates":["2026-08-17","2026-08-18","2026-08-19","2026-08-20","2026-08-21"],"cells":[{"poste":"echo","date":"2026-08-17","part":"M","people":[{"label":"HR","star":false},{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-17","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-18","part":"M","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-18","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"echo","date":"2026-08-19","part":"M","people":[{"label":"YLB","star":false},{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-19","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-20","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-20","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-21","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"echo","date":"2026-08-21","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-17","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-17","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-18","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-18","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-19","part":"M","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-19","part":"AM","people":[{"label":"EF","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-20","part":"M","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-20","part":"AM","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-21","part":"M","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-21","part":"AM","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"consultation","date":"2026-08-17","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-17","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-18","part":"M","people":[{"label":"AM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-19","part":"M","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-20","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"consultation","date":"2026-08-20","part":"AM","people":[],"x":"fermée"},{"poste":"consultation","date":"2026-08-21","part":"AM","people":[],"x":"Alex ou Rom"},{"poste":"irm","date":"2026-08-18","part":"AM","people":[],"x":"fermée"},{"poste":"irm","date":"2026-08-19","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"irm","date":"2026-08-19","part":"AM","people":[],"x":"fermée"},{"poste":"irm","date":"2026-08-20","part":"M","people":[{"label":"AC","star":false}],"x":""},{"poste":"irm","date":"2026-08-21","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-19","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-20","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-21","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-17","part":"M","people":[{"label":"AM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-17","part":"AM","people":[{"label":"AM","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-21","part":"M","people":[{"label":"Alexandre","star":false},{"label":"EF","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-21","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-17","part":"AM","people":[{"label":"AM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-20","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-17","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-17","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-19","part":"M","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-19","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-20","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-sa","date":"2026-08-20","part":"AM","people":[{"label":"AC","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-21","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo-sa","date":"2026-08-19","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-xa","date":"2026-08-21","part":"M","people":[{"label":"EF","star":false}],"x":"Interne"},{"poste":"rcp","date":"2026-08-17","part":"M","people":[{"label":"NP","star":false},{"label":"RM","star":false},{"label":"HR","star":false}],"x":""},{"poste":"rcp","date":"2026-08-18","part":"AM","people":[{"label":"AM","star":false}],"x":""}],"absences":[{"label":"AM","date":"2026-08-17","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-18","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-19","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-20","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-21","part":"AM","note":"Absent(e)"},{"label":"EF","date":"2026-08-17","part":"M","note":"Off"},{"label":"EF","date":"2026-08-17","part":"AM","note":"Off"},{"label":"EF","date":"2026-08-18","part":"M","note":"Off"},{"label":"Alexandre","date":"2026-08-18","part":"M","note":"Off"},{"label":"EF","date":"2026-08-18","part":"AM","note":"Off"},{"label":"Alexandre","date":"2026-08-18","part":"AM","note":"Off"},{"label":"AM","date":"2026-08-19","part":"M","note":"Off"},{"label":"AM","date":"2026-08-19","part":"AM","note":"Off"},{"label":"Romain","date":"2026-08-20","part":"M","note":"Off"},{"label":"Romain","date":"2026-08-20","part":"AM","note":"Off"},{"label":"HR","date":"2026-08-21","part":"M","note":"Off"},{"label":"HR","date":"2026-08-21","part":"AM","note":"Off"},{"label":"Alexandre","date":"2026-08-17","part":"M","note":"Repos de garde"},{"label":"Alexandre","date":"2026-08-17","part":"AM","note":"Repos de garde"},{"label":"CM","date":"2026-08-17","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-17","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-17","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-17","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-17","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-17","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-18","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-18","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-18","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-18","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-18","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-18","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-19","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-19","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-19","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-19","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-19","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-19","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-20","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-20","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-20","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-20","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-20","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-20","part":"AM","note":"Congés annuels"},{"label":"CM","date":"2026-08-21","part":"M","note":"Congés annuels"},{"label":"RM","date":"2026-08-21","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-21","part":"M","note":"Congés annuels"},{"label":"CM","date":"2026-08-21","part":"AM","note":"Congés annuels"},{"label":"RM","date":"2026-08-21","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-21","part":"AM","note":"Congés annuels"},{"label":"IM","date":"2026-08-17","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-17","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-18","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-18","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-19","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-19","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-20","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-20","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-21","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-21","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-17","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-17","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-18","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-18","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-19","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-19","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-20","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-20","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-21","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-21","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-21","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-21","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-21","part":"AM","note":"Absent(e)"}],"notes":[]},{"monday":"2026-08-24","dates":["2026-08-24","2026-08-25","2026-08-26","2026-08-27","2026-08-28"],"cells":[{"poste":"echo","date":"2026-08-24","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-24","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-25","part":"M","people":[{"label":"CM","star":false}],"x":""},{"poste":"echo","date":"2026-08-25","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"echo","date":"2026-08-26","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-26","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"echo","date":"2026-08-27","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-27","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-28","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"echo","date":"2026-08-28","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"bloc","date":"2026-08-24","part":"M","people":[{"label":"CM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-24","part":"AM","people":[{"label":"CM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-25","part":"M","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":"ostéo"},{"poste":"bloc","date":"2026-08-25","part":"AM","people":[{"label":"HR","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-26","part":"M","people":[{"label":"EF","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-26","part":"AM","people":[{"label":"EF","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-27","part":"M","people":[{"label":"RM","star":false},{"label":"Romain","star":false}],"x":""},{"poste":"bloc","date":"2026-08-27","part":"AM","people":[{"label":"RM","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-28","part":"M","people":[{"label":"HR","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"bloc","date":"2026-08-28","part":"AM","people":[{"label":"HR","star":false},{"label":"Alexandre","star":false}],"x":""},{"poste":"consultation","date":"2026-08-24","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"consultation","date":"2026-08-24","part":"AM","people":[],"x":"fermé"},{"poste":"consultation","date":"2026-08-25","part":"M","people":[],"x":"fermé"},{"poste":"consultation","date":"2026-08-26","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-27","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"consultation","date":"2026-08-27","part":"AM","people":[{"label":"CM","star":false}],"x":""},{"poste":"consultation","date":"2026-08-28","part":"AM","people":[{"label":"DJ","star":false}],"x":""},{"poste":"irm","date":"2026-08-24","part":"M","people":[],"x":"gynéco"},{"poste":"irm","date":"2026-08-25","part":"AM","people":[],"x":"fermée"},{"poste":"irm","date":"2026-08-26","part":"M","people":[{"label":"HR","star":false}],"x":""},{"poste":"irm","date":"2026-08-26","part":"AM","people":[],"x":"fermée"},{"poste":"irm","date":"2026-08-27","part":"M","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"irm","date":"2026-08-28","part":"AM","people":[{"label":"CM","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-26","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-27","part":"M","people":[{"label":"CM","star":false}],"x":""},{"poste":"scanner-ext","date":"2026-08-28","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-24","part":"M","people":[{"label":"RM","star":false}],"x":"(diag)"},{"poste":"scanner-rdc","date":"2026-08-24","part":"AM","people":[{"label":"RM","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-25","part":"M","people":[{"label":"RM","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-28","part":"M","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-rdc","date":"2026-08-28","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-24","part":"AM","people":[{"label":"HR","star":false}],"x":""},{"poste":"scanner-urg","date":"2026-08-27","part":"AM","people":[{"label":"EF","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-24","part":"M","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-24","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-26","part":"M","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-26","part":"AM","people":[{"label":"Alexandre","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-27","part":"M","people":[],"x":"ostéo"},{"poste":"scanner-sa","date":"2026-08-27","part":"AM","people":[{"label":"Romain","star":false}],"x":""},{"poste":"scanner-sa","date":"2026-08-28","part":"M","people":[{"label":"EF","star":false}],"x":""},{"poste":"echo-sa","date":"2026-08-26","part":"AM","people":[{"label":"YLB","star":false}],"x":""},{"poste":"scanner-xa","date":"2026-08-28","part":"M","people":[{"label":"CM","star":false}],"x":""},{"poste":"rcp","date":"2026-08-24","part":"M","people":[{"label":"HR","star":false},{"label":"RM","star":false}],"x":""},{"poste":"rcp","date":"2026-08-25","part":"AM","people":[{"label":"RM","star":false}],"x":""}],"absences":[{"label":"AM","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"AM","date":"2026-08-28","part":"AM","note":"Absent(e)"},{"label":"EF","date":"2026-08-24","part":"M","note":"Off"},{"label":"Romain","date":"2026-08-24","part":"M","note":"Off"},{"label":"EF","date":"2026-08-24","part":"AM","note":"Off"},{"label":"Romain","date":"2026-08-24","part":"AM","note":"Off"},{"label":"EF","date":"2026-08-25","part":"M","note":"Off"},{"label":"Alexandre","date":"2026-08-25","part":"M","note":"Off"},{"label":"EF","date":"2026-08-25","part":"AM","note":"Off"},{"label":"Alexandre","date":"2026-08-25","part":"AM","note":"Off"},{"label":"AM","date":"2026-08-26","part":"M","note":"Off"},{"label":"AM","date":"2026-08-26","part":"AM","note":"Off"},{"label":"HR","date":"2026-08-27","part":"M","note":"Off"},{"label":"HR","date":"2026-08-27","part":"AM","note":"Off"},{"label":"RM","date":"2026-08-28","part":"M","note":"Off"},{"label":"RM","date":"2026-08-28","part":"AM","note":"Off"},{"label":"CM","date":"2026-08-26","part":"M","note":"Repos de garde"},{"label":"CM","date":"2026-08-26","part":"AM","note":"Repos de garde"},{"label":"NP","date":"2026-08-24","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-24","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-24","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-24","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-25","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-25","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-25","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-25","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-26","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-26","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-26","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-26","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-27","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-27","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-27","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-27","part":"AM","note":"Congés annuels"},{"label":"NP","date":"2026-08-28","part":"M","note":"Congés annuels"},{"label":"AM","date":"2026-08-28","part":"M","note":"Congés annuels"},{"label":"NP","date":"2026-08-28","part":"AM","note":"Congés annuels"},{"label":"AM","date":"2026-08-28","part":"AM","note":"Congés annuels"},{"label":"AC","date":"2026-08-24","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-24","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-25","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-25","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-26","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-26","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-27","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-27","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-28","part":"M","note":"Absent(e)"},{"label":"IM","date":"2026-08-28","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-28","part":"AM","note":"Absent(e)"},{"label":"IM","date":"2026-08-28","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-24","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-25","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-26","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-27","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"MB","date":"2026-08-28","part":"M","note":"Absent(e)"},{"label":"MB","date":"2026-08-28","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-24","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-24","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-25","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-25","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-26","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-26","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-27","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-27","part":"AM","note":"Absent(e)"},{"label":"AC","date":"2026-08-28","part":"M","note":"Absent(e)"},{"label":"AC","date":"2026-08-28","part":"AM","note":"Absent(e)"}],"notes":[]}]};
-  let subs = {aj:false, notes:false, sw:false}, jumped = false;
+  let subs = {aj:false, notes:false, sw:false}, jumped = false, astMeta = null, astAdding = false;
   let notesBy = {}, seedState = null, trameLoaded = false, seeding = false, gDay = -1, overrides = {}, ed = {poste:'', date:'', part:'M'}; const oChains = {};
 
   function normalizeTrame(v){
@@ -1211,7 +1366,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   /* qui fait quoi : la trame, corrigée par les échanges enregistrés */
   function vacWho(postId, k, part){
     if (!trame || !isDate(k)) return null;
-    const dow = (parse(k).getDay()+6)%7; if (dow > 4) return null;
+    const dow = (parse(k).getDay()+6)%7; if (dow > 5) return null;
     const c = trame.cases[tk(postId,dow,part)] || null;
     const ov = overrides[k] && overrides[k][postId+'_'+part] || null;
     if (!c && !(ov && (ov.w.length || ov.x))) return null;
@@ -1235,6 +1390,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const s = dayInfo(doc, date)[part];
       if (s === 'G') return 'de garde';
       if (s === 'R') return 'en repos de garde';
+      if (s === 'A') return 'd’astreinte';
       if (s === 'I') return 'indisponible';
     }
     if (isOff(id, date, part)) return 'marqué OFF dans la trame';
@@ -1244,7 +1400,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const out = [];
     if (!trame) return out;
     for (let d = new Date(from); d <= to; d = addDays(d,1)) {
-      if ((d.getDay()+6)%7 > 4) continue;
+      if ((d.getDay()+6)%7 > 5) continue;
       const k = key(d);
       trame.postes.forEach(p=>PARTS.forEach(part=>{
         const v = vacWho(p.id,k,part); if (!v || v.ou) return;
@@ -1258,7 +1414,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!trame || !id) return out;
     const start = new Date(); start.setHours(0,0,0,0);
     for (let i=0;i<HORIZON;i++){
-      const dt = addDays(start,i); if ((dt.getDay()+6)%7 > 4) continue;
+      const dt = addDays(start,i); if ((dt.getDay()+6)%7 > 5) continue;
       const k = key(dt);
       trame.postes.forEach(p=>PARTS.forEach(part=>{
         const v = vacWho(p.id,k,part);
@@ -1301,7 +1457,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   /* ---------- vue Trame ---------- */
   function renderTrame(){ renderTrameCore(); renderGNotes(); renderCreate(); }
   function renderTrameCore(){
-    const keys = [...Array(5)].map((_,i)=>addDays(weekStart,i));
+    const keys = [...Array(6)].map((_,i)=>addDays(weekStart,i));
     const wrap = $('#trameWrap');
     if (!trame || !trame.postes.length) {
       wrap.innerHTML = '<p class="empty" style="border:0">'+(loaded ? 'La trame du service n’est pas encore chargée.' : 'Chargement…')+'</p>';
@@ -1312,16 +1468,17 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     wrap.classList.toggle('tw', !narrow);
     if (narrow) {
       const tk0 = key(new Date());
-      if (gDay < 0) { const ix = [0,1,2,3,4].find(i=>key(addDays(weekStart,i)) === tk0); gDay = ix === undefined ? 0 : ix; }
+      if (gDay < 0) { const ix = [0,1,2,3,4,5].find(i=>key(addDays(weekStart,i)) === tk0); gDay = ix === undefined ? 0 : ix; }
       const dd = addDays(weekStart, gDay), dk = key(dd);
-      let L = '<div class="daychips" role="group" aria-label="Jour">' + [0,1,2,3,4].map(i=>{ const x = addDays(weekStart,i); return '<button type="button" data-gd="'+i+'" aria-pressed="'+(i === gDay)+'">'+DOW[i]+'<strong>'+x.getDate()+'</strong></button>'; }).join('') + '</div><div class="plist">';
+      let L = '<div class="daychips" role="group" aria-label="Jour">' + [0,1,2,3,4,5].map(i=>{ const x = addDays(weekStart,i); return '<button type="button" data-gd="'+i+'" aria-pressed="'+(i === gDay)+'">'+DOW[i]+'<strong>'+x.getDate()+'</strong></button>'; }).join('') + '</div><div class="plist">';
       let any = false;
       trame.postes.forEach(p=>{
-        const vv = variantOf(p,dd), vs = PARTS.map(part=>vacWho(p.id,dk,part));
-        if (!vs[0] && !vs[1]) return;
+        if (!okDay(p, gDay)) return;
+        const vv = variantOf(p,dd), pts = partsOf(p), vs = pts.map(part=>vacWho(p.id,dk,part));
+        if (!vs.some(Boolean) && !isSam(p)) return;
         any = true;
         L += '<div class="prow" style="--pc:'+posteColor(p.id)+'"><div class="pname">'+esc(p.label)+(p.variante ? '<small>'+esc(vv)+'</small>' : '')+'</div>';
-        PARTS.forEach((part,ix)=>{
+        pts.forEach((part,ix)=>{
           const v = vs[ix]; let cfl = false, inner = '';
           if (v) {
             inner = v.texte ? '<span class="ch">'+esc(v.texte)+'</span>' : '';
@@ -1341,8 +1498,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       renderGAlert(); renderEditor(); return;
     }
     let h = '<table class="team trame"><thead><tr><th class="who" rowspan="2" scope="col">Poste</th>'
-      + keys.map((d,i)=>'<th colspan="2" scope="colgroup" class="end">'+DOW[i]+' '+d.getDate()+'</th>').join('')
-      + '</tr><tr class="sub">' + keys.map(()=>'<th scope="col">M</th><th scope="col" class="end">AM</th>').join('') + '</tr></thead><tbody>';
+      + keys.map((d,i)=>'<th colspan="'+(i === 5 ? 1 : 2)+'" scope="colgroup" class="end">'+DOW[i]+' '+d.getDate()+'</th>').join('')
+      + '</tr><tr class="sub">' + keys.map((d,i)=>i === 5 ? '<th scope="col" class="end">M</th>' : '<th scope="col">M</th><th scope="col" class="end">AM</th>').join('') + '</tr></thead><tbody>';
     trame.postes.forEach(p=>{
       const notes = [];
       if (p.variante) {
@@ -1353,7 +1510,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       keys.forEach((d,i)=>{
         const k = key(d), vv = variantOf(p,d);
         PARTS.forEach(part=>{
-          const v = vacWho(p.id,k,part), end = part === 'AM' ? ' end' : '';
+          if (i === 5 && part === 'AM') return;
+          const end = (part === 'AM' || i === 5) ? ' end' : '';
+          if (!okDay(p,i) || (isSam(p) && part === 'AM')) { h += '<td class="v none'+end+'"></td>'; return; }
+          const v = vacWho(p.id,k,part);
           const sel = ed.poste === p.id && ed.date === k && ed.part === part ? ' sel' : '';
           const attrs = ' data-p="'+esc(p.id)+'" data-d="'+k+'" data-part="'+part+'" tabindex="0" role="button"';
           if (!v) { h += '<td class="v none'+end+sel+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : pas de vacation, toucher pour en ajouter"></td>'; return; }
@@ -1384,15 +1544,15 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const whoOf = (p,k,part)=>{ const v = vacWho(p,k,part); return v ? v.who.slice() : []; };
   function renderCreate(){
     if (!trame || !trame.postes.length) { $('#cwPostes').innerHTML = '<p class="empty">'+(loaded ? 'Les postes du service ne sont pas encore chargés.' : 'Chargement…')+'</p>'; $('#cwLabel').textContent = ''; return; }
-    const days = [...Array(5)].map((_,i)=>addDays(cwStart,i)), keys = days.map(key);
+    const days = [...Array(6)].map((_,i)=>addDays(cwStart,i)), keys = days.map(key);
     $('#cwLabel').textContent = fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
     if (!cwOpen) cwOpen = new Set([trame.postes[0].id]);
     const docs = sortedDocs();
-    const cfs = conflictsBetween(cwStart, days[4]);
+    const cfs = conflictsBetween(cwStart, days[5]);
     let total = 0, anyOv = false;
-    keys.forEach(k=>{
+    keys.forEach((k,di)=>{
       if (overrides[k] && Object.keys(overrides[k]).length) anyOv = true;
-      trame.postes.forEach(p=>{ if (p.info) return; (p.journee ? ['M'] : PARTS).forEach(part=>{ const v = vacWho(p.id,k,part); if (v && v.who.length) total++; }); });
+      trame.postes.forEach(p=>{ if (p.info || !okDay(p,di)) return; (p.journee ? ['M'] : partsOf(p)).forEach(part=>{ const v = vacWho(p.id,k,part); if (v && v.who.length) total++; }); });
     });
     $('#cwStatus').textContent = total ? total+' vacation'+(total > 1 ? 's' : '')+' avec médecin cette semaine.' : 'Semaine vide : importez le fichier Excel ou choisissez les médecins poste par poste.';
     $('#cwReset').hidden = !anyOv;
@@ -1403,9 +1563,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
     const opt = (id,k,part)=>{ const r = reasonFor(id,k,part); return '<option value="'+esc(id)+'">'+esc(dLabel(id))+(r ? ' ⚠ '+esc(r) : '')+'</option>'; };
     $('#cwPostes').innerHTML = trame.postes.map(p=>{
-      const parts = p.journee ? ['M'] : PARTS;
+      const parts = p.journee ? ['M'] : partsOf(p);
       let b = '', filled = 0, nbad = 0;
-      keys.forEach((k,i)=>parts.forEach(part=>{
+      keys.forEach((k,i)=>okDay(p,i) && parts.forEach(part=>{
         const v = vacWho(p.id,k,part), key3 = p.id+'|'+k+'|'+part;
         const when = '<b>'+esc(fmtShort.format(parse(k)))+'</b> · '+(p.journee ? 'journée' : PART_TXT[part]);
         const dis = canWrite ? '' : ' disabled';
@@ -1435,11 +1595,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     /* ajout rapide : garde les choix en cours */
     const pv = {p: $('#cxPoste').value, d: $('#cxDay').value, t: $('#cxPart').value, w: $('#cxWho').value};
     $('#cxPoste').innerHTML = trame.postes.filter(x=>!x.info).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.label)+'</option>').join('');
-    $('#cxDay').innerHTML = days.map(d=>'<option value="'+key(d)+'">'+esc(fmtShort.format(d))+'</option>').join('');
-    $('#cxPart').innerHTML = PARTS.map(x=>'<option value="'+x+'">'+(x === 'M' ? 'Matin' : 'Après-midi')+'</option>').join('');
     if (findPost(pv.p)) $('#cxPoste').value = pv.p;
-    if (keys.includes(pv.d)) $('#cxDay').value = pv.d;
-    if (PARTS.includes(pv.t)) $('#cxPart').value = pv.t;
+    const cpp = findPost($('#cxPoste').value);
+    $('#cxDay').innerHTML = days.filter((_,i)=>okDay(cpp,i)).map(d=>'<option value="'+key(d)+'">'+esc(fmtShort.format(d))+'</option>').join('');
+    $('#cxPart').innerHTML = partsOf(cpp).map(x=>'<option value="'+x+'">'+(x === 'M' ? 'Matin' : 'Après-midi')+'</option>').join('');
+    if (keys.includes(pv.d) && $('#cxDay').querySelector('option[value="'+pv.d+'"]')) $('#cxDay').value = pv.d;
+    if (partsOf(cpp).includes(pv.t)) $('#cxPart').value = pv.t;
     const cd = $('#cxDay').value, cp = $('#cxPart').value, cpo = $('#cxPoste').value;
     $('#cxWho').innerHTML = '<option value="">Choisir un médecin…</option>'+docs.map(d=>opt(d.id,cd,cp)).join('');
     if (docs.some(d=>d.id === pv.w)) $('#cxWho').value = pv.w;
@@ -1485,7 +1646,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!cwConfirm) { cwConfirm = true; clearTimeout(cwTimer); cwTimer = setTimeout(()=>{ cwConfirm = false; renderCreate(); }, 5000); renderCreate(); return; }
     cwConfirm = false; clearTimeout(cwTimer);
     let n = 0, okAll = true;
-    for (let i=0;i<5;i++){
+    for (let i=0;i<6;i++){
       const k = key(addDays(cwStart,i)), o = overrides[k]; if (!o) continue;
       for (const kk of Object.keys(o)) { n++; okAll = (await setOverride(k, kk, null)) && okAll; }
     }
@@ -1663,7 +1824,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const btn = $('#xlApply'); if (btn) btn.disabled = true;
     const ok = await applyWeeks(pl);
     if (!ok) { renderPlan(); return; }
-    if (pl.weeks.length) cwStart = parse(pl.weeks[0].monday);
+    if (pl.weeks.length) { cwStart = parse(pl.weeks[0].monday); weekStart = cwStart; gDay = -1; renderGLabel(); renderTeam(); }
     xlPlan = null; renderPlan(); renderCreate();
     notify(pl.weeks.length+' semaine'+(pl.weeks.length > 1 ? 's' : '')+' importée'+(pl.weeks.length > 1 ? 's' : '')+'.');
   }
@@ -1718,18 +1879,18 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   function ensureEd(){
     if (!trame || !trame.postes.length) return false;
     if (!findPost(ed.poste)) ed.poste = trame.postes[0].id;
-    const wk = [...Array(5)].map((_,i)=>key(addDays(weekStart,i)));
-    if (!wk.includes(ed.date)) ed.date = wk[0];
-    if (!PARTS.includes(ed.part)) ed.part = 'M';
+    const wk = [...Array(6)].map((_,i)=>key(addDays(weekStart,i))), p0 = findPost(ed.poste), okd = wk.filter((_,i)=>okDay(p0,i));
+    if (!okd.includes(ed.date)) ed.date = okd[0];
+    if (!partsOf(p0).includes(ed.part)) ed.part = partsOf(p0)[0];
     return true;
   }
   const edWho = () => { const v = vacWho(ed.poste, ed.date, ed.part); return v ? v.who.slice() : []; };
   function renderEditor(){
     if (!ensureEd()) { $('#edWho').innerHTML = ''; $('#edState').textContent = ''; $('#edMsg').hidden = true; $('#edRevert').hidden = true; return; }
-    const days = [...Array(5)].map((_,i)=>addDays(weekStart,i));
+    const p0 = findPost(ed.poste), days = [...Array(6)].map((_,i)=>addDays(weekStart,i)).filter((_,i)=>okDay(p0,i));
     $('#edPoste').innerHTML = trame.postes.map(p=>'<option value="'+esc(p.id)+'"'+(p.id === ed.poste ? ' selected' : '')+'>'+esc(p.label)+'</option>').join('');
     $('#edDay').innerHTML = days.map(d=>'<option value="'+key(d)+'"'+(key(d) === ed.date ? ' selected' : '')+'>'+esc(fmtShort.format(d))+'</option>').join('');
-    $('#edPart').innerHTML = PARTS.map(x=>'<option value="'+x+'"'+(x === ed.part ? ' selected' : '')+'>'+(x === 'M' ? 'Matin' : 'Après-midi')+'</option>').join('');
+    $('#edPart').innerHTML = partsOf(p0).map(x=>'<option value="'+x+'"'+(x === ed.part ? ' selected' : '')+'>'+(x === 'M' ? 'Matin' : 'Après-midi')+'</option>').join('');
     const v = vacWho(ed.poste, ed.date, ed.part), cur = v ? v.who : [];
     const docs = sortedDocs();
     const opt = (id, sel)=>{ const r = reasonFor(id, ed.date, ed.part); return '<option value="'+esc(id)+'"'+(sel ? ' selected' : '')+'>'+esc(dLabel(id))+(r ? ' ⚠ '+esc(r) : '')+'</option>'; };
@@ -1796,7 +1957,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const commitWho = (arr, added)=>writeWho(ed.poste, ed.date, ed.part, arr, added);
   ['edPoste','edDay','edPart'].forEach(id=>$('#'+id).addEventListener('change', e=>{
     ed.poste = $('#edPoste').value; ed.date = $('#edDay').value; ed.part = $('#edPart').value;
-    const gi = [0,1,2,3,4].find(i=>key(addDays(weekStart,i)) === ed.date); if (gi !== undefined) gDay = gi;
+    const gi = [0,1,2,3,4,5].find(i=>key(addDays(weekStart,i)) === ed.date); if (gi !== undefined) gDay = gi;
     renderTrame();
   }));
   $('#edWho').addEventListener('change', e=>{
@@ -1816,7 +1977,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   });
   function gotoCell(poste, date, part){
     ed.poste = poste; ed.date = date; ed.part = part;
-    const gi = [0,1,2,3,4].find(i=>key(addDays(weekStart,i)) === date); if (gi !== undefined) gDay = gi;
+    const gi = [0,1,2,3,4,5].find(i=>key(addDays(weekStart,i)) === date); if (gi !== undefined) gDay = gi;
     renderTrame();
     $('#edForm').scrollIntoView({block:'nearest'});
   }
@@ -2013,7 +2174,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const d = addDays(start,i), k = key(d), inf = dayInfo(doc,k), nx = key(addDays(d,1));
       if (inf.kind === 'G') ev(id+'-'+k+'-garde', ['DTSTART;VALUE=DATE:'+dk(k),'DTEND;VALUE=DATE:'+dk(nx)], 'Garde', '', false);
       else if (inf.kind === 'R') ev(id+'-'+k+'-rdg', ['DTSTART;VALUE=DATE:'+dk(k),'DTEND;VALUE=DATE:'+dk(nx)], 'Repos de garde', '', true);
-      if ((d.getDay()+6)%7 > 4 || !trame) continue;
+      else if (inf.kind === 'A') ev(id+'-'+k+'-astreinte', ['DTSTART;VALUE=DATE:'+dk(k),'DTEND;VALUE=DATE:'+dk(nx)], 'Astreinte (matin)', '', false);
+      if ((d.getDay()+6)%7 > 5 || !trame) continue;
       trame.postes.forEach(p=>PARTS.forEach(part=>{
         const v = vacWho(p.id,k,part); if (!v || v.ou || !v.who.includes(id)) return;
         const a = part === 'M' ? H.hM1 : H.hA1, b = part === 'M' ? H.hM2 : H.hA2;
@@ -2069,6 +2231,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   try { window.matchMedia('(max-width:700px)').addEventListener('change', ()=>renderTrame()); } catch(e) {}
   initHours();
 
+  function ensureAst(){
+    if (!trame || !db || !canWrite || astMeta !== 'absent' || astAdding || seeding || !trameLoaded) return;
+    if (trame.postes.some(p=>p.samedi)) { astMeta = 'done'; db.doc('meta/ast1').set({v:1}).catch(()=>{}); return; }
+    astAdding = true;
+    saveTrame(t=>{ t.postes.push({id:'astreinte', label:'Astreinte', samedi:true}); }).then(ok=>ok && db.doc('meta/ast1').set({v:1})).catch(()=>{}).then(()=>{ astAdding = false; });
+  }
   function jumpToData(){
     if (jumped || seeding || seedState !== 'done') return;
     const dates = SEED ? [].concat(...SEED.weeks.map(w=>w.dates)) : Object.keys(overrides);
@@ -2080,6 +2248,137 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     dates.forEach(d=>{ const df = Math.abs(parse(d) - parse(tk)); if (df < bd) { bd = df; best = d; } });
     if (best) { weekStart = mondayOf(parse(best)); cwStart = weekStart; gDay = -1; renderGLabel(); renderTeam(); renderTrame(); }
   }
+
+
+  /* ---------- export Excel ---------- */
+  const MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  function fillExMonth(){
+    const sel = $('#exMonth'), n = new Date(); let o = '';
+    for (let k=-6;k<=12;k++) { const d = new Date(n.getFullYear(), n.getMonth()+k, 1); o += '<option value="'+d.getFullYear()+'-'+pad(d.getMonth()+1)+'">'+MOIS_FR[d.getMonth()]+' '+d.getFullYear()+'</option>'; }
+    sel.innerHTML = o; sel.value = n.getFullYear()+'-'+pad(n.getMonth()+1);
+  }
+  fillExMonth();
+  async function saveXlsx(wb, name){
+    const X = window.XLSX;
+    const out = X.write(wb, {type:'array', bookType:'xlsx'});
+    let dl = null;
+    try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch(e) {}
+    if (!dl) return notify("L'enregistrement de fichiers n'est pas disponible dans cette vue.", true);
+    try { await dl.save({filename: name, data: new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}); notify('Fichier enregistré.'); }
+    catch(e) { if (!e || e.code !== 'declined') notify("Impossible d'enregistrer le fichier ici.", true); }
+  }
+  const DOWFR = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  const dmy = d => pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();
+  function statusText(inf){
+    if (inf.kind === 'G') return ['Garde','Journée'];
+    if (inf.kind === 'R') return ['Off (repos de garde)','Journée'];
+    if (inf.kind === 'A') return ['Astreinte','Matin'];
+    if (inf.kind === 'I') return ['Indisponible', inf.part === 'J' ? 'Journée' : inf.part === 'M' ? 'Matin' : 'Après-midi'];
+    return null;
+  }
+  async function exportIndispos(ym){
+    const X = window.XLSX; if (!X) return notify("Les fichiers Excel ne sont pas disponibles dans cette vue.", true);
+    const list = sortedDocs(); if (!list.length) return notify("Aucune personne dans la liste.", true);
+    const [y,m] = ym.split('-').map(Number), n = new Date(y, m, 0).getDate();
+    const days = []; for (let i=1;i<=n;i++) days.push(new Date(y, m-1, i));
+    const shown = days.filter(d=>d.getDay() !== 0 || list.some(doc=>dayInfo(doc,key(d)).kind));
+    const grid = [['Personne','Fonction'].concat(shown.map(d=>DOW[(d.getDay()+6)%7]+' '+d.getDate()), ['Jours indispo','Gardes'])];
+    const det = [['Personne','Fonction','Date','Jour','Statut','Créneau']];
+    list.forEach(doc=>{
+      let ind = 0, gar = 0;
+      const row = [doc.label, doc.role || 'Médecin'];
+      shown.forEach(d=>{
+        const inf = dayInfo(doc,key(d)), st = statusText(inf);
+        if (!st) { row.push(''); return; }
+        row.push(inf.kind === 'I' && inf.part !== 'J' ? 'Indispo '+(inf.part === 'M' ? 'matin' : 'après-midi') : st[0]);
+      });
+      days.forEach(d=>{
+        const inf = dayInfo(doc,key(d)), st = statusText(inf); if (!st) return;
+        if (inf.kind === 'I') ind += inf.part === 'J' ? 1 : 0.5; if (inf.kind === 'G') gar++;
+        det.push([doc.label, doc.role || 'Médecin', dmy(d), DOWFR[(d.getDay()+6)%7], st[0], st[1]]);
+      });
+      grid.push(row.concat([ind, gar]));
+    });
+    const ws1 = X.utils.aoa_to_sheet(grid), ws2 = X.utils.aoa_to_sheet(det);
+    ws1['!cols'] = [{wch:16},{wch:10}].concat(shown.map(()=>({wch:12})), [{wch:12},{wch:8}]);
+    ws2['!cols'] = [{wch:16},{wch:10},{wch:12},{wch:10},{wch:22},{wch:12}];
+    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws1, 'Mois'); X.utils.book_append_sheet(wb, ws2, 'Détail');
+    await saveXlsx(wb, 'indisponibilites-'+ym+'.xlsx');
+  }
+  async function exportPlanning(ym){
+    const X = window.XLSX; if (!X) return notify("Les fichiers Excel ne sont pas disponibles dans cette vue.", true);
+    if (!trame || !trame.postes.length) return notify('Les postes du service doivent être chargés.', true);
+    const [y,m] = ym.split('-').map(Number), first = new Date(y, m-1, 1), last = new Date(y, m, 0);
+    const wb = X.utils.book_new(); let nb = 0;
+    for (let mon = mondayOf(first); mon <= last; mon = addDays(mon,7)) {
+      const days = [...Array(6)].map((_,i)=>addDays(mon,i));
+      const h1 = ['Poste'], h2 = [''];
+      days.forEach((d,i)=>{ if (i < 5) { h1.push(DOWFR[i]+' '+d.getDate(), ''); h2.push('Matin','Après-midi'); } else { h1.push('samedi '+d.getDate()); h2.push('Matin'); } });
+      const aoa = [h1, h2];
+      trame.postes.forEach(p=>{
+        const row = [p.label];
+        days.forEach((d,i)=>{
+          const k = key(d);
+          (i < 5 ? PARTS : ['M']).forEach(part=>{
+            if (!okDay(p,i) || (isSam(p) && part === 'AM')) { row.push(''); return; }
+            const v = vacWho(p.id,k,part);
+            row.push(v ? (v.who.map(id=>dLabel(id)+starOf(v,id)).join(v.ou ? ' ou ' : ', ')+(v.texte ? (v.who.length ? ' ' : '')+'('+v.texte+')' : '')) : '');
+          });
+        });
+        aoa.push(row);
+      });
+      const ws = X.utils.aoa_to_sheet(aoa);
+      ws['!merges'] = [0,1,2,3,4].map(i=>({s:{r:0,c:1+2*i}, e:{r:0,c:2+2*i}}));
+      ws['!cols'] = [{wch:28}].concat(Array(11).fill({wch:16}));
+      X.utils.book_append_sheet(wb, ws, ('Sem. '+mon.getDate()+' '+MOIS_FR[mon.getMonth()].slice(0,4)).slice(0,31)); nb++;
+    }
+    if (!nb) return notify('Rien à exporter.', true);
+    await saveXlsx(wb, 'planning-'+ym+'.xlsx');
+  }
+  $('#exIndisp').addEventListener('click', ()=>exportIndispos($('#exMonth').value));
+  $('#exPlan').addEventListener('click', ()=>exportPlanning($('#exMonth').value));
+  $('#exIndispQuick').addEventListener('click', ()=>{ const d = addDays(myWeek,2); exportIndispos(d.getFullYear()+'-'+pad(d.getMonth()+1)); });
+
+  /* ---------- réglages : postes du service ---------- */
+  let pSig = '', pendingPost = '', pendingPostTimer = 0;
+  function renderPostes(){
+    const ul = $('#postesList'); if (!ul) return;
+    if (!trame) { ul.innerHTML = '<li class="muted" style="border:0;font-family:inherit">'+(loaded ? 'Postes non chargés.' : 'Chargement…')+'</li>'; return; }
+    const sig = trame.postes.map(p=>p.id+':'+p.label).join('|')+'#'+pendingPost+'#'+canWrite;
+    if (sig === pSig) return;
+    const a = document.activeElement; if (a && a.matches && a.matches('[data-pren]')) return;
+    pSig = sig;
+    ul.innerHTML = trame.postes.map(p=>{
+      const c = pendingPost === p.id;
+      return '<li><input type="text" data-pren="'+esc(p.id)+'" value="'+esc(p.label)+'" maxlength="40" autocomplete="off" aria-label="Nom du poste"'+(canWrite?'':' disabled')+'><button type="button" data-prm="'+esc(p.id)+'" class="'+(c?'confirm':'')+'"'+(canWrite?'':' disabled')+'>'+(c?'Confirmer':'Retirer')+'</button></li>';
+    }).join('') || '<li class="muted" style="border:0;font-family:inherit">Aucun poste.</li>';
+  }
+  async function saveTrame(mut){
+    if (!db || !canWrite || !trame) { notify('Lecture seule : modification impossible.', true); return false; }
+    const t = JSON.parse(JSON.stringify(trame)); mut(t);
+    try { await db.doc('trame/semaine').set(t); return true; } catch(err) { handleErr(err); return false; }
+  }
+  $('#postesList').addEventListener('change', async e=>{
+    const inp = e.target.closest('input[data-pren]'); if (!inp) return;
+    const v = inp.value.trim().replace(/\s+/g,' '), id = inp.dataset.pren;
+    if (!v) { pSig = ''; renderPostes(); return; }
+    if (await saveTrame(t=>{ const p = t.postes.find(x=>x.id === id); if (p) p.label = v; })) notify('Poste renommé.');
+  });
+  $('#postesList').addEventListener('click', async e=>{
+    const b = e.target.closest('[data-prm]'); if (!b) return;
+    const id = b.dataset.prm;
+    if (pendingPost !== id) { pendingPost = id; clearTimeout(pendingPostTimer); pendingPostTimer = setTimeout(()=>{ pendingPost = ''; pSig = ''; renderPostes(); applyRO(); }, 5000); pSig = ''; renderPostes(); applyRO(); return; }
+    pendingPost = ''; clearTimeout(pendingPostTimer);
+    if (await saveTrame(t=>{ t.postes = t.postes.filter(x=>x.id !== id); })) notify('Poste retiré.');
+  });
+  $('#postAdd').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const v = $('#newPoste').value.trim().replace(/\s+/g,' '); if (!v) return;
+    let id = slug(v) || 'poste', n = 2; const base = id;
+    while (trame && trame.postes.some(p=>p.id === id)) id = base+'-'+(n++);
+    if (await saveTrame(t=>{ t.postes.push({id, label: v}); })) { $('#newPoste').value = ''; notify('Poste ajouté.'); }
+  });
+
   /* ---------- premier chargement du planning ---------- */
   async function maybeSeed(){
     if (seeding || !SEED || seedState !== 'absent' || !trameLoaded || !loaded || !subs.aj || !subs.notes || !subs.sw || !db || !canWrite) return;
@@ -2114,7 +2413,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : ''};
       });
       doctors = next; loaded = true; renderAll();
     }, err=>{
@@ -2127,7 +2426,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         if (!isDate(v.date) || !isDate(v.date2) || !PARTS.includes(v.part) || !PARTS.includes(v.part2) || typeof v.from !== 'string' || typeof v.to !== 'string') return;
         next[s.id] = Object.assign({}, v, {id: s.id});
       });
-      swaps = next; subs.sw = true; renderSwaps(); renderBadge(); renderSwapForm(); renderTrame(); renderConflicts(); maybeSeed();
+      swaps = next; subs.sw = true; renderToday(); renderSwaps(); renderBadge(); renderSwapForm(); renderTrame(); renderConflicts(); maybeSeed();
     }, err=>{});
     db.collection('ajustements').onSnapshot(snap=>{
       const next = {};
@@ -2137,19 +2436,20 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         Object.keys(v).forEach(k=>{ const x = v[k]; if (x && typeof x === 'object' && Array.isArray(x.w)) o[k] = {w: x.w.filter(y=>typeof y === 'string'), t: Number(x.t) || 0, x: typeof x.x === 'string' ? x.x : '', s: Array.isArray(x.s) ? x.s.filter(y=>typeof y === 'string') : []}; });
         next[s.id] = o;
       });
-      overrides = next; subs.aj = true; renderTrame(); renderConflicts(); renderMe(); renderSwapForm();
+      overrides = next; subs.aj = true; renderToday(); renderTrame(); renderConflicts(); renderMe(); renderSwapForm();
       jumpToData();
       maybeSeed();
     }, err=>{});
     db.doc('trame/semaine').onSnapshot(s=>{
       trame = s.exists ? normalizeTrame(s.data()) : null; trameLoaded = true;
-      renderTrame(); renderConflicts(); renderSwaps(); renderSwapForm(); renderAll(); maybeSeed();
+      renderTrame(); renderConflicts(); renderSwaps(); renderSwapForm(); renderAll(); maybeSeed(); ensureAst();
     }, err=>{});
     db.collection('notes').onSnapshot(snap=>{
       const next = {};
       snap.docs.forEach(s=>{ if (!isDate(s.id)) return; const v = s.data() || {}; if (Array.isArray(v.items)) next[s.id] = v.items.filter(t=>typeof t === 'string' && t); });
       notesBy = next; subs.notes = true; renderGNotes(); renderToday(); maybeSeed();
     }, err=>{});
+    db.doc('meta/ast1').onSnapshot(s=>{ astMeta = s.exists ? 'done' : 'absent'; ensureAst(); }, err=>{});
     db.doc('meta/seed2').onSnapshot(s=>{ seedState = s.exists ? 'done' : 'absent'; maybeSeed(); jumpToData(); }, err=>{});
   })();
 })();
@@ -2158,7 +2458,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, doc, collection, getDoc, setDoc, deleteDoc, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-const app = initializeApp({"apiKey": "AIzaSyAuWYERhfesmaqpvSFY3JALu9lDI6B0GKk", "authDomain": "planning-imagerie.firebaseapp.com", "projectId": "planning-imagerie", "storageBucket": "planning-imagerie.firebasestorage.app", "messagingSenderId": "15955934670", "appId": "1:15955934670:web:3cca5021995b763e473f9f"});
+const app = initializeApp({"apiKey": "AIzaSyCv7F339zZWjVR9AS3FjQ0yi9IqEMHZv-8", "authDomain": "planning-uro.firebaseapp.com", "projectId": "planning-uro", "storageBucket": "planning-uro.firebasestorage.app", "messagingSenderId": "843050426921", "appId": "1:843050426921:web:fb6c5d2bd88f5491213238"});
 const fs = getFirestore(app);
 const TRAME = {"cases": {"bloc_0_AM": {"who": []}, "bloc_0_M": {"who": []}, "bloc_1_AM": {"who": []}, "bloc_1_M": {"who": []}, "bloc_2_AM": {"who": []}, "bloc_2_M": {"who": []}, "bloc_3_AM": {"who": []}, "bloc_3_M": {"who": []}, "bloc_4_AM": {"who": []}, "bloc_4_M": {"who": []}, "consultation_0_AM": {"who": []}, "consultation_0_M": {"who": []}, "consultation_1_M": {"who": []}, "consultation_2_M": {"who": []}, "consultation_3_AM": {"who": []}, "consultation_3_M": {"who": []}, "consultation_4_AM": {"who": []}, "echo-sa_2_AM": {"who": []}, "echo_0_AM": {"who": []}, "echo_0_M": {"who": []}, "echo_1_AM": {"who": []}, "echo_1_M": {"who": []}, "echo_2_AM": {"who": []}, "echo_2_M": {"who": []}, "echo_3_AM": {"who": []}, "echo_3_M": {"who": []}, "echo_4_AM": {"who": []}, "echo_4_M": {"who": []}, "irm_1_AM": {"who": []}, "irm_2_AM": {"who": []}, "irm_2_M": {"ou": false, "who": []}, "irm_3_M": {"who": []}, "irm_4_AM": {"who": []}, "rcp_0_M": {"who": []}, "rcp_1_AM": {"who": []}, "scanner-ext_2_AM": {"who": []}, "scanner-ext_3_M": {"who": []}, "scanner-ext_4_AM": {"who": []}, "scanner-rdc_0_AM": {"who": []}, "scanner-rdc_0_M": {"who": []}, "scanner-rdc_4_AM": {"who": []}, "scanner-rdc_4_M": {"who": []}, "scanner-sa_0_AM": {"who": []}, "scanner-sa_0_M": {"who": []}, "scanner-sa_2_AM": {"who": []}, "scanner-sa_2_M": {"who": []}, "scanner-sa_3_AM": {"who": []}, "scanner-sa_3_M": {"texte": "ostéo", "who": []}, "scanner-urg_0_AM": {"who": []}}, "off": {}, "postes": [{"id": "echo", "label": "Écho"}, {"id": "bloc", "label": "Bloc"}, {"id": "consultation", "label": "Consultation"}, {"id": "irm", "label": "IRM"}, {"id": "scanner-ext", "label": "Scanner EXT"}, {"id": "scanner-rdc", "label": "Scanner RDC", "variante": "interventionnel"}, {"id": "scanner-urg", "label": "Scanner URG"}, {"id": "scanner-sa", "label": "Scanner SA"}, {"id": "echo-sa", "label": "Écho SA"}, {"id": "rcp", "label": "RCP"}], "regles": [{"jour": 0, "poste": "scanner-rdc", "rang": 4, "variante": "diagnostique"}]};
 let seeded = false;
