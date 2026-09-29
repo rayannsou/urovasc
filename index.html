@@ -242,7 +242,7 @@ select,input[type=date],input[type=text],input[type=time]{font-size:16px}
 .tabs{flex-wrap:wrap}
 .tday h2.date{text-transform:none}
 .tday h2.date::first-letter{text-transform:uppercase}
-.daychips{display:flex;gap:6px;margin-bottom:10px}
+.daychips{display:flex;gap:6px;margin-bottom:10px}.daychips.sticky{position:sticky;top:0;z-index:6;background:var(--bg);padding:8px 0 6px;margin-bottom:4px}.daychips button{position:relative}.daychips button.tod strong{text-decoration:underline}.mdot{position:absolute;bottom:4px;width:6px;height:6px;border-radius:50%;background:var(--accent)}.daychips button[aria-pressed=true] .mdot{background:#fff}.gdayh{margin:6px 2px 10px}.gdayh b{font-size:19px}.gtod{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:2px 8px;margin-left:6px}.gmine{margin:4px 0 0;font-size:14px;color:var(--accent);font-weight:600}.gmore>summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
 .daychips button{flex:1;min-width:0;padding:0 2px;font-size:13px;line-height:1.25;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:54px}
 .daychips button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 .plist{display:flex;flex-direction:column;gap:10px}
@@ -683,6 +683,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         <div id="gAlert" class="alert" hidden></div>
         <div id="gPoste" class="col">
           <div id="trameWrap" class="tw"></div>
+          <div id="gNotes" class="card" hidden></div>
+          <details class="card gmore" id="gMore"><summary>ℹ️ Légende · ✏️ Modifier une vacation · 📥 Importer</summary>
           <ul class="legend">
             <li>Case hachurée : pas de vacation</li>
             <li><span class="ch me">RM</span>Vous</li>
@@ -690,7 +692,6 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <li>Les échanges enregistrés sont déjà appliqués</li>
             <li>Touchez une case pour modifier qui est affecté</li>
           </ul>
-          <div id="gNotes" class="card" hidden></div>
           <form id="edForm" class="card" onsubmit="return false">
             <h2>Modifier une vacation</h2>
             <p class="hint">Touchez une case du tableau ou choisissez ci-dessous. Le changement vaut pour ce jour seulement : la trame de la semaine type ne bouge pas.</p>
@@ -707,8 +708,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
               <button type="button" class="ghost" id="edRevert" hidden>Effacer cette vacation</button>
             </fieldset>
           </form>
-        </div>
         <div id="impSlotG"></div>
+          </details>
+        </div>
         <div id="gMed" class="col" hidden>
           <div id="teamWrap" class="tw"></div>
           <ul class="legend">
@@ -785,7 +787,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 00h15 (lecture v17)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 00h30 (fluide v18)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -2207,6 +2209,20 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#gLabel').textContent = fmtDM.format(weekStart)+' – '+fmtDM.format(b)+' '+b.getFullYear();
   }
   function moveWeek(n){ gDay = -1; weekStart = n === 0 ? mondayOf(new Date()) : addDays(weekStart, 7*n); renderGLabel(); renderTeam(); renderTrame(); }
+  /* balayage gauche / droite pour changer de jour (téléphone) */
+  (function(){
+    const w = $('#trameWrap'); let x0 = 0, y0 = 0, on = false;
+    w.addEventListener('touchstart', e=>{ const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; on = e.touches.length === 1; }, {passive: true});
+    w.addEventListener('touchend', e=>{
+      if (!on) return; on = false; const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < 2*Math.abs(dy) || !w.querySelector('.daychips')) return;
+      let nd = gDay + (dx < 0 ? 1 : -1);
+      if (nd > 5) { moveWeek(1); gDay = 0; renderTrame(); }
+      else if (nd < 0) { moveWeek(-1); gDay = 5; renderTrame(); }
+      else { gDay = nd; renderTrame(); }
+      try { const c = w.querySelector('.daychips'); if (c) c.scrollIntoView({block: 'nearest'}); } catch(err) {}
+    }, {passive: true});
+  })();
   $('#gPrev').addEventListener('click',()=>moveWeek(-1));
   $('#gNext').addEventListener('click',()=>moveWeek(1));
   $('#gToday').addEventListener('click',()=>moveWeek(0));
@@ -2538,7 +2554,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const tk0 = key(new Date());
       if (gDay < 0) { const ix = [0,1,2,3,4,5].find(i=>key(addDays(weekStart,i)) === tk0); gDay = ix === undefined ? 0 : ix; }
       const dd = addDays(weekStart, gDay), dk = key(dd);
-      let L = '<div class="daychips" role="group" aria-label="Jour">' + [0,1,2,3,4,5].map(i=>{ const x = addDays(weekStart,i); return '<button type="button" data-gd="'+i+'" aria-pressed="'+(i === gDay)+'">'+DOW[i]+'<strong>'+x.getDate()+'</strong></button>'; }).join('') + '</div><div class="plist">';
+      const mineOn = i => { if (!me) return false; const k = key(addDays(weekStart,i)); return trame.postes.some(p=>okDay(p,i) && !p.info && partsOf(p).some(pt=>{ const v = vacWho(p.id,k,pt); return v && !v.ou && v.who.includes(me); })); };
+      const mineList = me ? trame.postes.filter(p=>okDay(p,gDay) && !p.info).flatMap(p=>partsOf(p).filter(pt=>{ const v = vacWho(p.id,dk,pt); return v && !v.ou && v.who.includes(me); }).map(pt=>postName(p.id,dk)+(isSam(p) ? '' : ' · '+(pt === 'M' ? 'matin' : 'après-midi')))) : [];
+      let L = '<div class="daychips sticky" role="group" aria-label="Jour">' + [0,1,2,3,4,5].map(i=>{ const x = addDays(weekStart,i); return '<button type="button" data-gd="'+i+'" aria-pressed="'+(i === gDay)+'"'+(key(x) === tk0 ? ' class="tod"' : '')+'>'+DOW[i]+'<strong>'+x.getDate()+'</strong>'+(mineOn(i) ? '<i class="mdot" aria-label="vous travaillez"></i>' : '')+'</button>'; }).join('') + '</div>'
+        + '<div class="gdayh"><b>'+esc(fmtLong.format(dd).replace(/^./, c=>c.toUpperCase()))+'</b>'+(dk === tk0 ? ' <span class="gtod">Aujourd’hui</span>' : '')+(mineList.length ? '<p class="gmine">Vous : '+esc(mineList.join(' · '))+'</p>' : '')+'</div><div class="plist">';
       let any = false;
       trame.postes.forEach(p=>{
         if (!okDay(p, gDay)) return;
@@ -3141,6 +3160,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (ok) notify('Vacation effacée.');
   });
   function gotoCell(poste, date, part){
+    { const gm = $('#gMore'); if (gm) gm.open = true; }
     ed.poste = poste; ed.date = date; ed.part = part;
     const gi = [0,1,2,3,4,5].find(i=>key(addDays(weekStart,i)) === date); if (gi !== undefined) gDay = gi;
     renderTrame();
