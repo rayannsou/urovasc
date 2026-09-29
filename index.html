@@ -347,6 +347,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .plcard.ast{border:1.5px solid var(--accent)}
 .acn{display:inline-block;min-width:20px;height:20px;line-height:20px;margin-left:8px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 11px/20px var(--font-mono);text-align:center}
 .plsg.na .acn{background:var(--red);color:#fff;text-decoration:none}
+.astr{display:flex;gap:8px;align-items:center;margin:0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);color:var(--ink);font-size:14px}
+.astr.mine{background:var(--accent);color:var(--accent-ink)}
+.lview .astr{margin-top:-2px}
 .plone{font-size:12px;color:var(--muted);margin:-4px 0 0}
 .plsg{min-height:44px;border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700;border-radius:999px;padding:0 14px}
 .pladd{min-height:44px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-weight:700;border-radius:999px;padding:0 16px}
@@ -492,6 +495,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <button type="button" id="plNext" aria-label="Semaine suivante">›</button>
           </div>
           <div class="f jump"><label for="plJump">Aller à une semaine</label><input type="date" id="plJump"></div>
+          <div class="seg" role="group" aria-label="Type de planning"><button type="button" data-plmode="week" aria-pressed="true">Semaine normale</button><button type="button" data-plmode="ast" aria-pressed="false">Astreinte</button></div>
           <div class="seg" role="group" aria-label="Portée de la modification">
             <button type="button" data-plscope="once" aria-pressed="true">Une seule fois</button>
             <button type="button" data-plscope="always" aria-pressed="false">Toujours</button>
@@ -1347,6 +1351,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       if (!vs.length) return st ? '<span class="mst '+STAT[st][0]+'">'+({G:'Garde',R:'Off',A:'Astreinte',I:'Indispo'})[st]+'</span>' : '<span class="mnone">—</span>';
       return '<span class="mch'+(vs.length && st ? ' cfo' : '')+'"'+(vs.length && st ? ' role="button" tabindex="0" data-cfo="'+kk+'|'+part+'"' : '')+'>'+vs.map(v=>'<span class="mc'+(bad ? ' bad' : '')+'" style="--pc:'+posteColor(v.poste)+'">'+esc(postName(v.poste,kk))+(v.ou ? ' ?' : '')+'</span>').join('')+(bad ? '<small class="mw">⚠ '+({G:'garde',R:'repos',A:'astreinte',I:'indispo'})[st]+'</small>' : acc ? '<small class="mw ok">✓ accepté</small>' : '')+'</span>';
     };
+    const astP = trame && trame.postes.find(isSam);
+    const astLine = () => {
+      if (!astP) return '';
+      const sk = key(addDays(startD,5)), v = vacWho(astP.id, sk, 'M'), ids = v ? v.who : [];
+      const mine = ids.includes(me);
+      return '<p class="astr'+(mine ? ' mine' : '')+'">🔔 <span>Astreinte '+esc(fmtShort.format(addDays(startD,5)))+' : <strong>'+(ids.length ? esc(ids.map(dLabel).join(', '))+(mine ? ' (vous)' : '') : 'personne pour le moment')+'</strong></span></p>';
+    };
     const dayList = [];
     for (let i=0;i<7;i++) {
       const d = addDays(startD,i), kk = key(d), wd = (d.getDay()+6)%7, inf = dayInfo(doc,kk), vs = dayVacs(me,kk);
@@ -1355,12 +1366,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       dayList.push({d, kk, wd, inf, isToday: kk === k});
     }
     if (auv === 'list') {
-      h += '<div class="lview">'+dayList.map(x=>'<section class="lrow'+(x.isToday ? ' today' : '')+'"><div class="lh"><b>'+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'short'}).format(x.d).replace('.',''))+'</b><span>'+x.d.getDate()+'</span></div><div class="lb"><div class="lp"><i>Matin</i>'+chipsFor(x.kk,'M')+'</div><div class="lp"><i>Après-midi</i>'+chipsFor(x.kk,'AM')+'</div></div></section>').join('')+'</div>';
+      h += '<div class="lview">'+dayList.map(x=>'<section class="lrow'+(x.isToday ? ' today' : '')+'"><div class="lh"><b>'+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'short'}).format(x.d).replace('.',''))+'</b><span>'+x.d.getDate()+'</span></div><div class="lb"><div class="lp"><i>Matin</i>'+chipsFor(x.kk,'M')+'</div><div class="lp"><i>Après-midi</i>'+chipsFor(x.kk,'AM')+'</div></div></section>'+(x.wd === 4 ? astLine() : '')).join('')+'</div>';
       box.innerHTML = h; return;
     }
     if (auv === 'grid') {
       h += '<div class="gview"><table><thead><tr><th></th>'+dayList.map(x=>'<th'+(x.isToday ? ' class="today"' : '')+'>'+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'short'}).format(x.d).replace('.',''))+'<br><b>'+x.d.getDate()+'</b></th>').join('')+'</tr></thead><tbody>'
-        + ['M','AM'].map(part=>'<tr><th scope="row" title="'+(part === 'M' ? 'Matin' : 'Après-midi')+'">'+(part === 'M' ? 'M' : 'AM')+'</th>'+dayList.map(x=>'<td'+(x.isToday ? ' class="today"' : '')+'>'+chipsFor(x.kk,part)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+        + ['M','AM'].map(part=>'<tr><th scope="row" title="'+(part === 'M' ? 'Matin' : 'Après-midi')+'">'+(part === 'M' ? 'M' : 'AM')+'</th>'+dayList.map(x=>'<td'+(x.isToday ? ' class="today"' : '')+'>'+chipsFor(x.kk,part)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'+(dayList.some(x=>x.wd === 4) ? astLine() : '');
       box.innerHTML = h; return;
     }
     for (let i=0;i<7;i++) {
@@ -1380,6 +1391,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       } else if (weekend) h += ['M','AM'].filter(pp=>vs.some(v=>v.part === pp) || inf[pp]).map(pp=>slot(kk,pp,isToday)).join('');
       else h += slot(kk,'M',isToday)+slot(kk,'AM',isToday);
       if (nt.length) h += '<ul class="notelist">'+nt.map(t=>'<li class="dnote">'+esc(t)+'</li>').join('')+'</ul>';
+      if (wd === 4) h += astLine();
       h += '</section>';
       shown++;
     }
@@ -1443,7 +1455,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
 
   /* ---------- onglet Créer un planning ---------- */
-  let plSheet = null, plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
+  let plMode = 'week', plSheet = null, plStart = mondayOf(new Date()), plDay = Math.min((new Date().getDay()+6)%7, 4), plScope = 'once';
   const plNorm = t => normS(String(t || '')).replace(/\s+/g,' ');
   function plFind(txt){
     const t = plNorm(txt); if (!t) return null;
@@ -1457,26 +1469,28 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (plSheet) renderSheet();
     const a = document.activeElement;
     const days = [...Array(6)].map((_,i)=>addDays(plStart,i));
-    $('#plLabel').textContent = fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
+    $('#plLabel').textContent = plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
+    document.querySelectorAll('[data-plmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plmode === plMode)));
+    $('#plDays').hidden = plMode === 'ast'; $('#plCopy').hidden = plMode === 'ast';
     document.querySelectorAll('[data-plscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plscope === plScope)));
     const dn = ['lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-    $('#plHint').textContent = plScope === 'once'
+    $('#plHint').textContent = plMode === 'ast' ? (plScope === 'once' ? 'Une seule fois : l’astreinte ne concerne que le samedi choisi.' : 'Toujours : la même personne est d’astreinte chaque samedi, à partir de la trame.') : plScope === 'once'
       ? 'Une seule fois : la modification ne concerne que la date choisie ('+dn[plDay]+' '+fmtShort.format(days[plDay])+').'
       : 'Toujours : la vacation est répétée chaque '+dn[plDay]+', à partir de la trame. Les dates déjà modifiées à la main gardent leur exception.';
     const hasSat = trame && trame.postes.some(p=>isSam(p));
-    const nd = hasSat ? 6 : 5;
+    const nd = 5;
     if (plDay >= nd) plDay = 0;
     $('#plDays').innerHTML = days.slice(0,nd).map((d,i)=>'<button type="button" role="tab" data-plday="'+i+'" aria-selected="'+(i === plDay)+'"><span>'+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'short'}).format(d).replace('.',''))+'</span><small>'+d.getDate()+'</small></button>').join('');
     if (!trame || !trame.postes.length) { grid.innerHTML = '<p class="empty">'+(loaded ? 'Les postes du service ne sont pas encore chargés.' : 'Chargement…')+'</p>'; return; }
     const k = key(days[plDay]), dis = canWrite ? '' : ' disabled', docs = sortedDocs();
-    const posts = trame.postes.filter(p=>!p.info && okDay(p, plDay));
+    const posts = trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, plDay));
     let nFill = 0, nAll = 0;
     posts.forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ nAll++; const v = vacWho(p.id,k,part); if (v && (v.who.length || v.texte)) nFill++; }));
     $('#plSum').textContent = nFill+' / '+nAll+' vacations remplies ce jour';
     const astP = trame.postes.find(isSam), kSat = key(days[5]);
     const astShort = (astP && plDay !== 5) ? (()=>{ const v = vacWho(astP.id, kSat, 'M'), w = v && v.who.length ? v.who.map(dLabel).join(', ') : ''; return '<button type="button" class="plast" data-plday="5"><span>🔔 Astreinte du '+esc(fmtShort.format(days[5]))+'<br><small>'+(w ? esc(w) : 'personne pour le moment')+'</small></span><span>'+(w ? 'Modifier ›' : 'Choisir ›')+'</span></button>'; })() : '';
     const AC = astCounts();
-    grid.innerHTML = astShort + posts.map(p=>{
+    const plCard = (p, k) => {
       const parts = p.journee ? ['M'] : partsOf(p);
       const rows = parts.map(part=>{
         const v = vacWho(p.id, k, part), who = v ? v.who : [], slot = p.id+'|'+k+'|'+part;
@@ -1496,8 +1510,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           + '<button type="button" class="pladd" data-plopen="'+esc(slot)+'"'+dis+'>'+(sug.length || who.length ? '＋ Nouveau nom' : '＋ Ajouter un médecin')+'</button><button type="button" class="pladd" data-plclose="'+esc(slot+'|1')+'"'+dis+'>🔒 Fermer la vacation</button></div>'
           + (why ? '<p class="plwhy">⚠ '+why+'</p>' : '')+'</div>';
       }).join('');
-      return '<section class="plcard'+(isSam(p) ? ' ast' : '')+'"><h3><i style="background:'+posteColor(p.id)+'"></i>'+esc(postName(p.id,k))+'</h3>'+(isSam(p) ? '<p class="plone">Une seule personne · le chiffre = astreintes déjà prévues · classé du moins au plus chargé · noms barrés en rouge = indisponibles.</p>' : '')+rows+'</section>';
-    }).join('') || '<p class="empty">Aucun poste ce jour-là.</p>';
+      return '<section class="plcard'+(isSam(p) ? ' ast' : '')+'"><h3><i style="background:'+posteColor(p.id)+'"></i>'+(isSam(p) ? 'Astreinte · samedi '+esc(fmtShort.format(parse(k))) : esc(postName(p.id,k)))+'</h3>'+(isSam(p) ? '<p class="plone">Une seule personne · le chiffre = astreintes déjà prévues · classé du moins au plus chargé · noms barrés en rouge = indisponibles.</p>' : '')+rows+'</section>';
+    };
+    if (plMode === 'ast') {
+      $('#plSum').textContent = '';
+      if (!astP) { grid.innerHTML = '<p class="empty">Le poste d’astreinte n’est pas encore créé.</p>'; return; }
+      const sats = [...Array(6)].map((_,i)=>addDays(days[5], 7*i));
+      grid.innerHTML = sats.map(d=>plCard(astP, key(d)).replace('<h3><i', '<h3 data-sat="'+key(d)+'"><i')).join('');
+    } else {
+      grid.innerHTML = posts.map(p=>plCard(p, k)).join('') || '<p class="empty">Aucun poste ce jour-là.</p>';
+    }
   }
   async function plApply(poste, date, part, arr, added){
     if (plScope === 'once') return writeWho(poste, date, part, arr, added, 'Enregistré pour cette date seulement.');
@@ -1556,8 +1578,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (isSam(findPost(a[0]))) { cur.length = 0; }
     cur.push(id); plApply(a[0],a[1],a[2],cur,id);
   }
-  $('#plPrev').addEventListener('click', ()=>{ plStart = addDays(plStart,-7); renderCompose(); });
-  $('#plNext').addEventListener('click', ()=>{ plStart = addDays(plStart,7); renderCompose(); });
+  $('#plPrev').addEventListener('click', ()=>{ plStart = addDays(plStart, plMode === 'ast' ? -42 : -7); renderCompose(); });
+  $('#plNext').addEventListener('click', ()=>{ plStart = addDays(plStart, plMode === 'ast' ? 42 : 7); renderCompose(); });
+  document.querySelectorAll('[data-plmode]').forEach(b=>b.addEventListener('click', ()=>{ plMode = b.dataset.plmode; renderCompose(); }));
   $('#plJump').addEventListener('change', e=>{ if (e.target.value) { const d = parse(e.target.value); plStart = mondayOf(d); plDay = Math.min((d.getDay()+6)%7, 5); renderCompose(); } });
   document.querySelectorAll('[data-plscope]').forEach(b=>b.addEventListener('click', ()=>{ plScope = b.dataset.plscope; renderCompose(); }));
   const plDayClick = e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} };
