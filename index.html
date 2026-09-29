@@ -384,6 +384,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .top{background:linear-gradient(160deg,#B4D2DF 0%,#DCEAEF 85%);color:var(--ink);border:1px solid var(--line);padding:20px 20px 18px;align-items:flex-end}
 .top h1{color:var(--ink)}.top .sub{color:var(--muted);opacity:1;font-size:15px;margin-top:8px}
 .top label{color:var(--muted)}.top #who{border-color:var(--line)}
+.hello{position:relative}.hello .hiemoji{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:clamp(2.6rem,13vw,3.6rem);line-height:1;opacity:.95;pointer-events:none}.hello h1,.hello .sub{padding-right:24%}
 .hello .eyebrow{font:600 12px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .hello .hidate{color:var(--muted);margin-top:2px;font-size:14px}
 .hello h1{margin-top:8px;font-size:clamp(2rem,7vw,2.8rem)}
@@ -440,6 +441,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astbar{display:flex;flex-direction:column;gap:8px}.astbar[hidden]{display:none}
 .astgo{min-height:64px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:10px 16px;border:0;border-radius:14px;font-size:17px;font-weight:800;color:#fff;text-align:left}
 .astgo small{font-weight:500;font-size:13px;opacity:.95}
+.astmode{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.astmode span.on{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}.astmode button{flex:1;min-height:40px}.pll em.auto{background:#E4F1FF;color:#1B5FA8}.pll em.man{background:#F1EAF9;color:#6A3FA0}
 .astgo.ko{background:#C62828}.astgo.ok{background:#1E7B4B}
 .astmiss{min-height:48px;text-align:left}
 .astrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -455,6 +457,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 <div class="wrap">
   <header class="top">
     <div class="hello">
+      <span class="hiemoji" aria-hidden="true">🩻</span>
       <p class="eyebrow">Planning Imagerie</p>
       <p class="hidate" id="hiDate"></p>
       <h1 id="hiTitle">Bonjour,</h1>
@@ -756,7 +759,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 20h45 (astreintes v3)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 21h00 (génération v4)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1586,7 +1589,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         const cn = id => isSam(p) ? '<b class="acn" aria-label="'+(AC[id]||0)+' astreinte'+((AC[id]||0) > 1 ? 's' : '')+'">'+(AC[id]||0)+'</b>' : '';
         const chips = who.map(id=>{ const r = v && v.ou ? '' : reasonFor(id,k,part); if (r) bad++; return '<span class="pch'+(r ? ' bad' : '')+'">'+esc(dLabel(id))+cn(id)+'<button type="button" data-plx="'+esc(slot+'|'+id)+'" aria-label="Retirer '+esc(dLabel(id))+'"'+dis+'>×</button></span>'; }).join('');
         const why = who.filter(id=>!(v && v.ou) && reasonFor(id,k,part)).map(id=>esc(dLabel(id))+' : '+esc(reasonFor(id,k,part))).join(' · ');
-        const tag = ov ? '<em>cette date</em>' : (who.length ? '<em>toujours</em>' : '');
+        const tag = ov ? (ov.a ? '<em class="auto">⚡ automatique</em>' : '<em class="man">✋ manuel</em>') : (who.length ? '<em>toujours</em>' : '');
         const top = isSam(p) ? [] : plSuggest(p.id, part, who, k), sug = top.concat(docs.map(d=>d.id).filter(id=>!who.includes(id) && !top.includes(id)));
         if (isSam(p)) sug.sort((a,b)=>(AC[a]||0)-(AC[b]||0));
         const closed = !!v && !who.length && /^ferm/i.test(v.texte || '');
@@ -1663,8 +1666,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const MOIS_N = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   const monthLbl = m => MOIS_N[Number(m.slice(5,7))-1]+' '+m.slice(0,4);
   const astSats = () => [...Array(6)].map((_,i)=>addDays(plStart,5+7*i));
-  const astMonths = () => [...new Set(astSats().map(d=>key(d).slice(0,7)))];
-  const astMissing = months => sortedDocs().filter(d=>!d.noAst && months.some(m=>!(d.conf && d.conf[m])));
+  const astMonths = () => plMode === 'ast' ? [...new Set(astSats().map(d=>key(d).slice(0,7)))] : [...new Set([0,4].map(i=>key(addDays(plStart,i)).slice(0,7)))];
+  const astMissing = months => sortedDocs().filter(d=>(plMode !== 'ast' || !d.noAst) && months.some(m=>!(d.conf && d.conf[m])));
   async function setDocField(id, patch){
     if (!db || !canWrite || !doctors[id]) { notify('Lecture seule : modification impossible.', true); return false; }
     try { await db.doc('medecins/'+id).update(patch); return true; } catch(e) { handleErr(e); return false; }
@@ -1696,11 +1699,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const canSeeMiss = () => !!(doctors[me] && MISS_VIEWERS.includes(plNorm(doctors[me].label)));
   function renderAstBar(){
     const box = $('#astBarBox'); if (!box) return;
-    const ap = trame && trame.postes.find(isSam);
-    if (!ap) { box.hidden = true; box.innerHTML = ''; return; }
+    const ap = trame && trame.postes.find(isSam), ast = plMode === 'ast';
+    if (!trame || (ast && !ap)) { box.hidden = true; box.innerHTML = ''; return; }
     const months = astMonths(), miss = astMissing(months), allOk = !miss.length, dis = canWrite ? '' : ' disabled';
     box.hidden = false;
-    box.innerHTML = '<button type="button" class="astgo '+(allOk ? 'ok' : 'ko')+'" data-astassign="1"'+dis+'><span>🔔 Générer le planning d’astreinte</span><small>'+(allOk ? '✓ Tout le monde a renseigné ses indisponibilités ('+months.map(monthLbl).join(', ')+')' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités')+'</small></button>'
+    box.innerHTML = '<button type="button" class="astgo '+(allOk ? 'ok' : 'ko')+'" data-astassign="1"'+dis+'><span>'+(ast ? '🔔 Générer le planning d’astreinte' : '📅 Générer le planning de la semaine')+'</span><small>'+(allOk ? '✓ Tout le monde a renseigné ses indisponibilités ('+months.map(monthLbl).join(', ')+')' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités')+'</small></button>'
+      + '<div class="astmode"><span class="on">⚡ Assigné automatiquement</span><button type="button" class="ghost" data-astmanual="1">✋ Assigner manuellement</button></div>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">👥 Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
   /* ---------- qui n'a pas renseigné ses indisponibilités ---------- */
@@ -1716,15 +1720,15 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!canSeeMiss()) {
       h += miss.length ? '<p class="empty" style="border:0">'+miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités.</p>' : '<p class="empty" style="border:0">✓ Tout le monde a renseigné ses indisponibilités.</p>';
     } else if (miss.length) {
-      h += '<h4 class="asth ko">À relancer ('+miss.length+')</h4>' + miss.map(d=>row(d, 'manque : '+months.filter(m=>!(d.conf && d.conf[m])).map(monthLbl).join(', '), '<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Pas d’astreinte</button>')).join('');
+      h += '<h4 class="asth ko">À relancer ('+miss.length+')</h4>' + miss.map(d=>row(d, 'manque : '+months.filter(m=>!(d.conf && d.conf[m])).map(monthLbl).join(', '), (plMode === 'ast' ? '<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Pas d’astreinte</button>' : ''))).join('');
       h += '<button type="button" class="ghost astcopy" data-astcopy="1">📋 Copier un message de rappel</button>';
     } else h += '<p class="empty" style="border:0">✓ Tout le monde a renseigné ses indisponibilités.</p>';
     if (canSeeMiss() && done.length) h += '<h4 class="asth ok">Ont renseigné ('+done.length+')</h4><p class="hint">'+done.map(d=>esc(d.label)).join(', ')+'</p>';
-    if (canSeeMiss() && excl.length) h += '<h4 class="asth">Sans astreinte ('+excl.length+')</h4>' + excl.map(d=>row(d, '', '<button type="button" class="ghost" data-astincl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Réintégrer</button>')).join('');
+    if (plMode === 'ast' && canSeeMiss() && excl.length) h += '<h4 class="asth">Sans astreinte ('+excl.length+')</h4>' + excl.map(d=>row(d, '', '<button type="button" class="ghost" data-astincl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Réintégrer</button>')).join('');
     $('#astShL').innerHTML = h;
     $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Assigner quand même</button>' : '';
   }
-  $('#astBarBox').addEventListener('click', e=>{ if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
+  $('#astBarBox').addEventListener('click', e=>{ if (e.target.closest('[data-astmanual]')) { notify(plMode === 'ast' ? 'Touchez un nom sous chaque samedi pour assigner à la main.' : 'Touchez un nom (ou « ＋ Nouveau nom ») dans chaque vacation pour assigner à la main.'); try { $('#plGrid').scrollIntoView({behavior:'smooth', block:'start'}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
   $('#astSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-astx]')) return closeMiss();
     const ex = e.target.closest('[data-astexcl]'); if (ex) { if (await setDocField(ex.dataset.astexcl, {noAst: true})) renderMiss(); return; }
@@ -1739,6 +1743,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   });
   /* ---------- attribution automatique des astreintes ---------- */
   async function plAssign(force){
+    if (plMode !== 'ast') return plWeekGen(force);
     const ap = trame && trame.postes.find(isSam); if (!ap) return notify('Le poste d’astreinte n’existe pas encore.', true);
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
     const months = astMonths(), miss = astMissing(months);
@@ -1751,11 +1756,61 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const cands = pool.filter(d=>!reasonFor(d.id, k, 'M'));
       cands.sort((a,b)=>((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
       const pick = cands[0]; if (!pick) { skipped++; continue; }
-      if (!(await setOverride(k, ap.id+'_M', {w:[pick.id], t: Date.now()}))) return;
+      if (!(await setOverride(k, ap.id+'_M', {w:[pick.id], t: Date.now(), a: 1}))) return;
       cnt[pick.id] = (cnt[pick.id]||0) + 1; last = [pick.id]; done++;
     }
     renderCompose();
     notify(done ? done+' astreinte'+(done > 1 ? 's assignées' : ' assignée')+(skipped ? ' · '+skipped+' samedi'+(skipped > 1 ? 's' : '')+' sans personne disponible' : '')+'. Vous pouvez encore les modifier.' : (skipped ? 'Personne de disponible sur les samedis restants.' : 'Tous les samedis affichés ont déjà une astreinte.'), !done && !!skipped);
+  }
+  /* ---------- génération automatique de la semaine : 1) la trame, 2) les indisponibilités ---------- */
+  async function plWeekGen(force){
+    if (!trame || !trame.postes.length) return notify('Les postes du service ne sont pas encore chargés.', true);
+    if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
+    const months = astMonths(), miss = astMissing(months);
+    if (miss.length && !force) return openMiss(true);
+    const posts = trame.postes.filter(p=>!p.info && !isSam(p)), docs = sortedDocs();
+    const load = {};
+    let done = 0, holes = 0, ous = 0;
+    for (let i = 0; i < 5; i++) {
+      const k = key(addDays(plStart, i));
+      for (const part of PARTS) {
+        const taken = new Set();
+        const slots = [];
+        posts.forEach(p=>{ if (!okDay(p, i)) return; if (p.journee && part !== 'M') return;
+          const v = vacWho(p.id, k, part); if (!v) return;
+          if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
+          if (v.open || v.edited && !v.ou) { v.who.forEach(id=>taken.add(id)); return; }
+          slots.push({p, v}); });
+        /* 1) postes fixes de la trame, retenus s'ils sont disponibles */
+        slots.forEach(sl=>{ if (!sl.v.ou) sl.v.who.forEach(id=>{ if (!reasonFor(id, k, part)) taken.add(id); }); });
+        for (const sl of slots) {
+          const p = sl.p, v = sl.v, ov = overrides[k] && overrides[k][p.id+'_'+part];
+          if (ov && ov.w && ov.w.length && !ov.a) continue;
+          const need = v.ou ? 1 : v.who.length; if (!need) continue;
+          let keep = v.ou ? [] : v.who.filter(id=>!reasonFor(id, k, part));
+          if (v.ou) { ous++; }
+          if (!v.ou && keep.length === v.who.length) continue;
+          /* 2) remplaçants : ceux qui font le plus souvent ce poste (fréquence), sinon les moins chargés */
+          const freq = {};
+          Object.keys(overrides).forEach(d=>{ const o = overrides[d][p.id+'_'+part]; if (o) o.w.forEach(id=>{ freq[id] = (freq[id]||0) + 1; }); });
+          Object.keys(trame.cases).forEach(c=>{ if (c.indexOf(p.id+'_') === 0 && c.slice(-part.length-1) === '_'+part) { const w = trame.cases[c].who; if (Array.isArray(w)) w.forEach(id=>{ freq[id] = (freq[id]||0) + 2; }); } });
+          const pool = (v.ou ? v.who.concat(docs.map(d=>d.id).filter(id=>!v.who.includes(id) && freq[id])) : docs.map(d=>d.id))
+            .filter((id, ix, ar)=>ar.indexOf(id) === ix && !keep.includes(id) && !taken.has(id) && !reasonFor(id, k, part));
+          pool.sort((a,b)=>(v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || ((freq[b]||0) - (freq[a]||0)) || ((load[a]||0) - (load[b]||0)));
+          const eligible = pool.filter(id=>freq[id]);
+          const res = keep.slice();
+          while (res.length < need && eligible.length) { const id = eligible.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; }
+          if (res.length < need) holes++;
+          if (v.ou && !res.length) continue;
+          let ok = true;
+          for (const pt of slotParts(p.id, part)) ok = (await setOverride(k, p.id+'_'+pt, {w: res, t: Date.now(), a: 1})) && ok;
+          if (!ok) return;
+          done++;
+        }
+      }
+    }
+    renderCompose();
+    notify(done ? done+' vacation'+(done > 1 ? 's' : '')+' ajustée'+(done > 1 ? 's' : '')+' d’après les indisponibilités'+(holes ? ' · '+holes+' place'+(holes > 1 ? 's' : '')+' sans remplaçant disponible' : '')+'. Le reste suit la trame.' : (holes ? 'Certaines places n’ont pas de remplaçant disponible.' : 'La trame convient déjà : personne d’indisponible cette semaine.'), !done && !!holes);
   }
   async function plToggleUn(spec){
     const a = spec.split('|'), id = a[a.length-1], doc = doctors[id]; if (!doc) return;
@@ -1774,7 +1829,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   const plDayClick = e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} };
   $('#plDays').addEventListener('click', plDayClick);
-  $('#plGrid') && $('#plGrid').addEventListener('click', e=>{ if (e.target.closest('.plast')) plDayClick(e); const u = e.target.closest('[data-plun]'); if (u) plToggleUn(u.dataset.plun); if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
+  $('#plGrid') && $('#plGrid').addEventListener('click', e=>{ if (e.target.closest('.plast')) plDayClick(e); const u = e.target.closest('[data-plun]'); if (u) plToggleUn(u.dataset.plun); if (e.target.closest('[data-astmiss]')) openMiss(false); });
   $('#plGrid') && $('#plGrid').addEventListener('toggle', e=>{ if (e.target.classList && e.target.classList.contains('plun')) plUnOpen = e.target.open; }, true);
   function openSheet(slot){ plSheet = slot; $('#plSheet').hidden = false; $('#plShQ').value = ''; renderSheet(); setTimeout(()=>{ try { $('#plShQ').focus(); } catch(e) {} }, 60); }
   function closeSheet(){ plSheet = null; $('#plSheet').hidden = true; renderCompose(); }
@@ -3304,7 +3359,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       snap.docs.forEach(s=>{
         if (!isDate(s.id)) return;
         const v = s.data() || {}, o = {};
-        Object.keys(v).forEach(k=>{ const x = v[k]; if (x && typeof x === 'object' && Array.isArray(x.w)) o[k] = {w: x.w.filter(y=>typeof y === 'string'), t: Number(x.t) || 0, x: typeof x.x === 'string' ? x.x : '', s: Array.isArray(x.s) ? x.s.filter(y=>typeof y === 'string') : []}; });
+        Object.keys(v).forEach(k=>{ const x = v[k]; if (x && typeof x === 'object' && Array.isArray(x.w)) o[k] = {w: x.w.filter(y=>typeof y === 'string'), t: Number(x.t) || 0, x: typeof x.x === 'string' ? x.x : '', s: Array.isArray(x.s) ? x.s.filter(y=>typeof y === 'string') : [], a: x.a ? 1 : 0}; });
         next[s.id] = o;
       });
       overrides = next; subs.aj = true; renderToday(); renderTrame(); renderConflicts(); renderMe(); renderSwapForm();
