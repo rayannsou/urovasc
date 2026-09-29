@@ -2895,6 +2895,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   function jumpToData(){
     if (jumped || seeding || seedState !== 'done') return;
+    jumped = true; return; /* on reste toujours sur la semaine en cours */
     const dates = SEED ? [].concat(...SEED.weeks.map(w=>w.dates)) : Object.keys(overrides);
     if (!dates.length) return;
     jumped = true;
