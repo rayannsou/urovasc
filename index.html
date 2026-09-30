@@ -128,6 +128,8 @@ table.trame .who{min-width:112px;vertical-align:middle}
 .ch.me{background:var(--accent);color:var(--accent-ink)}
 .ch.bad{background:var(--ind);color:var(--ind-ink);text-decoration:line-through}
 .ch.off{color:var(--muted)}
+.xfr{padding:8px 0;border-top:1px solid #ddd}.remrow{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:15px}.remrow input{width:20px;height:20px}
+body[data-role=interne] #postCard{display:none!important}
 .cap{display:block;font:500 9px/1.2 var(--font-mono);color:var(--muted)}
 .cap.alt{color:var(--accent);font-weight:700}
 .cf{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
@@ -387,7 +389,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .top{background:linear-gradient(160deg,#B4D2DF 0%,#DCEAEF 85%);color:var(--ink);border:1px solid var(--line);padding:20px 20px 18px;align-items:flex-end}
 .top h1{color:var(--ink)}.top .sub{color:var(--muted);opacity:1;font-size:15px;margin-top:8px}
 .top label{color:var(--muted)}.top #who{border-color:var(--line)}
-.hello{position:relative;flex:1 1 100%;min-width:0}.hello .hiemoji{position:absolute;right:0;top:50%;width:1.25em;text-align:center;transform:translateY(-50%);font-size:clamp(2.6rem,13vw,3.6rem);line-height:1;opacity:.95;pointer-events:none}.hello h1,.hello .sub{padding-right:24%}
+.hello{position:relative;flex:1 1 100%;min-width:0}.hello .hiemoji{position:absolute;right:0;top:50%;width:1.25em;text-align:center;transform:translateY(-50%);font-size:clamp(2.6rem,13vw,3.6rem);line-height:1;opacity:.95;pointer-events:none}.hello .hiemoji.ph{width:clamp(3.2rem,16vw,4.2rem);height:clamp(3.2rem,16vw,4.2rem)}.hello .hiemoji.ph img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;box-shadow:0 0 0 2px rgba(255,255,255,.7)}.phbox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}.phbox img,.phbox .phe{width:56px;height:56px;border-radius:50%;object-fit:cover;background:rgba(127,127,127,.18);display:flex;align-items:center;justify-content:center;font-size:28px}
+.hello h1,.hello .sub{padding-right:24%}
 .hello .eyebrow{font:600 12px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .hello .hidate{color:var(--muted);margin-top:2px;font-size:14px}
 .hello h1{margin-top:8px;font-size:clamp(2rem,7vw,2.8rem)}
@@ -462,7 +465,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 <div class="wrap">
   <header class="top">
     <div class="hello">
-      <span class="hiemoji" aria-hidden="true">🩻</span>
+      <span class="hiemoji" id="hiAv" aria-hidden="true">🩻</span>
       <p class="eyebrow">Planning Imagerie</p>
       <p class="hidate" id="hiDate"></p>
       <h1 id="hiTitle">Bonjour,</h1>
@@ -773,6 +776,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     <div class="who-box mpbox">
       <label for="who">Je suis</label>
       <select id="who"><option value="">Chargement…</option></select>
+      <div class="phbox"><span id="phPrev"><span class="phe">🩻</span></span><button type="button" class="ghost" id="phPick">📷 Choisir une photo de profil</button><button type="button" class="ghost" id="phDel" hidden>Retirer</button><input type="file" id="phFile" accept="image/*" hidden></div>
+      <p class="hint">Sans photo, l’emoji radiologie s’affiche en haut à droite de l’accueil.</p>
       <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
       <form id="renForm" class="renform" hidden><input type="text" id="renInput" maxlength="24" autocomplete="off" aria-label="Votre prénom"><button type="submit" class="primary">Enregistrer</button><button type="button" id="renCancel" class="ghost">Annuler</button></form>
     </div>
@@ -782,18 +787,34 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <p class="hint" id="instHint">Ajoutez le planning sur l’écran d’accueil de votre téléphone pour l’ouvrir comme une application.</p>
           <button type="button" class="primary" id="instBtn">📲 Ajouter à l’écran d’accueil</button>
         </div>
+        <div class="card" id="remCard">
+          <h2>Rappels</h2>
+          <p class="hint" id="remHint"></p>
+          <div id="remBody" hidden>
+            <label class="remrow"><input type="checkbox" id="remVeille"> Où je suis posté(e), la veille</label>
+            <label class="remrow"><input type="checkbox" id="remA7"> Astreinte : 1 semaine avant</label>
+            <label class="remrow"><input type="checkbox" id="remA1"> Astreinte : 24 h avant</label>
+            <div class="f"><label for="remHour">Heure du rappel</label><input type="time" id="remHour" value="20:00" step="900"></div>
+          </div>
+          <button type="button" class="primary" id="remBtn">🔔 Activer les rappels</button>
+        </div>
         <div class="card">
           <h2>Apparence</h2>
           <p class="hint">Choisissez le mode clair ou sombre, ou laissez l’appareil décider.</p>
           <div class="thm" role="group" aria-label="Mode d’affichage"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Clair</button><button type="button" data-theme-set="dark">Sombre</button></div>
         </div>
-        <div class="card">
+        <div class="card" id="roleCard">
+          <h2>Interface</h2>
+          <p class="hint" id="roleHint"></p>
+          <button type="button" class="ghost" id="roleSwitch">Changer d’interface</button>
+        </div>
+        <div class="card" id="creerCard">
           <h2>Planning du mois</h2>
           <p class="hint">Créer une semaine, importer un fichier Excel ou ajouter une vacation exceptionnelle.</p>
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (créer v27)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (rappels v28, internes/seniors)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -813,7 +834,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             </fieldset>
           </form>
         </div>
-        <div class="card">
+        <div class="card" id="postCard">
           <h2>Postes du service</h2>
           <p class="hint">Renommez, ajoutez ou retirez un poste (échographie, scanner, IRM…). Retirer un poste le masque du planning.</p>
           <ul id="postesList" class="people team-list"></ul>
@@ -1264,6 +1285,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   let doctors = {};
   let cfScope = undefined;
   let me = '';
+  let ROLE = 'senior';
+  document.body.dataset.role = ROLE;
+  window.__applyRole = ()=>{
+    ROLE = window.__ROLE === 'interne' ? 'interne' : 'senior'; document.body.dataset.role = ROLE;
+    $('#roleHint').textContent = ROLE === 'interne' ? 'Interface Internes : vous créez et importez le planning des internes uniquement (les seniors ne sont pas modifiés). Les affichages montrent tout le monde.' : 'Interface Seniors : vous créez et importez le planning des seniors uniquement (les internes ne sont pas modifiés). Les affichages montrent tout le monde.';
+    if (ROLE === 'interne') { const nr = $('#newRole'); nr.innerHTML = '<option>Interne</option>'; nr.disabled = true; }
+  };
   try { me = localStorage.getItem('planning-me') || ''; } catch(e) {}
   const today = new Date();
   let weekStart = mondayOf(today);
@@ -1429,6 +1457,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const ds = fmtLong.format(n);
     $('#hiDate').textContent = ds.charAt(0).toUpperCase()+ds.slice(1);
     $('#hiTitle').innerHTML = d ? hello+', <em>'+esc(d.label)+'</em>' : hello+',';
+    const av = $('#hiAv'), ph = d && d.photo ? d.photo : '';
+    if (ph) { if (av.dataset.ph !== ph) { av.innerHTML = '<img alt="" src="'+ph+'">'; av.dataset.ph = ph; } av.classList.add('ph'); }
+    else { av.classList.remove('ph'); av.dataset.ph = ''; av.textContent = '🩻'; }
+    const pb = $('#phPrev'); if (pb) pb.innerHTML = ph ? '<img alt="" src="'+ph+'">' : '<span class="phe">🩻</span>';
+    if ($('#phDel')) $('#phDel').hidden = !ph;
     $('#goProfile').hidden = !!d || !(loaded && sortedDocs().length);
     $('#hiSub').textContent = d ? todaySummary() : (loaded && sortedDocs().length ? 'Choisissez votre nom dans Réglages pour voir votre semaine.' : 'Chargement du planning…');
   }
@@ -1589,7 +1622,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const plNorm = t => normS(String(t || '')).replace(/\s+/g,' ');
   function plFind(txt){
     const t = plNorm(txt); if (!t) return null;
-    const docs = sortedDocs();
+    const docs = grpDocs();
     let m = docs.filter(d=>plNorm(d.label) === t || d.id === t);
     if (m.length !== 1) m = docs.filter(d=>plNorm(d.label).startsWith(t));
     return m.length === 1 ? m[0] : null;
@@ -1616,7 +1649,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (plDay >= nd) plDay = 0;
     $('#plDays').innerHTML = days.slice(0,nd).map((d,i)=>'<button type="button" role="tab" data-plday="'+i+'" aria-selected="'+(i === plDay)+'"><span>'+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'short'}).format(d).replace('.',''))+'</span><small>'+d.getDate()+'</small></button>').join('');
     if (!trame || !trame.postes.length) { grid.innerHTML = '<p class="empty">'+(loaded ? 'Les postes du service ne sont pas encore chargés.' : 'Chargement…')+'</p>'; return; }
-    const k = key(days[plDay]), dis = canWrite ? '' : ' disabled', docs = sortedDocs();
+    const k = key(days[plDay]), dis = canWrite ? '' : ' disabled', docs = grpDocs();
     const posts = trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, plDay));
     let nFill = 0, nAll = 0;
     posts.forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ nAll++; const v = vacWho(p.id,k,part); if (v && (v.who.length || v.texte)) nFill++; }));
@@ -1627,7 +1660,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const plCard = (p, k) => {
       const parts = p.journee ? ['M'] : partsOf(p);
       const rows = parts.map(part=>{
-        const v = vacWho(p.id, k, part), who = v ? v.who : [], slot = p.id+'|'+k+'|'+part;
+        const v = vacWho(p.id, k, part), who = v ? v.who.filter(inGrp) : [], slot = p.id+'|'+k+'|'+part;
         const ov = overrides[k] && overrides[k][p.id+'_'+part];
         let bad = 0;
         const cn = id => isSam(p) ? '<b class="acn" aria-label="'+(AC[id]||0)+' astreinte'+((AC[id]||0) > 1 ? 's' : '')+'">'+(AC[id]||0)+'</b>' : '';
@@ -1674,8 +1707,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const ok = await saveTrame(t=>{
       slotParts(poste, part).forEach(pt=>{
         const kk = tk(poste, dow, pt), prev = t.cases[kk] || {};
-        if (!arr.length && !prev.texte) delete t.cases[kk];
-        else t.cases[kk] = Object.assign(prev.texte && !/^ferm/i.test(prev.texte) ? {texte: prev.texte} : {}, {who: arr.slice()});
+        const all = (Array.isArray(prev.who) ? prev.who.filter(id=>!inGrp(id)) : []).concat(arr.filter(inGrp));
+        if (!all.length && !prev.texte) delete t.cases[kk];
+        else t.cases[kk] = Object.assign(prev.texte && !/^ferm/i.test(prev.texte) ? {texte: prev.texte} : {}, {who: all});
       });
     });
     if (!ok) return;
@@ -1711,7 +1745,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const monthLbl = m => MOIS_N[Number(m.slice(5,7))-1]+' '+m.slice(0,4);
   const astSats = () => [...Array(6)].map((_,i)=>addDays(plStart,5+7*i));
   const astMonths = () => plMode === 'ast' ? [...new Set(astSats().map(d=>key(d).slice(0,7)))] : [...new Set([0,4].map(i=>key(addDays(plStart,i)).slice(0,7)))];
-  const astMissing = months => sortedDocs().filter(d=>(plMode !== 'ast' || !d.noAst) && months.some(m=>!(d.conf && d.conf[m])));
+  const astMissing = months => grpDocs().filter(d=>(plMode !== 'ast' || !d.noAst) && months.some(m=>!(d.conf && d.conf[m])));
   async function setDocField(id, patch){
     if (!db || !canWrite || !doctors[id]) { notify('Lecture seule : modification impossible.', true); return false; }
     try { await db.doc('medecins/'+id).update(patch); return true; } catch(e) { handleErr(e); return false; }
@@ -1726,7 +1760,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const cnt = {};
     Object.keys(overrides).forEach(d=>{ const o = overrides[d][poste+'_'+part]; if (o) o.w.forEach(id=>{ cnt[id] = (cnt[id] || 0) + 1; }); });
     Object.keys(trame.cases).forEach(c=>{ if (c.indexOf(poste+'_') === 0 && c.slice(-part.length-1) === '_'+part) { const w = trame.cases[c].who; if (Array.isArray(w)) w.forEach(id=>{ cnt[id] = (cnt[id] || 0) + 2; }); } });
-    return Object.keys(cnt).filter(id=>doctors[id] && !who.includes(id) && !reasonFor(id,k,part)).sort((a,b)=>cnt[b]-cnt[a]).slice(0,4);
+    return Object.keys(cnt).filter(id=>doctors[id] && inGrp(id) && !who.includes(id) && !reasonFor(id,k,part)).sort((a,b)=>cnt[b]-cnt[a]).slice(0,4);
   }
   function plAdd(slot, id){
     const a = slot.split('|'), cur = whoOf(a[0],a[1],a[2]);
@@ -1765,7 +1799,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   function openMiss(force){ missForce = !!force; $('#astSheet').hidden = false; renderMiss(); }
   function closeMiss(){ $('#astSheet').hidden = true; missForce = false; renderCompose(); }
   function renderMiss(){
-    const months = astMonths(), miss = astMissing(months), all = sortedDocs();
+    const months = astMonths(), miss = astMissing(months), all = grpDocs();
     const done = all.filter(d=>!d.noAst && !miss.includes(d)), excl = all.filter(d=>d.noAst);
     $('#astShS').textContent = 'Période : '+months.map(monthLbl).join(' et ');
     const row = (d, extra, btn) => '<div class="astrow"><span><b>'+esc(d.label)+'</b>'+(extra ? ' <small>'+extra+'</small>' : '')+'</span>'+btn+'</div>';
@@ -1802,11 +1836,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
     const months = astMonths(), miss = astMissing(months);
     if (miss.length && !force) return openMiss(true);
-    const sats = astSats().map(key), cnt = astCounts(), pool = sortedDocs().filter(d=>!d.noAst);
-    let last = (vacWho(ap.id, key(addDays(parse(sats[0]),-7)), 'M') || {who:[]}).who, done = 0, skipped = 0; const writes = [];
+    const sats = astSats().map(key), cnt = astCounts(), pool = grpDocs().filter(d=>!d.noAst);
+    let last = (vacWho(ap.id, key(addDays(parse(sats[0]),-7)), 'M') || {who:[]}).who.filter(inGrp), done = 0, skipped = 0; const writes = [];
     for (const k of sats) {
       const v = vacWho(ap.id, k, 'M');
-      if (v && v.who.length) { last = v.who; continue; }
+      if (v && v.who.filter(inGrp).length) { last = v.who.filter(inGrp); continue; }
       const cands = pool.filter(d=>!reasonFor(d.id, k, 'M'));
       cands.sort((a,b)=>((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
       const pick = cands[0]; if (!pick) { skipped++; continue; }
@@ -1822,7 +1856,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
     const months = astMonths(), miss = astMissing(months);
     if (miss.length && !force) return openMiss(true);
-    const posts = trame.postes.filter(p=>!p.info && !isSam(p)), docs = sortedDocs();
+    const posts = trame.postes.filter(p=>!p.info && !isSam(p)), docs = grpDocs();
     const load = {};
     let done = 0, holes = 0, ous = 0; const writes = [];
     for (let i = 0; i < 5; i++) {
@@ -1834,12 +1868,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           const v = vacWho(p.id, k, part); if (!v) return;
           if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
           if (v.open || v.edited && !v.ou) { v.who.forEach(id=>taken.add(id)); return; }
-          slots.push({p, v}); });
+          slots.push({p, v: Object.assign({}, v, {who: v.who.filter(inGrp)})}); });
         /* 1) postes fixes de la trame, retenus s'ils sont disponibles */
         slots.forEach(sl=>{ if (!sl.v.ou) sl.v.who.forEach(id=>{ if (!reasonFor(id, k, part)) taken.add(id); }); });
         for (const sl of slots) {
           const p = sl.p, v = sl.v, ov = overrides[k] && overrides[k][p.id+'_'+part];
-          if (ov && ov.w && ov.w.length && !ov.a) continue;
+          if (ov && ov.w && ov.w.filter(inGrp).length && !ov.a) continue;
+          if (v.ou && !v.who.length) continue;
           const need = v.ou ? 1 : v.who.length; if (!need) continue;
           let keep = v.ou ? [] : v.who.filter(id=>!reasonFor(id, k, part));
           if (v.ou) { ous++; }
@@ -2081,7 +2116,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#plShT').textContent = postName(a[0], a[1]);
     $('#plShS').textContent = fmtLong.format(parse(a[1]))+' · '+(p.journee ? 'journée' : isSam(p) ? 'astreinte' : PART_TXT[a[2]])+(plScope === 'always' ? ' · chaque semaine' : ' · cette date seulement');
     const cur = whoOf(a[0],a[1],a[2]), q = plNorm($('#plShQ').value);
-    const docs = sortedDocs().filter(d=>!q || plNorm(d.label).includes(q));
+    const docs = grpDocs().filter(d=>!q || plNorm(d.label).includes(q));
     const rawQ = $('#plShQ').value.trim(), exact = sortedDocs().some(d=>plNorm(d.label) === q);
     const mk = rawQ && !exact && /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{0,30}$/.test(rawQ) ? '<button type="button" class="plopt" data-plnew="'+esc(rawQ)+'"><span class="lt"><span>＋ Créer « '+esc(rawQ)+' »</span><small style="color:var(--muted)">Nouveau médecin, ajouté à la liste</small></span></button>' : '';
     $('#plShL').innerHTML = mk + docs.map(d=>{ const on = cur.includes(d.id), r = on ? '' : reasonFor(d.id,a[1],a[2]); return '<button type="button" class="plopt'+(r ? ' warn' : '')+'" data-pld="'+esc(d.id)+'" aria-pressed="'+on+'"><span class="lt"><span>'+esc(dLabel(d.id))+'</span>'+(r ? '<small>⚠ '+esc(r)+'</small>' : '')+'</span><span class="tk">'+(on ? '✓' : '')+'</span></button>'; }).join('') || '<p class="empty">Aucun médecin ne correspond.</p>';
@@ -2102,7 +2137,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   $('#plShQ').addEventListener('keydown', e=>{
     if (e.key !== 'Enter') return; e.preventDefault();
     const q = plNorm($('#plShQ').value); if (!q || !plSheet) return;
-    const m = sortedDocs().filter(d=>plNorm(d.label) === q); const d = m[0] || sortedDocs().filter(d=>plNorm(d.label).startsWith(q))[0];
+    const m = grpDocs().filter(d=>plNorm(d.label) === q); const d = m[0] || grpDocs().filter(d=>plNorm(d.label).startsWith(q))[0];
     if (!d) { plCreateAndAdd($('#plShQ').value.trim()); return; }
     const a = plSheet.split('|'), cur = whoOf(a[0],a[1],a[2]);
     if (!cur.includes(d.id)) { cur.push(d.id); plApply(a[0],a[1],a[2],cur,d.id); }
@@ -2194,7 +2229,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   $('#who').addEventListener('change', e=>{
     me = e.target.value;
     try { localStorage.setItem('planning-me', me); } catch(err) {}
-    renderAll();
+    renderAll(); remLoaded = ''; renderRem();
   });
 
   function showTab(t){
@@ -2208,8 +2243,76 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const slot = t === 'general' ? '#impSlotP' : t === 'reglages' ? '#impSlotR' : t === 'plan' ? '#impSlotP' : '#impSlotC';
     $(slot).appendChild($('#cwImport'));
     if (t === 'plan') { plStage = ''; renderCompose(); }
-    if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); }
+    if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); renderRem(); }
   }
+
+  /* ---------- photo de profil ---------- */
+  $('#phPick').addEventListener('click', ()=>{ if (!me) return notify('Choisissez d’abord votre nom.', true); $('#phFile').click(); });
+  $('#phFile').addEventListener('change', async e=>{
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f || !me || !db) return;
+    try {
+      const url = URL.createObjectURL(f), img = new Image();
+      await new Promise((ok, ko)=>{ img.onload = ok; img.onerror = ko; img.src = url; });
+      const S = 160, c = document.createElement('canvas'); c.width = c.height = S;
+      const m = Math.min(img.naturalWidth, img.naturalHeight), sx = (img.naturalWidth-m)/2, sy = (img.naturalHeight-m)/2;
+      c.getContext('2d').drawImage(img, sx, sy, m, m, 0, 0, S, S); URL.revokeObjectURL(url);
+      await db.doc('medecins/'+me).update({photo: c.toDataURL('image/jpeg', 0.82)});
+      notify('Photo de profil enregistrée.');
+    } catch(err) { notify('Image illisible.', true); }
+  });
+  $('#phDel').addEventListener('click', async ()=>{ if (!me || !db) return; try { await db.doc('medecins/'+me).update({photo: ''}); notify('Photo retirée.'); } catch(err) { handleErr(err); } });
+
+  /* ---------- interface (internes / seniors) ---------- */
+  window.__applyRole();
+  $('#roleSwitch').addEventListener('click', ()=>{ try { localStorage.removeItem('planning-acces'); } catch(e) {} location.reload(); });
+
+  /* ---------- rappels (notifications) ---------- */
+  let rem = {on:false, hour:'20:00', veille:true, ast7:true, ast1:true}, remLoaded = '', remBusy = false;
+  function remPaint(){
+    const P = window.__push, hint = $('#remHint'), btn = $('#remBtn'), body = $('#remBody');
+    body.hidden = !rem.on;
+    $('#remVeille').checked = rem.veille !== false; $('#remA7').checked = rem.ast7 !== false; $('#remA1').checked = rem.ast1 !== false; $('#remHour').value = rem.hour || '20:00';
+    btn.textContent = rem.on ? '🔕 Désactiver les rappels' : '🔔 Activer les rappels';
+    btn.className = rem.on ? 'ghost' : 'primary';
+    if (!me) { hint.textContent = 'Choisissez d’abord votre nom dans « Mon profil » : les rappels sont personnels.'; btn.disabled = true; return; }
+    btn.disabled = remBusy;
+    hint.textContent = rem.on ? 'Rappels actifs sur cet appareil. Vous pouvez les couper ou changer l’heure à tout moment.' : 'Recevez une notification la veille avec votre poste, et un rappel avant chaque astreinte. Sur iPhone, ajoutez d’abord l’appli à l’écran d’accueil.';
+  }
+  async function renderRem(){
+    if (!db) return remPaint();
+    if (me && remLoaded !== me) {
+      remLoaded = me;
+      try { const s = await db.doc('push/'+me).get(); const v = s.exists ? s.data() : null; rem = v ? {on:v.on === true, hour:v.hour || '20:00', veille:v.veille !== false, ast7:v.ast7 !== false, ast1:v.ast1 !== false} : {on:false, hour:'20:00', veille:true, ast7:true, ast1:true}; } catch(e) {}
+    }
+    remPaint();
+  }
+  async function remSave(extra){
+    const d = Object.assign({hour:$('#remHour').value || '20:00', veille:$('#remVeille').checked, ast7:$('#remA7').checked, ast1:$('#remA1').checked, updatedAt:Date.now()}, extra || {});
+    await db.doc('push/'+me).update(d);
+    Object.assign(rem, d);
+  }
+  $('#remBtn').addEventListener('click', async ()=>{
+    if (!me || remBusy) return; remBusy = true; remPaint();
+    try {
+      if (rem.on) { await remSave({on:false, token:''}); notify('Rappels désactivés.'); }
+      else {
+        const P = window.__push;
+        if (!P || !(await P.supported())) throw new Error('unsupported');
+        if (!P.vapid) throw new Error('novapid');
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') throw new Error('denied');
+        const token = await P.token();
+        if (!token) throw new Error('notoken');
+        await remSave({on:true, token, tz:'Europe/Paris', sent:{}});
+        notify('Rappels activés.');
+      }
+    } catch(e) {
+      const m = String(e && e.message);
+      notify(m === 'unsupported' ? 'Notifications non disponibles ici. Sur iPhone, ajoutez d’abord l’appli à l’écran d’accueil, puis ouvrez-la depuis l’icône.' : m === 'novapid' ? 'Les rappels ne sont pas encore configurés côté serveur.' : m === 'denied' ? 'Notifications refusées : autorisez-les dans les réglages de l’appareil.' : 'Impossible d’activer les rappels.', true);
+    }
+    remBusy = false; remPaint();
+  });
+  ['#remVeille','#remA7','#remA1','#remHour'].forEach(id=>$(id).addEventListener('change', async ()=>{ if (!rem.on || !me) return; try { await remSave(); notify('Rappels mis à jour.'); } catch(e) { handleErr(e); } }));
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
   $('#auBody').addEventListener('click', async e=>{
     const av = e.target.closest('[data-auv]'); if (av) { try { localStorage.setItem('planning-auv', av.dataset.auv); } catch(err) {} renderToday(); return; }
@@ -2886,7 +2989,20 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     sortedDocs().forEach(d=>{ known[normS(d.label)] = d.id; known[d.id] = d.id; });
     const idOf = label=>{ const n = normS(label); let id = known[n] || known[slug(label)]; if (!id) { id = slug(label); if (id) { fresh[id] = fresh[id] || label; known[n] = id; } } return id || null; };
     weeks.forEach(w=>{ w.cells.forEach(c=>c.people.forEach(p=>{ p.id = idOf(p.label); })); w.absences.forEach(a=>{ a.id = idOf(a.label); }); });
-    return {weeks, fresh, ignored: ignored || []};
+    /* noms inconnus : on cherche les ressemblances avec les personnes déjà dans la liste */
+    const lv = (a, b)=>{ const m = a.length, n = b.length; let p = [...Array(n+1).keys()]; for (let i=1; i<=m; i++) { const c = [i]; for (let j=1; j<=n; j++) c[j] = Math.min(p[j]+1, c[j-1]+1, p[j-1] + (a[i-1] === b[j-1] ? 0 : 1)); p = c; } return p[n]; };
+    const sim = (x, y)=>{
+      x = normS(x).replace(/[^a-z0-9]/g,''); y = normS(y).replace(/[^a-z0-9]/g,''); if (!x || !y) return 0;
+      let sc = 1 - lv(x, y) / Math.max(x.length, y.length);
+      if (Math.min(x.length, y.length) >= 2 && (x.startsWith(y) || y.startsWith(x))) sc = Math.max(sc, 0.85);
+      return sc;
+    };
+    const sugg = {}, pick = {};
+    Object.keys(fresh).forEach(fid=>{
+      const cand = grpDocs().map(d=>({id:d.id, label:d.label, sc:Math.max(sim(fresh[fid], d.label), sim(fresh[fid], d.id))})).filter(c=>c.sc >= 0.5).sort((a,b)=>b.sc-a.sc).slice(0,3);
+      sugg[fid] = cand; pick[fid] = cand.length && cand[0].sc >= 0.7 ? cand[0].id : '';
+    });
+    return {weeks, fresh, sugg, pick, ignored: ignored || []};
   }
   /* même plan, limité aux dates à partir de t (« à partir d'aujourd'hui ») */
   function planSince(pl, t){
@@ -2902,7 +3018,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     box.hidden = false;
     box.innerHTML = '<div class="xlp"><strong>Aperçu du fichier</strong>'
       + '<ul>'+pl.weeks.map(w=>{ const a = parse(w.monday), b = addDays(a,4); const n = w.cells.filter(c=>c.people.length).length; return '<li>Semaine du '+esc(fmtDM.format(a))+' au '+esc(fmtDM.format(b))+' : '+n+' cases avec médecin, '+new Set(w.absences.map(x=>x.label+x.date)).size+' absences/congés, '+w.notes.length+' note'+(w.notes.length > 1 ? 's' : '')+'</li>'; }).join('')+'</ul>'
-      + (fresh.length ? '<p>Médecins ajoutés à la liste : <strong>'+esc(fresh.join(', '))+'</strong></p>' : '<p>Tous les noms existent déjà dans la liste.</p>')
+      + (Object.keys(pl.fresh).length ? '<p><strong>Noms non reconnus</strong> : est-ce une personne déjà dans la liste ?</p>' + Object.keys(pl.fresh).map(fid=>{
+          const cur = (pl.pick || {})[fid] || '', cs = (pl.sugg || {})[fid] || [];
+          return '<div class="xfr"><div><strong>« '+esc(pl.fresh[fid])+' »</strong></div><div class="plc">'
+            + cs.map(c=>'<button type="button" class="plsg'+(cur === c.id ? '' : ' alt')+'" data-xfpick="'+esc(fid+'|'+c.id)+'" aria-pressed="'+(cur === c.id)+'">'+(cur === c.id ? '✓ ' : '')+'C’est '+esc(c.label)+'</button>').join('')
+            + '<button type="button" class="plsg'+(cur ? ' alt' : '')+'" data-xfpick="'+esc(fid+'|')+'" aria-pressed="'+(!cur)+'">'+(cur ? '' : '✓ ')+'Créer « '+esc(pl.fresh[fid])+' »</button></div></div>';
+        }).join('') : '<p>Tous les noms existent déjà dans la liste.</p>')
       + (pl.ignored.length ? '<p class="xw">Lignes ignorées (poste inconnu) : '+esc(pl.ignored.join(', '))+'</p>' : '')
       + (!filled ? '<p class="xw">Aucun médecin trouvé dans le fichier.</p>' : '')
       + '<p class="hint" style="color:var(--ink)">Les semaines déjà présentes sont remplacées. Vos gardes ne sont pas touchées.</p>'
@@ -3010,32 +3131,37 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   async function applyWeeks(plan){
     if (!db || !canWrite || !trame) return false;
     const postIds = new Set(trame.postes.map(p=>p.id));
+    const mp = plan.pick || {}, rid = id => mp[id] || id;
+    const freshL = {}; Object.keys(plan.fresh).forEach(k=>{ if (!mp[k]) freshL[k] = plan.fresh[k]; });
     try {
       let order = Math.max(0, ...Object.values(doctors).filter(d=>d.order !== 999).map(d=>d.order));
-      for (const id of Object.keys(plan.fresh).sort((a,b)=>plan.fresh[a].localeCompare(plan.fresh[b],'fr'))) {
+      for (const id of Object.keys(freshL).sort((a,b)=>freshL[a].localeCompare(freshL[b],'fr'))) {
         const ref = db.doc('medecins/'+id), snap = await ref.get();
-        if (!snap.exists) await ref.set({label: plan.fresh[id], order: ++order, days: {}});
+        if (!snap.exists) await ref.set(Object.assign({label: freshL[id], order: ++order, days: {}}, ROLE === 'interne' ? {role: 'Interne'} : {}));
       }
       const abs = {}, cats = {};
       for (const w of plan.weeks) {
         const byDate = {}; w.dates.forEach(d=>{ byDate[d] = {}; });
         w.cells.forEach(c=>{
           if (!postIds.has(c.poste) || !byDate[c.date]) return;
-          const ids = c.people.map(p=>p.id).filter(Boolean);
+          const ids = c.people.map(p=>rid(p.id)).filter(Boolean);
           if (!ids.length && !c.x) return;
-          const val = {w: ids, t: Date.now()}, st = c.people.filter(p=>p.star && p.id).map(p=>p.id);
+          const val = {w: baseW(c.date, c.poste, c.part).filter(id=>!inGrp(id)).concat(ids.filter(id=>inGrp(id))), t: Date.now()}, st = c.people.filter(p=>p.star && p.id && inGrp(rid(p.id))).map(p=>rid(p.id));
+          if (!ids.filter(id=>inGrp(id)).length && !c.x && !val.w.length) return;
           if (st.length) val.s = st; if (c.x) val.x = c.x;
           byDate[c.date][c.poste+'_'+c.part] = val;
         });
         for (const d of w.dates.filter(d=>{ const im = impMode(); if (!im) return true; const sat = parse(d).getDay() === 6; return im === 'ast' ? sat : !sat; })) {
           const ref = db.doc('ajustements/'+d);
+          /* le reste de la journée : on retire seulement les personnes de son groupe */
+          Object.keys(overrides[d] || {}).forEach(kk=>{ if (byDate[d][kk]) return; const o = overrides[d][kk], keepW = (o.w || []).filter(id=>!inGrp(id)); if (keepW.length || o.x) byDate[d][kk] = Object.assign({}, o, {w: keepW}); });
           if (Object.keys(byDate[d]).length) await ref.set(byDate[d]);
           else if (overrides[d] && Object.keys(overrides[d]).length) await ref.delete();
           const items = w.notes.filter(n=>n.date === d).map(n=>n.text);
           if (items.length) await db.doc('notes/'+d).set({items});
           else if (notesBy[d] && notesBy[d].length) await db.doc('notes/'+d).delete();
         }
-        w.absences.forEach(a=>{ if (!a.id) return; abs[a.id] = abs[a.id] || {}; abs[a.id][a.date] = abs[a.id][a.date] || {}; abs[a.id][a.date][a.part] = true; cats[a.id] = cats[a.id] || {}; cats[a.id][a.date+'_'+a.part] = (a.note === 'Congés' ? 'Congés annuels' : (a.note || 'Absent(e)')); });
+        w.absences.forEach(a0=>{ const a = Object.assign({}, a0, {id: rid(a0.id)}); if (!a.id) return; abs[a.id] = abs[a.id] || {}; abs[a.id][a.date] = abs[a.id][a.date] || {}; abs[a.id][a.date][a.part] = true; cats[a.id] = cats[a.id] || {}; cats[a.id][a.date+'_'+a.part] = (a.note === 'Congés' ? 'Congés annuels' : (a.note || 'Absent(e)')); });
       }
       for (const id of Object.keys(abs)) {
         const cur = (doctors[id] && doctors[id].days) || {}, patch = {};
@@ -3093,6 +3219,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   $('#xlFile').addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
   $('#xlModel').addEventListener('click', downloadModel);
   $('#xlPreview').addEventListener('click', e=>{
+    const xf = e.target.closest('[data-xfpick]'); if (xf && xlPlan) { const a = xf.dataset.xfpick.split('|'); xlPlan.pick = Object.assign({}, xlPlan.pick, {[a[0]]: a[1] || ''}); return renderPlan(); }
     if (e.target.closest('#xlApplyFrom')) applyPlan(true);
     else if (e.target.closest('#xlApply')) applyPlan(false);
     if (e.target.closest('#xlCancel')) { xlPlan = null; renderPlan(); }
@@ -3130,7 +3257,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#edDay').innerHTML = days.map(d=>'<option value="'+key(d)+'"'+(key(d) === ed.date ? ' selected' : '')+'>'+esc(fmtShort.format(d))+'</option>').join('');
     $('#edPart').innerHTML = partsOf(p0).map(x=>'<option value="'+x+'"'+(x === ed.part ? ' selected' : '')+'>'+(x === 'M' ? 'Matin' : 'Après-midi')+'</option>').join('');
     const v = vacWho(ed.poste, ed.date, ed.part), cur = v ? v.who : [];
-    const docs = sortedDocs();
+    const docs = grpDocs();
     const opt = (id, sel)=>{ const r = reasonFor(id, ed.date, ed.part); return '<option value="'+esc(id)+'"'+(sel ? ' selected' : '')+'>'+esc(dLabel(id))+(r ? ' ⚠ '+esc(r) : '')+'</option>'; };
     $('#edWho').innerHTML = cur.length ? cur.map((id,i)=>{
       const r = reasonFor(id, ed.date, ed.part);
@@ -3153,7 +3280,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     applyRO();
   }
 
+  /* interface Internes / Seniors : on ne touche qu'aux personnes de son groupe, l'autre groupe est conservé */
+  const inGrp = id => { const d = doctors[id]; return !d || ((d.role === 'Interne') === (ROLE === 'interne')); };
+  const grpDocs = () => sortedDocs().filter(d=>inGrp(d.id));
+  function baseW(date, poste, part){
+    const ov = overrides[date] && overrides[date][poste+'_'+part]; if (ov) return ov.w || [];
+    const c = trame && trame.cases[tk(poste, (parse(date).getDay()+6)%7, part)];
+    return c && Array.isArray(c.who) ? c.who : [];
+  }
   function setOverride(date, kk, val){
+    if (val && Array.isArray(val.w)) { const i = kk.lastIndexOf('_'); val = Object.assign({}, val, {w: baseW(date, kk.slice(0,i), kk.slice(i+1)).filter(id=>!inGrp(id)).concat(val.w.filter(id=>inGrp(id)))}); val.w = val.w.filter((id,ix,ar)=>ar.indexOf(id) === ix); if (val.s) val.s = val.s.filter(id=>val.w.includes(id)); }
     if (!db) { notify("Le planning partagé n'est pas disponible dans cette vue.", true); return Promise.resolve(false); }
     if (!canWrite) { notify('Lecture seule : vous ne pouvez pas modifier le planning.', true); return Promise.resolve(false); }
     const prev = oChains[date] || Promise.resolve();
@@ -3184,7 +3320,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   async function revertSlot(poste, date, part){
     let ok = true;
-    for (const pt of slotParts(poste, part)) ok = (await setOverride(date, poste+'_'+pt, null)) && ok;
+    for (const pt of slotParts(poste, part)) {
+      const ov = overrides[date] && overrides[date][poste+'_'+pt];
+      if (ov && (ov.w || []).some(id=>!inGrp(id))) { const dow = (parse(date).getDay()+6)%7, c = trame.cases[tk(poste, dow, pt)]; ok = (await setOverride(date, poste+'_'+pt, {w: c && Array.isArray(c.who) ? c.who.filter(inGrp) : [], t: Date.now()})) && ok; }
+      else ok = (await setOverride(date, poste+'_'+pt, null)) && ok;
+    }
     return ok;
   }
   async function writeText(poste, date, part, text){
@@ -3721,6 +3861,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   renderAll();
   (async function init(){
     if (!window.claude) await Promise.race([new Promise(r=>window.addEventListener('claude-ready', r, {once:true})), new Promise(r=>setTimeout(r, 600000))]);
+    if (window.__applyRole) window.__applyRole();
     try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch(e) { db = null; }
     if (!db) { loaded = true; renderAll(); return; }
     try {
@@ -3731,7 +3872,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : ''};
       });
       doctors = next; loaded = true; renderAll();
     }, err=>{
@@ -3811,9 +3952,12 @@ const downloads = { save: async ({ filename, data }) => {
   return { status: 'saved' };
 } };
 window.claude = { use: async n => n === 'db' ? db : n === 'user' ? { can: async () => true } : n === 'downloads' ? downloads : null };
-const CODE_HASH = "e62883514d217e41ba3f301483919006cae904b105b9f889a2ef3120361b39e7";
+const ROLES = {"e62883514d217e41ba3f301483919006cae904b105b9f889a2ef3120361b39e7": "senior", "b0c0c9bab3b0e7405b80d3f89554328f659738faffe59d1adff1d46e14262982": "senior", "e8b49088fe29424e468256a236c5efe51f49fcf25b115e72c66e499dfdb65661": "interne"};
+const VAPID = "";
+const MSGURL = "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
+window.__push = { vapid: !!VAPID, supported: async () => { try { if (!('Notification' in window) || !('serviceWorker' in navigator)) return false; const m = await import(MSGURL); return await m.isSupported(); } catch (e) { return false; } }, token: async () => { const m = await import(MSGURL); const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js'); await navigator.serviceWorker.ready; return m.getToken(m.getMessaging(app), { vapidKey: VAPID, serviceWorkerRegistration: reg }); } };
 const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t.trim().toLowerCase())))].map(x => x.toString(16).padStart(2, '0')).join('');
-const remembered = async () => { try { return localStorage.getItem('planning-acces') === CODE_HASH; } catch (e) { return false; } };
+const remembered = async () => { try { const v = localStorage.getItem('planning-acces'); if (v && ROLES[v]) { window.__ROLE = ROLES[v]; return true; } } catch (e) {} return false; };
 async function gate() {
   if (await remembered()) return;
   await new Promise(resolve => {
@@ -3824,7 +3968,8 @@ async function gate() {
     const inp = o.querySelector('#pcode'); inp.focus();
     o.querySelector('form').addEventListener('submit', async e => {
       e.preventDefault();
-      if (await sha(inp.value) === CODE_HASH) { try { localStorage.setItem('planning-acces', CODE_HASH); } catch (e2) {} o.remove(); resolve(); }
+      const hh = await sha(inp.value);
+      if (ROLES[hh]) { window.__ROLE = ROLES[hh]; try { localStorage.setItem('planning-acces', hh); } catch (e2) {} o.remove(); resolve(); }
       else { o.querySelector('#perr').textContent = 'Code incorrect.'; inp.select(); }
     });
   });
