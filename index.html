@@ -4141,7 +4141,7 @@ const downloads = { save: async ({ filename, data }) => {
 } };
 window.claude = { use: async n => n === 'db' ? db : n === 'user' ? { can: async () => true } : n === 'downloads' ? downloads : null };
 const ROLES = {"e62883514d217e41ba3f301483919006cae904b105b9f889a2ef3120361b39e7": "senior", "b0c0c9bab3b0e7405b80d3f89554328f659738faffe59d1adff1d46e14262982": "senior", "e8b49088fe29424e468256a236c5efe51f49fcf25b115e72c66e499dfdb65661": "interne"};
-const VAPID = "";
+const VAPID = "BISPDVqu6asNA_VPPfg4AXj3TixNhutxrprQb8IFmW4ER2S_UIGZir6H2H0CGkN_8-aPWjN9fy7DiIU5K4PBH_c";
 const MSGURL = "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 window.__push = { vapid: !!VAPID, supported: async () => { try { if (!('Notification' in window) || !('serviceWorker' in navigator)) return false; const m = await import(MSGURL); return await m.isSupported(); } catch (e) { return false; } }, token: async () => { const m = await import(MSGURL); const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js'); await navigator.serviceWorker.ready; return m.getToken(m.getMessaging(app), { vapidKey: VAPID, serviceWorkerRegistration: reg }); } };
 
