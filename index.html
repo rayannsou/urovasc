@@ -1898,7 +1898,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   /* ---------- règles du planning des internes (à compléter au fil du temps) ---------- */
   const INT_RULES = {
     offs: 2,                                   /* demi-journées off par semaine (un repos de garde compte pour 1) */
-    need: {echo: 2, 'scanner-urg': 2},         /* personnes par vacation (1 par défaut) */
+    need: {echo: 2, 'scanner-urg': 2},         /* minimum de personnes par vacation (1 par défaut) ; il peut y en avoir plus à l'écho et au scanner urgences */
+    extra: ['echo', 'scanner-urg'],            /* postes où l'on ajoute les internes restants */
     defaut: 1,
     autonomie: ['echo', 'scanner-urg'],        /* au moins 1 autonome ; 2 pas autonomes interdit */
     facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
@@ -1986,8 +1987,20 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           const cand = pool.slice(); while (pick.length < sl.need && cand.length) { const b = best(cand); pick.push(b); cand.splice(cand.indexOf(b), 1); }
         }
         pick.forEach(id=>{ taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
-        prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = pick;
+        sl.pick = pick;
         if (pick.length < sl.need && !R.facultatif.includes(sl.p.id)) holes.push(sl);
+      });
+      /* les internes restants renforcent l'écho et le scanner urgences (2 au minimum, davantage possible) */
+      const ext = here.filter(sl=>!sl.keep && sl.pick && sl.pick.length >= sl.need && R.extra.includes(sl.p.id));
+      if (ext.length) {
+        const left = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
+        left.sort((a,b)=>(load[a]||0) - (load[b]||0));
+        left.forEach(id=>{ ext.sort((a,b)=>a.pick.length - b.pick.length); const sl = ext[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
+      }
+      here.forEach(sl=>{
+        if (sl.keep || !sl.pick) return;
+        const pick = sl.pick;
+        prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = pick;
         if (pick.length === sl.before.length && pick.every(x=>sl.before.includes(x))) return;
         slotParts(sl.p.id, h.part).forEach(pt=>writes.push({k: h.k, kk: sl.p.id+'_'+pt, val: {w: pick.slice(), t: 0, a: 1}, poste: sl.p.id, part: pt, before: sl.before.slice(), after: pick.slice()}));
       });
