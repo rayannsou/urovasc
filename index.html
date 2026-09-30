@@ -1902,6 +1902,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     need: {echo: 2, 'scanner-urg': 2},         /* personnes par vacation (1 par défaut) */
     defaut: 1,
     autonomie: ['echo', 'scanner-urg'],        /* au moins 1 autonome ; 2 pas autonomes interdit */
+    facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
     blocJournee: true                          /* le bloc se fait de préférence toute la journée, mais peut être coupé */
   };
   async function plWeekGenInt(force){
@@ -1934,7 +1935,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     /* offs : chacun doit avoir R.offs demi-journées sans poste ; repos de garde = 1 off ; répartis sur la semaine */
     const off = {}; ints.forEach(d=>{ off[d.id] = new Set(); });
     const demand = {}, supply = {}, chosen = {}, aDem = {}, aSup = {}, aChosen = {};
-    HP.forEach(h=>{ demand[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep).reduce((n,sl)=>n+sl.need, 0); supply[h.id] = ints.filter(d=>okAt(d.id, h) && !taken[h.id].has(d.id)).length; chosen[h.id] = 0; aChosen[h.id] = 0;
+    HP.forEach(h=>{ demand[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && !R.facultatif.includes(sl.p.id)).reduce((n,sl)=>n+sl.need, 0); supply[h.id] = ints.filter(d=>okAt(d.id, h) && !taken[h.id].has(d.id)).length; chosen[h.id] = 0; aChosen[h.id] = 0;
       aDem[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).length * 1.5;
       aSup[h.id] = ints.filter(d=>isAuto(d.id) && okAt(d.id, h) && !taken[h.id].has(d.id)).length; });
     const offDays = {};
@@ -1963,12 +1964,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const pv = prev[sl.h.k+'|M'];
       if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : 2;
       if (!R.autonomie.includes(sl.p.id) && isAuto(id)) sc -= 1.5;
-      if (sl.p.id === 'bloc' && doctors[id] && doctors[id].interv) sc += 20;     /* profil interventionnel : prioritaire au bloc */
+      if (doctors[id] && doctors[id].interv) sc += sl.p.id === 'bloc' ? 20 : -4;   /* on les garde libres pour le bloc */
       return sc;
     };
     HP.forEach(h=>{
       const here = slots.filter(sl=>sl.h.id === h.id);
-      const order = sl=>R.autonomie.includes(sl.p.id) ? 0 : sl.p.id === 'bloc' ? 1 : 2;
+      const order = sl=>R.autonomie.includes(sl.p.id) ? 0 : R.facultatif.includes(sl.p.id) ? 3 : 2;
       here.slice().sort((a,b)=>order(a)-order(b)).forEach(sl=>{
         if (sl.keep) { prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = sl.keep; return; }
         const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
@@ -1987,7 +1988,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         }
         pick.forEach(id=>{ taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
         prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = pick;
-        if (pick.length < sl.need) holes.push(sl);
+        if (pick.length < sl.need && !R.facultatif.includes(sl.p.id)) holes.push(sl);
         if (pick.length === sl.before.length && pick.every(x=>sl.before.includes(x))) return;
         slotParts(sl.p.id, h.part).forEach(pt=>writes.push({k: h.k, kk: sl.p.id+'_'+pt, val: {w: pick.slice(), t: 0, a: 1}, poste: sl.p.id, part: pt, before: sl.before.slice(), after: pick.slice()}));
       });
