@@ -393,6 +393,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .plc input{flex:1 1 120px;min-width:0;min-height:40px}
 .plc select{flex:0 1 120px;min-height:40px}
 .plwhy{font-size:12px;color:var(--red);font-weight:600}
+.genn{border-radius:12px;padding:10px 12px;margin:0 0 10px;font-size:13px;line-height:1.35}
+.genn ul{margin:6px 0 0;padding-left:18px}.genn li{margin:3px 0}
+.genn.bad{border:1px solid var(--red);color:var(--red)}.genn.bad b{display:block}
+.genn.info{border:1px solid var(--line,#2a3a36);color:var(--muted,#9aa8a3)}.genn.info b,.genn.info summary{font-weight:600;cursor:pointer}
 .cwr.empty select{flex:1 1 180px;max-width:280px;min-height:40px}
 .cwr input[type=text]{min-height:40px}
 
@@ -2127,22 +2131,35 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         slotParts(sl.p.id, h.part).forEach(pt=>writes.push({k: h.k, kk: sl.p.id+'_'+pt, val: {w: pick.slice(), t: 0, a: 1}, poste: sl.p.id, part: pt, before: sl.before.slice(), after: pick.slice()}));
       });
     });
-    const notes = [];
-    if (holes.length) notes.push(holes.length+' place'+(holes.length > 1 ? 's' : '')+' sans interne disponible');
-    if (noAuto.length) notes.push('aucun interne autonome disponible : '+noAuto.map(sl=>(sl.p.label)+' '+fmtShort.format(parse(sl.h.k))+' '+PART_TXT[sl.h.part]).join(', ')+' (laissé vide)');
+    const slotTxt = sl=>sl.p.label+' '+fmtShort.format(parse(sl.h.k))+' '+PART_TXT[sl.h.part];
     const short2 = slots.filter(sl=>!sl.keep && sl.pick && sl.need >= 2 && sl.pick.length < sl.need);
-    if (short2.length) notes.unshift('⚠ moins de 2 internes (obligatoire) : '+short2.map(sl=>sl.p.label+' '+fmtShort.format(parse(sl.h.k))+' '+PART_TXT[sl.h.part]).join(', ')+' — trop peu d’internes disponibles');
-    if (relaxed.length) notes.push('off réduit pour garder 2 personnes à l’écho / au scanner urgences : '+relaxed.join(', '));
-    const unk = ints.filter(d=>d.auto == null); if (unk.length) notes.push('niveau non indiqué (compté « pas autonome ») : '+unk.map(d=>d.label).join(', '));
-    const ofs = ints.filter(d=>off[d.id].size).map(d=>d.label+' : '+[...off[d.id]].map(x=>{ const h = HP.find(y=>y.id === x); return fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'AM'); }).join(', '));
-    if (ofs.length) notes.push('offs répartis — '+ofs.join(' · '));
-    if (!writes.length) { plStage = 'man'; renderCompose(); return notify(holes.length || noAuto.length ? notes.join(' · ') : 'Le planning des internes convient déjà.', !!(holes.length || noAuto.length)); }
-    genOpen('Semaine des internes proposée', writes, notes.join(' · '));
+    const bad = [];
+    short2.forEach(sl=>bad.push(slotTxt(sl)+' : '+sl.pick.length+' interne'+(sl.pick.length > 1 ? 's' : '')+' au lieu de '+sl.need+' (pas assez d’internes disponibles)'));
+    noAuto.forEach(sl=>bad.push(slotTxt(sl)+' : aucun interne autonome disponible, laissé vide'));
+    const others = holes.filter(sl=>!short2.includes(sl) && !noAuto.includes(sl));
+    others.forEach(sl=>bad.push(slotTxt(sl)+' : personne de disponible'));
+    const notes = [];
+    if (bad.length) notes.push({lvl: 'bad', h: 'À vérifier', l: bad});
+    if (relaxed.length) notes.push({lvl: 'info', h: 'Off supprimé pour avoir 2 personnes à l’écho / au scanner urgences', l: relaxed});
+    const unk = ints.filter(d=>d.auto == null); if (unk.length) notes.push({lvl: 'info', h: 'Niveau d’autonomie non renseigné (compté « non autonome »)', l: [unk.map(d=>d.label).join(', ')]});
+    const ofs = ints.filter(d=>off[d.id].size).map(d=>d.label+' : '+[...off[d.id]].map(x=>{ const h = HP.find(y=>y.id === x); return fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'après-midi'); }).join(', '));
+    if (ofs.length) notes.push({lvl: 'info', h: 'Offs attribués', l: ofs, fold: true});
+    if (!writes.length) { plStage = 'man'; renderCompose(); return notify(bad.length ? bad.join(' · ') : 'Le planning des internes convient déjà.', !!bad.length); }
+    genOpen('Semaine des internes proposée', writes, notes);
   }
   /* ---------- page de confirmation avant d'enregistrer une génération automatique ---------- */
   let genPending = null, genRows = [], genStep = -1, genWarn = '', genPastAsk = false, genScope = 'from';
   const genTodayK = () => key(new Date());
   const genNm = a => a.length ? a.map(dLabel).join(', ') : '—';
+  function genWarnHtml(w){
+    if (!w || (Array.isArray(w) && !w.length)) return '';
+    if (!Array.isArray(w)) return '<p class="plwhy">⚠ '+esc(w)+'</p>';
+    return w.map(n=>{
+      const items = '<ul>'+n.l.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+      if (n.fold) return '<details class="genn info"><summary>'+esc(n.h)+' ('+n.l.length+')</summary>'+items+'</details>';
+      return '<div class="genn '+n.lvl+'"><b>'+(n.lvl === 'bad' ? '⚠ ' : 'ℹ ')+esc(n.h)+'</b>'+items+'</div>';
+    }).join('');
+  }
   function genOpen(title, writes, warn, opts){
     genPending = writes; genWarn = warn || ''; genStep = -1;
     genPastAsk = !!(opts && opts.pastAsk) && writes.some(w=>w.k < genTodayK()); genScope = 'from';
@@ -2172,7 +2189,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const r = genRows[genStep], w = genPending[r.idx[0]], cur = w.after, dis = canWrite ? '' : ' disabled';
       $('#genShS').textContent = 'Vacation '+(genStep+1)+' sur '+n+' · rien n’est enregistré tant que vous n’avez pas confirmé à la fin.';
       const docs = sortedDocs(), reason = id => reasonFor(id, w.k, w.part);
-      $('#genShL').innerHTML = (genWarn && genStep === 0 ? '<p class="plwhy">⚠ '+esc(genWarn)+'</p>' : '')
+      $('#genShL').innerHTML = (genStep === 0 ? genWarnHtml(genWarn) : '')
         + '<div class="genstep"><h4>'+esc(r.d)+' · '+esc(r.lab)+'</h4>'
         + (w.before.length && !r.sam ? '<p class="hint">'+(w.ou ? 'À confirmer dans la trame : ' : 'Dans la trame : ')+esc(genNm(w.before))+'</p>' : '')
         + '<p class="hint">Proposition :</p><div class="plc">'+docs.map(d=>'<button type="button" class="plsg'+(cur.includes(d.id) ? '' : ' alt')+(reason(d.id) ? ' na' : '')+'" data-genpick="'+esc(d.id)+'" aria-pressed="'+cur.includes(d.id)+'"'+dis+'>'+(cur.includes(d.id) ? '✓ ' : '')+esc(d.label)+'</button>').join('')+'</div>'
@@ -2183,7 +2200,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       return;
     }
     $('#genShS').textContent = n+' vacation'+(n > 1 ? 's' : '')+' proposée'+(n > 1 ? 's' : '')+' · rien n’est enregistré tant que vous n’avez pas confirmé.';
-    $('#genShL').innerHTML = (genWarn ? '<p class="plwhy">⚠ '+esc(genWarn)+'</p>' : '')
+    $('#genShL').innerHTML = genWarnHtml(genWarn)
       + (genPastAsk ? '<p><strong>Que voulez-vous importer ?</strong></p><div class="astpair"><button type="button" class="astbtn" data-genscope="from" aria-pressed="'+(genScope === 'from')+'">À partir d’aujourd’hui</button><button type="button" class="astbtn" data-genscope="all" aria-pressed="'+(genScope === 'all')+'">Tout importer</button></div>' : '')
       + '<button type="button" class="astbtn go" data-genstart="1">▶ Valider une par une</button>'
       + '<p class="hint">Ou relisez la liste : touchez « Accepté » pour refuser une vacation.</p>'
