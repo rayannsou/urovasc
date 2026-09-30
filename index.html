@@ -395,7 +395,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .plwhy{font-size:12px;color:var(--red);font-weight:600}
 .genn{border-radius:12px;padding:10px 12px;margin:0 0 10px;font-size:13px;line-height:1.35}
 .genn ul{margin:6px 0 0;padding-left:18px}.genn li{margin:3px 0}
-.genn.bad{border:1px solid var(--red);color:var(--red)}.genn.bad b{display:block}
+.genn.bad{border:1px solid var(--red);color:var(--red)}.genn.bad b{display:block}.genn.bad summary{font-weight:600;cursor:pointer}.genn li.gf{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;margin-left:-18px}.genforce{min-height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--red);background:transparent;color:var(--red);font-weight:600;flex:none}
 .genn.info{border:1px solid var(--line,#2a3a36);color:var(--muted,#9aa8a3)}.genn.info b,.genn.info summary{font-weight:600;cursor:pointer}
 .cwr.empty select{flex:1 1 180px;max-width:280px;min-height:40px}
 .cwr input[type=text]{min-height:40px}
@@ -2134,17 +2134,23 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const slotTxt = sl=>sl.p.label+' '+fmtShort.format(parse(sl.h.k))+' '+PART_TXT[sl.h.part];
     const short2 = slots.filter(sl=>!sl.keep && sl.pick && sl.need >= 2 && sl.pick.length < sl.need);
     const bad = [];
-    short2.forEach(sl=>bad.push(slotTxt(sl)+' : '+sl.pick.length+' interne'+(sl.pick.length > 1 ? 's' : '')+' au lieu de '+sl.need+' (pas assez d’internes disponibles)'));
-    noAuto.forEach(sl=>bad.push(slotTxt(sl)+' : aucun interne autonome disponible, laissé vide'));
-    const others = holes.filter(sl=>!short2.includes(sl) && !noAuto.includes(sl));
-    others.forEach(sl=>bad.push(slotTxt(sl)+' : personne de disponible'));
+    short2.forEach(sl=>bad.push({t: slotTxt(sl)+' : '+sl.pick.length+' interne'+(sl.pick.length > 1 ? 's' : '')+' au lieu de '+sl.need, sl}));
+    noAuto.forEach(sl=>{ if (!bad.some(b=>b.sl === sl)) bad.push({t: slotTxt(sl)+' : aucun interne autonome disponible', sl}); });
+    holes.forEach(sl=>{ if (!bad.some(b=>b.sl === sl)) bad.push({t: slotTxt(sl)+' : personne de disponible', sl}); });
+    /* une écriture (masquée tant qu'elle est vide) par vacation non pourvue, pour pouvoir forcer quelqu'un */
+    bad.forEach(b=>{
+      const sl = b.sl, parts = slotParts(sl.p.id, sl.h.part);
+      let wi = writes.findIndex(w=>w.k === sl.h.k && w.poste === sl.p.id && parts.includes(w.part));
+      if (wi < 0) { const pk = sl.pick || []; parts.forEach((pt, i)=>{ writes.push({k: sl.h.k, kk: sl.p.id+'_'+pt, val: {w: pk.slice(), t: 0, a: 1}, poste: sl.p.id, part: pt, before: (sl.before || []).slice(), after: pk.slice(), ph: true}); if (!i) wi = writes.length-1; }); }
+      b.wi = wi;
+    });
     const notes = [];
-    if (bad.length) notes.push({lvl: 'bad', h: 'À vérifier', l: bad});
+    if (bad.length) notes.push({lvl: 'bad', h: 'Vacations non pourvues', l: bad.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true});
     if (relaxed.length) notes.push({lvl: 'info', h: 'Off supprimé pour avoir 2 personnes à l’écho / au scanner urgences', l: relaxed});
     const unk = ints.filter(d=>d.auto == null); if (unk.length) notes.push({lvl: 'info', h: 'Niveau d’autonomie non renseigné (compté « non autonome »)', l: [unk.map(d=>d.label).join(', ')]});
     const ofs = ints.filter(d=>off[d.id].size).map(d=>d.label+' : '+[...off[d.id]].map(x=>{ const h = HP.find(y=>y.id === x); return fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'après-midi'); }).join(', '));
     if (ofs.length) notes.push({lvl: 'info', h: 'Offs attribués', l: ofs, fold: true});
-    if (!writes.length) { plStage = 'man'; renderCompose(); return notify(bad.length ? bad.join(' · ') : 'Le planning des internes convient déjà.', !!bad.length); }
+    if (!writes.length) { plStage = 'man'; renderCompose(); return notify('Le planning des internes convient déjà.', false); }
     genOpen('Semaine des internes proposée', writes, notes);
   }
   /* ---------- page de confirmation avant d'enregistrer une génération automatique ---------- */
@@ -2155,8 +2161,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!w || (Array.isArray(w) && !w.length)) return '';
     if (!Array.isArray(w)) return '<p class="plwhy">⚠ '+esc(w)+'</p>';
     return w.map(n=>{
-      const items = '<ul>'+n.l.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
-      if (n.fold) return '<details class="genn info"><summary>'+esc(n.h)+' ('+n.l.length+')</summary>'+items+'</details>';
+      const items = '<ul>'+n.l.map(x=>typeof x === 'string' ? '<li>'+esc(x)+'</li>' : '<li class="gf"><span>'+esc(x.t)+'</span><button type="button" class="ghost genforce" data-genforce="'+x.wi+'">Forcer</button></li>').join('')+'</ul>';
+      if (n.fold) return '<details class="genn '+n.lvl+'"><summary>'+(n.lvl === 'bad' ? '⚠ ' : '')+esc(n.h)+' ('+n.l.length+')</summary>'+items+'</details>';
       return '<div class="genn '+n.lvl+'"><b>'+(n.lvl === 'bad' ? '⚠ ' : 'ℹ ')+esc(n.h)+'</b>'+items+'</div>';
     }).join('');
   }
@@ -2164,9 +2170,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     genPending = writes; genWarn = warn || ''; genStep = -1;
     genPastAsk = !!(opts && opts.pastAsk) && writes.some(w=>w.k < genTodayK()); genScope = 'from';
     $('#genShT').textContent = title;
-    const seen = new Map(); genRows = [];
+    writes.forEach(w=>{ w.on = !(genPastAsk && w.k < genTodayK()); if (w.ph && !w.after.length) w.on = false; });
+    genBuild();
+    genRender();
+    $('#genSheet').hidden = false;
+  }
+  let genSolo = false;
+  function genBuild(){
+    const seen = new Map(); genRows = []; const writes = genPending;
     writes.forEach((w, wi)=>{
-      w.on = !(genPastAsk && w.k < genTodayK());
+      if (w.ph && !w.after.length && !w.shown) return;
       const pt = findPost(w.poste), sam = isSam(pt), sig = w.k+'|'+w.poste+'|'+(pt && pt.journee ? 'J' : w.part);
       if (seen.has(sig)) { seen.get(sig).idx.push(wi); return; }
       const d = new Intl.DateTimeFormat('fr-FR',{weekday:'short', day:'numeric', month:'numeric'}).format(parse(w.k));
@@ -2174,8 +2187,6 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const r = {idx: [wi], d, lab, sam, w};
       seen.set(sig, r); genRows.push(r);
     });
-    genRender();
-    $('#genSheet').hidden = false;
   }
   function genAfter(r){ return genPending[r.idx[0]].after; }
   function genRowHtml(r){ const w = genPending[r.idx[0]]; return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>'+(w.before.length && !r.sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(genNm(w.before))+' → ' : '')+'<b>'+esc(genNm(w.after))+'</b></small></span>'; }
@@ -2187,7 +2198,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const n = genRows.length;
     if (genStep >= 0 && genStep < n) {
       const r = genRows[genStep], w = genPending[r.idx[0]], cur = w.after, dis = canWrite ? '' : ' disabled';
-      $('#genShS').textContent = 'Vacation '+(genStep+1)+' sur '+n+' · rien n’est enregistré tant que vous n’avez pas confirmé à la fin.';
+      $('#genShS').textContent = genSolo ? 'Choisissez qui affecter à cette vacation · rien n’est enregistré tant que vous n’avez pas confirmé à la fin.' : 'Vacation '+(genStep+1)+' sur '+n+' · rien n’est enregistré tant que vous n’avez pas confirmé à la fin.';
       const docs = sortedDocs(), reason = id => reasonFor(id, w.k, w.part);
       $('#genShL').innerHTML = (genStep === 0 ? genWarnHtml(genWarn) : '')
         + '<div class="genstep"><h4>'+esc(r.d)+' · '+esc(r.lab)+'</h4>'
@@ -2215,13 +2226,15 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!genPending) return;
     const gs = e.target.closest('[data-genscope]');
     if (gs) { genScope = gs.dataset.genscope; genPending.forEach(w=>{ w.on = genScope === 'all' || w.k >= genTodayK(); }); genRender(); return; }
-    if (e.target.closest('[data-genstart]')) { genStep = 0; genRender(); return; }
-    if (e.target.closest('[data-genlist]')) { genStep = -1; genRender(); return; }
+    const gf = e.target.closest('[data-genforce]');
+    if (gf) { const wi = Number(gf.dataset.genforce), w0 = genPending[wi]; genPending.forEach(w=>{ if (w.k === w0.k && w.poste === w0.poste && (w === w0 || (findPost(w.poste) || {}).journee)) w.shown = true; }); genBuild(); const ri = genRows.findIndex(r=>r.idx.includes(wi)); if (ri >= 0) { genStep = ri; genSolo = true; genRender(); } return; }
+    if (e.target.closest('[data-genstart]')) { genSolo = false; genStep = 0; genRender(); return; }
+    if (e.target.closest('[data-genlist]')) { genSolo = false; genStep = -1; genRender(); return; }
     if (e.target.closest('[data-genprev]')) { genStep = Math.max(0, genStep-1); genRender(); return; }
     const gp = e.target.closest('[data-genpick]');
-    if (gp && genStep >= 0) { const r = genRows[genStep], id = gp.dataset.genpick, cur = genPending[r.idx[0]].after; let nx = r.sam ? [id] : (cur.includes(id) ? cur.filter(x=>x !== id) : cur.concat(id)); r.idx.forEach(i=>{ genPending[i].after = nx.slice(); genPending[i].val.w = nx.slice(); }); genRender(); return; }
+    if (gp && genStep >= 0) { const r = genRows[genStep], id = gp.dataset.genpick, cur = genPending[r.idx[0]].after; let nx = r.sam ? [id] : (cur.includes(id) ? cur.filter(x=>x !== id) : cur.concat(id)); r.idx.forEach(i=>{ genPending[i].after = nx.slice(); genPending[i].val.w = nx.slice(); if (genPending[i].ph) genPending[i].on = nx.length > 0; }); genRender(); return; }
     const gn = e.target.closest('[data-gennext]');
-    if (gn && genStep >= 0) { const r = genRows[genStep]; const on = gn.dataset.gennext === '1' && genPending[r.idx[0]].after.length > 0; r.idx.forEach(i=>{ genPending[i].on = on; }); genStep++; if (genStep >= genRows.length) genStep = -1; genRender(); return; }
+    if (gn && genStep >= 0) { const r = genRows[genStep]; const on = gn.dataset.gennext === '1' && genPending[r.idx[0]].after.length > 0; r.idx.forEach(i=>{ genPending[i].on = on; }); genStep++; if (genSolo || genStep >= genRows.length) { genStep = -1; genSolo = false; } genRender(); return; }
     if (!e.target.closest('[data-genok]') || !genPending) return;
     const ws = genPending.filter(w=>w.on); genClose();
     let ok = true;
