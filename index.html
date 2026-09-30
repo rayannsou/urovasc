@@ -1956,6 +1956,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     defaut: 1,
     autonomie: ['echo', 'scanner-urg'],        /* au moins 1 autonome ; 2 pas autonomes interdit */
     facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
+    exclus: /consult/i,                        /* postes où l'on ne met jamais d'internes (testé sur l'identifiant et le nom) */
     blocJournee: true                          /* le bloc se fait de préférence toute la journée, mais peut être coupé */
   };
   let intOnlyAuto = {};   /* poste -> true : uniquement des internes autonomes (question posée avant la génération) */
@@ -1973,7 +1974,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     /* vacations à pourvoir */
     const slots = [];
     HP.forEach(h=>posts.forEach(p=>{
-      if (!okDay(p, h.i) || (p.journee && h.part !== 'M')) return;
+      if (!okDay(p, h.i) || (p.journee && h.part !== 'M') || R.exclus.test(p.id+' '+p.label)) return;
       const v = vacWho(p.id, h.k, h.part); if (!v) return;
       if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
       const ov = overrides[h.k] && overrides[h.k][p.id+'_'+h.part], mine = ov && ov.w ? ov.w.filter(inGrp) : [];
