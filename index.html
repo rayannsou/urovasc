@@ -793,7 +793,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 02h00 (modif v24)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (créer v26)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1744,7 +1744,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' || plStage === 'impm' ? '' : plStage === 'imp' ? 'impm' : (plStage === 'impx' || plStage === 'impg' || plStage === 'shot') ? 'imp' : 'how')+'">‹ Retour</button>';
     if (!plStage) box.innerHTML = '<div class="astcol"><button type="button" class="astbtn big" data-plpick="imp">📥 Importer un planning</button><button type="button" class="astbtn big" data-plpick="week">📅 Créer un planning de semaine</button><button type="button" class="astbtn big" data-plpick="ast">🔔 Créer un planning d’astreinte</button></div>';
     else if (plStage === 'impm') box.innerHTML = back + '<p class="aststat">Importer un planning…</p><div class="astpair"><button type="button" class="astbtn big" data-implmode="week">📅 de semaine</button><button type="button" class="astbtn big" data-implmode="ast">🔔 d’astreinte</button></div>';
-    else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Planning d’astreinte' : 'Planning de semaine')+'</b> · comment l’assigner ?</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="auto">⚡ Assignation automatique</button><button type="button" class="astbtn big" data-plstage="man">✋ Assignation manuelle</button></div>';
+    else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Planning d’astreinte' : 'Planning de semaine')+'</b> · comment la créer ?</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="auto">⚡ Création automatique</button><button type="button" class="astbtn big" data-plstage="man">✋ Création manuelle</button></div>';
     else if (plStage === 'imp') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis…</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="impx">📗 Fichier Excel</button><button type="button" class="astbtn big" data-plstage="impg">🔗 Google Sheet</button></div><button type="button" class="astbtn" data-plstage="shot">📷 Capture d’écran</button>';
     else if (plStage === 'impx' || plStage === 'impg') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · '+(plStage === 'impx' ? 'fichier Excel' : 'Google Sheet')+'. '+(ast ? 'Seules les astreintes (samedis) du fichier seront importées.' : 'Seules les vacations de la semaine (lundi à vendredi) seront importées.')+'</p>';
     else if (plStage === 'shot') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis une capture d’écran</p><label class="astbtn go filebtn" for="shotFile" style="cursor:pointer">📷 Choisir la capture</label><input type="file" id="shotFile" accept="image/*" class="visually-hidden"><p class="aststat" id="shotStat" role="status">'+(shotMsg ? esc(shotMsg) : 'Une capture nette du tableau (jours en colonnes, postes en lignes) donne le meilleur résultat. Le texte est lu sur votre téléphone ; vous relirez tout avant d’enregistrer.')+'</p>';
@@ -1772,7 +1772,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (canSeeMiss() && done.length) h += '<h4 class="asth ok">Ont renseigné ('+done.length+')</h4><p class="hint">'+done.map(d=>esc(d.label)).join(', ')+'</p>';
     if (plMode === 'ast' && canSeeMiss() && excl.length) h += '<h4 class="asth">Sans astreinte ('+excl.length+')</h4>' + excl.map(d=>row(d, '', '<button type="button" class="ghost" data-astincl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Réintégrer</button>')).join('');
     $('#astShL').innerHTML = h;
-    $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Assigner quand même</button>' : '';
+    $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Créer quand même</button>' : '';
   }
   $('#astBarBox').addEventListener('change', e=>{ const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
   $('#astBarBox').addEventListener('click', e=>{ const im = e.target.closest('[data-implmode]'); if (im) { plMode = im.dataset.implmode; plStage = 'imp'; renderCompose(); return; } const pk = e.target.closest('[data-plpick]'); if (pk) { if (pk.dataset.plpick === 'imp') plStage = 'impm'; else { plMode = pk.dataset.plpick; plStage = 'how'; } renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
@@ -1858,14 +1858,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     genOpen('Semaine proposée', writes, holes ? holes+' place'+(holes > 1 ? 's' : '')+' sans remplaçant disponible' : '');
   }
   /* ---------- page de confirmation avant d'enregistrer une génération automatique ---------- */
-  let genPending = null, genRows = [], genStep = -1, genWarn = '';
+  let genPending = null, genRows = [], genStep = -1, genWarn = '', genPastAsk = false, genScope = 'from';
+  const genTodayK = () => key(new Date());
   const genNm = a => a.length ? a.map(dLabel).join(', ') : '—';
-  function genOpen(title, writes, warn){
+  function genOpen(title, writes, warn, opts){
     genPending = writes; genWarn = warn || ''; genStep = -1;
+    genPastAsk = !!(opts && opts.pastAsk) && writes.some(w=>w.k < genTodayK()); genScope = 'from';
     $('#genShT').textContent = title;
     const seen = new Map(); genRows = [];
     writes.forEach((w, wi)=>{
-      w.on = true;
+      w.on = !(genPastAsk && w.k < genTodayK());
       const pt = findPost(w.poste), sam = isSam(pt), sig = w.k+'|'+w.poste+'|'+(pt && pt.journee ? 'J' : w.part);
       if (seen.has(sig)) { seen.get(sig).idx.push(wi); return; }
       const d = new Intl.DateTimeFormat('fr-FR',{weekday:'short', day:'numeric', month:'numeric'}).format(parse(w.k));
@@ -1900,6 +1902,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     }
     $('#genShS').textContent = n+' vacation'+(n > 1 ? 's' : '')+' proposée'+(n > 1 ? 's' : '')+' · rien n’est enregistré tant que vous n’avez pas confirmé.';
     $('#genShL').innerHTML = (genWarn ? '<p class="plwhy">⚠ '+esc(genWarn)+'</p>' : '')
+      + (genPastAsk ? '<p><strong>Que voulez-vous importer ?</strong></p><div class="astpair"><button type="button" class="astbtn" data-genscope="from" aria-pressed="'+(genScope === 'from')+'">À partir d’aujourd’hui</button><button type="button" class="astbtn" data-genscope="all" aria-pressed="'+(genScope === 'all')+'">Tout importer</button></div>' : '')
       + '<button type="button" class="astbtn go" data-genstart="1">▶ Valider une par une</button>'
       + '<p class="hint">Ou relisez la liste : touchez « Accepté » pour refuser une vacation.</p>'
       + genRows.map((r,ri)=>{ const on = genPending[r.idx[0]].on; return '<div class="astrow">'+genRowHtml(r)+'<button type="button" class="ghost genrow" data-genrow="'+ri+'" aria-pressed="'+on+'">'+(on ? '✓ Accepté' : '✗ Refusé')+'</button></div>'; }).join('');
@@ -1911,6 +1914,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const gr = e.target.closest('[data-genrow]');
     if (gr && genPending) { const r = genRows[Number(gr.dataset.genrow)], on = !genPending[r.idx[0]].on; r.idx.forEach(i=>{ genPending[i].on = on; }); genRender(); return; }
     if (!genPending) return;
+    const gs = e.target.closest('[data-genscope]');
+    if (gs) { genScope = gs.dataset.genscope; genPending.forEach(w=>{ w.on = genScope === 'all' || w.k >= genTodayK(); }); genRender(); return; }
     if (e.target.closest('[data-genstart]')) { genStep = 0; genRender(); return; }
     if (e.target.closest('[data-genlist]')) { genStep = -1; genRender(); return; }
     if (e.target.closest('[data-genprev]')) { genStep = Math.max(0, genStep-1); genRender(); return; }
@@ -2039,7 +2044,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       shotBusy = false; shotMsg = '';
       if (!out.writes.length) { renderAstBar(); return notify(out.msg || 'Rien de nouveau trouvé dans cette capture : vérifiez qu’elle montre bien le tableau avec les jours et les noms.', true); }
       renderAstBar();
-      genOpen(plMode === 'ast' ? 'Astreintes lues sur la capture' : 'Semaine lue sur la capture', out.writes, out.unknown.length ? 'Noms non reconnus (ignorés) : '+out.unknown.join(', ') : '');
+      genOpen(plMode === 'ast' ? 'Astreintes lues sur la capture' : 'Semaine lue sur la capture', out.writes, out.unknown.length ? 'Noms non reconnus (ignorés) : '+out.unknown.join(', ') : '', {pastAsk: true});
     } catch(e) { shotBusy = false; shotMsg = ''; renderAstBar(); notify('Lecture de l’image impossible (connexion ?). Réessayez.', true); }
   }
   async function plToggleUn(spec){
@@ -2876,11 +2881,17 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     weeks.forEach(w=>{ w.cells.forEach(c=>c.people.forEach(p=>{ p.id = idOf(p.label); })); w.absences.forEach(a=>{ a.id = idOf(a.label); }); });
     return {weeks, fresh, ignored: ignored || []};
   }
+  /* même plan, limité aux dates à partir de t (« à partir d'aujourd'hui ») */
+  function planSince(pl, t){
+    const weeks = pl.weeks.map(w=>({monday: w.monday, dates: w.dates.filter(d=>d >= t), cells: w.cells.filter(c=>c.date >= t), absences: w.absences.filter(a=>a.date >= t), notes: w.notes.filter(n=>n.date >= t)})).filter(w=>w.dates.length && (w.cells.length || w.absences.length || w.notes.length));
+    return Object.assign({}, pl, {weeks});
+  }
   function renderPlan(){
     const box = $('#xlPreview');
     if (!xlPlan) { box.hidden = true; box.innerHTML = ''; return; }
     const pl = xlPlan, fresh = Object.values(pl.fresh);
     const filled = pl.weeks.reduce((n,w)=>n+w.cells.filter(c=>c.people.length && !(findPost(c.poste) && findPost(c.poste).journee && c.part === 'AM')).length, 0);
+    const tk = key(new Date()), fromPl = planSince(pl, tk), nFrom = fromPl.weeks.length, nAll = pl.weeks.length;
     box.hidden = false;
     box.innerHTML = '<div class="xlp"><strong>Aperçu du fichier</strong>'
       + '<ul>'+pl.weeks.map(w=>{ const a = parse(w.monday), b = addDays(a,4); const n = w.cells.filter(c=>c.people.length).length; return '<li>Semaine du '+esc(fmtDM.format(a))+' au '+esc(fmtDM.format(b))+' : '+n+' cases avec médecin, '+new Set(w.absences.map(x=>x.label+x.date)).size+' absences/congés, '+w.notes.length+' note'+(w.notes.length > 1 ? 's' : '')+'</li>'; }).join('')+'</ul>'
@@ -2888,7 +2899,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + (pl.ignored.length ? '<p class="xw">Lignes ignorées (poste inconnu) : '+esc(pl.ignored.join(', '))+'</p>' : '')
       + (!filled ? '<p class="xw">Aucun médecin trouvé dans le fichier.</p>' : '')
       + '<p class="hint" style="color:var(--ink)">Les semaines déjà présentes sont remplacées. Vos gardes ne sont pas touchées.</p>'
-      + '<div class="xa"><button type="button" class="primary" id="xlApply"'+(filled && canWrite ? '' : ' disabled')+'>Importer '+pl.weeks.length+' semaine'+(pl.weeks.length > 1 ? 's' : '')+'</button><button type="button" class="ghost" id="xlCancel">Annuler</button></div></div>';
+      + '<p><strong>Que voulez-vous importer ?</strong></p>'
+      + '<div class="xa" style="flex-direction:column;align-items:stretch"><button type="button" class="primary" id="xlApplyFrom"'+(filled && nFrom && canWrite ? '' : ' disabled')+'>À partir d’aujourd’hui ('+esc(fmtDM.format(new Date()))+') · '+nFrom+' semaine'+(nFrom > 1 ? 's' : '')+'</button>'
+      + '<button type="button" class="ghost" id="xlApply"'+(filled && canWrite ? '' : ' disabled')+'>Tout importer · '+nAll+' semaine'+(nAll > 1 ? 's' : '')+'</button><button type="button" class="ghost" id="xlCancel">Annuler</button></div>'
+      + (nFrom ? '' : '<p class="xw">Rien à partir d’aujourd’hui dans ce fichier : toutes ses dates sont passées.</p>')
+      + '</div>';
   }
   async function readFile(file){ let buf; try { buf = await file.arrayBuffer(); } catch(e) { return notify('Fichier illisible.', true); } return readBuffer(buf); }
   const GKEY = "AIzaSyCv7F339zZWjVR9AS3FjQ0yi9IqEMHZv-8";
@@ -3027,9 +3042,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       return true;
     } catch(e) { handleErr(e); return false; }
   }
-  async function applyPlan(){
-    const pl = xlPlan; if (!pl) return;
-    const btn = $('#xlApply'); if (btn) btn.disabled = true;
+  async function applyPlan(from){
+    const pl0 = xlPlan; if (!pl0) return;
+    const pl = from ? planSince(pl0, key(new Date())) : pl0;
+    if (!pl.weeks.length) return notify('Rien à importer à partir d’aujourd’hui.', true);
+    ['#xlApply', '#xlApplyFrom'].forEach(id=>{ const b = $(id); if (b) b.disabled = true; });
     const ok = await applyWeeks(pl);
     if (!ok) { renderPlan(); return; }
     if (pl.weeks.length) {
@@ -3069,7 +3086,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   $('#xlFile').addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
   $('#xlModel').addEventListener('click', downloadModel);
   $('#xlPreview').addEventListener('click', e=>{
-    if (e.target.closest('#xlApply')) applyPlan();
+    if (e.target.closest('#xlApplyFrom')) applyPlan(true);
+    else if (e.target.closest('#xlApply')) applyPlan(false);
     if (e.target.closest('#xlCancel')) { xlPlan = null; renderPlan(); }
   });
 
