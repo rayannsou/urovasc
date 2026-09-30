@@ -801,6 +801,15 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           </div>
           <button type="button" class="primary" id="remBtn">🔔 Activer les rappels</button>
         </div>
+        <div class="card" id="msgCard" hidden>
+          <h2>Envoyer un rappel</h2>
+          <p class="hint">Envoyez une notification à des collègues (ex. rappeler de remplir leurs indisponibilités). Elle part dans les 10 à 15 minutes.</p>
+          <div class="plc" style="margin-bottom:8px"><button type="button" class="ghost" id="msgMiss">Ceux sans indispos</button><button type="button" class="ghost" id="msgAll">Tous</button><button type="button" class="ghost" id="msgNone">Aucun</button></div>
+          <div id="msgWho"></div>
+          <div class="f"><label for="msgTxt">Message</label><textarea id="msgTxt" rows="3" maxlength="200" placeholder="Bonjour, merci de renseigner vos indisponibilités dans le planning."></textarea></div>
+          <button type="button" class="primary" id="msgSend">📨 Envoyer…</button>
+          <div id="msgHist" class="hint"></div>
+        </div>
         <div class="card">
           <h2>Apparence</h2>
           <p class="hint">Choisissez le mode clair ou sombre, ou laissez l’appareil décider.</p>
@@ -2433,7 +2442,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       remLoaded = me;
       try { const s = await db.doc('push/'+me).get(); const v = s.exists ? s.data() : null; rem = v ? {on:v.on === true, hour:v.hour || '20:00', veille:v.veille !== false, ast7:v.ast7 !== false, ast1:v.ast1 !== false} : {on:false, hour:'20:00', veille:true, ast7:true, ast1:true}; } catch(e) {}
     }
-    remPaint();
+    remPaint(); renderMsg();
   }
   async function remSave(extra){
     const d = Object.assign({hour:$('#remHour').value || '20:00', veille:$('#remVeille').checked, ast7:$('#remA7').checked, ast1:$('#remA1').checked, updatedAt:Date.now()}, extra || {});
@@ -2460,6 +2469,44 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       notify(m === 'unsupported' ? 'Notifications non disponibles ici. Sur iPhone, ajoutez d’abord l’appli à l’écran d’accueil, puis ouvrez-la depuis l’icône.' : m === 'novapid' ? 'Les rappels ne sont pas encore configurés côté serveur.' : m === 'denied' ? 'Notifications refusées : autorisez-les dans les réglages de l’appareil.' : 'Impossible d’activer les rappels.', true);
     }
     remBusy = false; remPaint();
+  });
+  /* ---------- rappels envoyés par Rim ---------- */
+  let msgSel = new Set(), msgPush = {}, msgHist = [], msgLoaded = false;
+  const isRim = () => !!(me && doctors[me] && ['rm','rim'].includes(plNorm(doctors[me].label)));
+  async function msgLoad(){
+    if (!db || msgLoaded) return; msgLoaded = true;
+    try { const p = await db.collection('push').get(); msgPush = {}; p.docs.forEach(d=>{ const v = d.data(); msgPush[d.id] = v.on === true && !!v.token; }); } catch(e) {}
+    try { const m = await db.collection('messages').get(); msgHist = m.docs.map(d=>d.data()).sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,5); } catch(e) {}
+    renderMsg();
+  }
+  function renderMsg(){
+    const card = $('#msgCard'); if (!card) return;
+    card.hidden = !isRim(); if (card.hidden) return;
+    msgLoad();
+    $('#msgWho').innerHTML = sortedDocs().filter(d=>d.id !== me).map(d=>'<label class="remrow"><input type="checkbox" data-msgid="'+esc(d.id)+'"'+(msgSel.has(d.id) ? ' checked' : '')+'> '+esc(d.label)+(msgLoaded && msgPush[d.id] === false || msgLoaded && !(d.id in msgPush) ? ' <small style="opacity:.7">🔕 pas de notifications</small>' : '')+'</label>').join('');
+    $('#msgHist').innerHTML = msgHist.length ? '<b>Derniers envois</b><br>'+msgHist.map(m=>esc(new Date(m.at||0).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+' · '+(m.to||[]).length+' pers. · '+(m.sent ? '✓ envoyé' : 'en attente')+' · « '+esc((m.text||'').slice(0,50))+' »').join('<br>') : '';
+  }
+  $('#msgWho').addEventListener('change', e=>{ const c = e.target.closest('[data-msgid]'); if (!c) return; if (c.checked) msgSel.add(c.dataset.msgid); else msgSel.delete(c.dataset.msgid); });
+  $('#msgAll').addEventListener('click', ()=>{ sortedDocs().forEach(d=>{ if (d.id !== me) msgSel.add(d.id); }); renderMsg(); });
+  $('#msgNone').addEventListener('click', ()=>{ msgSel.clear(); renderMsg(); });
+  $('#msgMiss').addEventListener('click', ()=>{
+    const t = new Date(), m1 = key(t).slice(0,7), m2 = key(new Date(t.getFullYear(), t.getMonth()+1, 1)).slice(0,7);
+    msgSel.clear(); sortedDocs().forEach(d=>{ if (d.id !== me && [m1,m2].some(m=>!(d.conf && d.conf[m]))) msgSel.add(d.id); });
+    if (!$('#msgTxt').value.trim()) $('#msgTxt').value = 'Bonjour, merci de renseigner vos indisponibilités ('+monthLbl(m1)+' et '+monthLbl(m2)+') dans le planning Imagerie, puis de toucher « J’ai renseigné mes indisponibilités ». Merci !';
+    renderMsg();
+  });
+  $('#msgSend').addEventListener('click', async ()=>{
+    if (!isRim() || !canWrite) return;
+    const txt = $('#msgTxt').value.trim(), to = [...msgSel];
+    if (!to.length) return notify('Choisissez au moins un destinataire.', true);
+    if (!txt) return notify('Écrivez un message.', true);
+    const names = to.map(id=>doctors[id] ? doctors[id].label : id).join(', ');
+    if (!confirm('Envoyer ce message à '+to.length+' personne'+(to.length > 1 ? 's' : '')+' ?\n\n'+names+'\n\n« '+txt+' »')) return;
+    try {
+      await db.collection('messages').add({from: me, to, text: txt, at: Date.now(), sent: false});
+      msgHist.unshift({from: me, to, text: txt, at: Date.now(), sent: false});
+      $('#msgTxt').value = ''; msgSel.clear(); renderMsg(); notify('Message en file d’envoi : il partira dans les 10 à 15 minutes.');
+    } catch(e) { handleErr(e); }
   });
   $('#forceOct12').addEventListener('click', forcePatch);
   ['#remVeille','#remA7','#remA1','#remHour'].forEach(id=>$(id).addEventListener('change', async ()=>{ if (!rem.on || !me) return; try { await remSave(); notify('Rappels mis à jour.'); } catch(e) { handleErr(e); } }));
@@ -4104,7 +4151,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, doc, collection, getDoc, setDoc, deleteDoc, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, doc, collection, getDoc, setDoc, deleteDoc, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 const app = initializeApp({"apiKey": "AIzaSyCv7F339zZWjVR9AS3FjQ0yi9IqEMHZv-8", "authDomain": "planning-uro.firebaseapp.com", "projectId": "planning-uro", "storageBucket": "planning-uro.firebasestorage.app", "messagingSenderId": "843050426921", "appId": "1:843050426921:web:fb6c5d2bd88f5491213238"});
 const fs = getFirestore(app);
 const TRAME = {"cases": {"bloc_0_AM": {"who": []}, "bloc_0_M": {"who": []}, "bloc_1_AM": {"who": []}, "bloc_1_M": {"who": []}, "bloc_2_AM": {"who": []}, "bloc_2_M": {"who": []}, "bloc_3_AM": {"who": []}, "bloc_3_M": {"who": []}, "bloc_4_AM": {"who": []}, "bloc_4_M": {"who": []}, "consultation_0_AM": {"who": []}, "consultation_0_M": {"who": []}, "consultation_1_M": {"who": []}, "consultation_2_M": {"who": []}, "consultation_3_AM": {"who": []}, "consultation_3_M": {"who": []}, "consultation_4_AM": {"who": []}, "echo-sa_2_AM": {"who": []}, "echo_0_AM": {"who": []}, "echo_0_M": {"who": []}, "echo_1_AM": {"who": []}, "echo_1_M": {"who": []}, "echo_2_AM": {"who": []}, "echo_2_M": {"who": []}, "echo_3_AM": {"who": []}, "echo_3_M": {"who": []}, "echo_4_AM": {"who": []}, "echo_4_M": {"who": []}, "irm_1_AM": {"who": []}, "irm_2_AM": {"who": []}, "irm_2_M": {"ou": false, "who": []}, "irm_3_M": {"who": []}, "irm_4_AM": {"who": []}, "rcp_0_M": {"who": []}, "rcp_1_AM": {"who": []}, "scanner-ext_2_AM": {"who": []}, "scanner-ext_3_M": {"who": []}, "scanner-ext_4_AM": {"who": []}, "scanner-rdc_0_AM": {"who": []}, "scanner-rdc_0_M": {"who": []}, "scanner-rdc_4_AM": {"who": []}, "scanner-rdc_4_M": {"who": []}, "scanner-sa_0_AM": {"who": []}, "scanner-sa_0_M": {"who": []}, "scanner-sa_2_AM": {"who": []}, "scanner-sa_2_M": {"who": []}, "scanner-sa_3_AM": {"who": []}, "scanner-sa_3_M": {"texte": "ostéo", "who": []}, "scanner-urg_0_AM": {"who": []}}, "off": {}, "postes": [{"id": "echo", "label": "Écho"}, {"id": "bloc", "label": "Bloc"}, {"id": "consultation", "label": "Consultation"}, {"id": "irm", "label": "IRM"}, {"id": "scanner-ext", "label": "Scanner EXT"}, {"id": "scanner-rdc", "label": "Scanner RDC", "variante": "interventionnel"}, {"id": "scanner-urg", "label": "Scanner URG"}, {"id": "scanner-sa", "label": "Scanner SA"}, {"id": "echo-sa", "label": "Écho SA"}, {"id": "rcp", "label": "RCP"}], "regles": [{"jour": 0, "poste": "scanner-rdc", "rang": 4, "variante": "diagnostique"}]};
@@ -4128,6 +4175,7 @@ const db = {
     const ref = collection(fs, name);
     return {
       onSnapshot: (next, err) => onSnapshot(ref, qs => next({ docs: qs.docs.map(wrap) }), err),
+      get: async () => ({ docs: (await getDocs(ref)).docs.map(wrap) }),
       add: d => addDoc(ref, d)
     };
   }
