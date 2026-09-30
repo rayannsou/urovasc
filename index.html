@@ -3709,9 +3709,14 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const mine = $('#swMine'), wsel = $('#swWith'), th = $('#swTheirs'), ast = swMode === 'ast', what = ast ? 'astreinte' : 'vacation';
     const opts = sel => [...sel.options].filter(o=>o.value);
     const b = (k, o, on) => '<button type="button" class="swopt" data-swk="'+k+'" data-v="'+esc(o.value)+'" aria-pressed="'+on+'">'+esc(o.textContent)+'</button>';
+    /* liste claire : un titre par jour, puis une pastille courte « Matin · Bloc » */
+    const short = o => { const v = parseVac(o.value); return v ? (v.part === 'M' ? 'Matin' : v.part === 'AM' ? 'Après-midi' : (PART_TXT[v.part] || v.part)) + ' · ' + postName(v.poste, v.date) + (/indisponible/i.test(o.textContent) ? ' (indisponible)' : '') : o.textContent; };
+    const bs = (k, o, on, star) => '<button type="button" class="swopt" data-swk="'+k+'" data-v="'+esc(o.value)+'" aria-pressed="'+on+'">'+(star ? '★ ' : '')+esc(short(o))+'</button>';
+    const dayTitle = d => new Intl.DateTimeFormat('fr-FR',{weekday:'long', day:'numeric', month:'long'}).format(parse(d)).replace(/^./, ch=>ch.toUpperCase());
+    const byDay = (list, k, cur, starFn) => { const days = []; list.slice().sort((x,y)=>{ const a = parseVac(x.value), c = parseVac(y.value); return a && c ? (a.date < c.date ? -1 : a.date > c.date ? 1 : (a.part === 'M' ? -1 : 1)) : 0; }).forEach(o=>{ const v = parseVac(o.value), d = v ? v.date : ''; let g = days.find(x=>x.d === d); if (!g) days.push(g = {d, os: []}); g.os.push(o); }); return days.map(g=>'<p class="swgrp">'+esc(g.d ? dayTitle(g.d) : '')+'</p><div class="swchips">'+g.os.map(o=>bs(k, o, o.value === cur, starFn && starFn(o))).join('')+'</div>').join(''); };
     let h = '<p class="swst"><b>1</b> '+(ast ? 'Mon' : 'Ma')+' '+what+' à échanger</p>';
     const om = opts(mine);
-    h += om.length ? '<div class="swlist">'+om.map(o=>b('m', o, o.value === mine.value)).join('')+'</div>' : '<p class="empty" style="border:0">'+esc(mine.options[0] ? mine.options[0].textContent : '')+'</p>';
+    h += om.length ? (ast ? '<div class="swlist">'+om.map(o=>b('m', o, o.value === mine.value)).join('')+'</div>' : byDay(om, 'm', mine.value)) : '<p class="empty" style="border:0">'+esc(mine.options[0] ? mine.options[0].textContent : '')+'</p>';
     if (mine.value && ast) {
       const mineV = parseVac(mine.value), c = [];
       if (mineV) sortedDocs().filter(d=>d.id !== me).forEach(d=>swVacs(d.id).filter(t=>!blockedFor(me, t, mineV) && !blockedFor(d.id, mineV, t)).forEach(t=>c.push({id: d.id, t})));
@@ -3724,7 +3729,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         h += '<p class="swst"><b>3</b> Contre quelle '+what+' de '+esc(dLabel(wsel.value))+' ?</p>';
         const kids = [...th.children];
         if (!opts(th).length) h += '<p class="empty" style="border:0">'+esc(kids[0] ? kids[0].textContent : 'Aucune vacation compatible')+'</p>';
-        else h += '<div class="swlist">'+kids.map(k=>k.tagName === 'OPTGROUP' ? '<p class="swgrp">'+esc(k.label)+'</p>'+[...k.children].map(o=>b('t', o, o.value === th.value)).join('') : '').join('')+'</div>';
+        else { const same = new Set(); kids.forEach(k=>{ if (k.tagName === 'OPTGROUP' && /m[êe]me/i.test(k.label)) [...k.children].forEach(o=>same.add(o.value)); }); const all = kids.flatMap(k=>k.tagName === 'OPTGROUP' ? [...k.children] : []); h += (same.size ? '<p class="hint" style="margin:0 0 4px">★ = même créneau que le vôtre</p>' : '') + byDay(all, 't', th.value, o=>same.has(o.value)); }
       }
     }
     box.innerHTML = h;
