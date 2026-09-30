@@ -382,7 +382,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .plcard h3{font:700 16px/1.2 var(--font-display);display:flex;align-items:center;gap:8px}
 .plcard h3 i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .plr{background:var(--bg);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
-.plr.cf{background:var(--red-soft)}
+.plr.cf{background:var(--red-soft)}.plr.vide{background:var(--ind);border:1.5px dashed var(--ind-2)}.plr.exc{opacity:.6}.pll .vd{font-style:normal;font-weight:700;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--ind-2);color:var(--ind-ink)}.pll .vd.opt,.pll .vd.exc{background:var(--bg);color:var(--muted);border:1px solid var(--line);font-weight:600}
 .pll{font:600 12px/1.2 var(--font-body);color:var(--muted);display:flex;justify-content:space-between;gap:8px}
 .pll em{font-style:normal;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 6px}
 .plc{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -1674,8 +1674,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const k = key(days[plDay]), dis = canWrite ? '' : ' disabled', docs = grpDocs();
     const posts = trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, plDay));
     let nFill = 0, nAll = 0;
-    posts.forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ nAll++; const v = vacWho(p.id,k,part); if (v && (v.who.length || v.texte)) nFill++; }));
-    $('#plSum').textContent = nFill+' / '+nAll+' vacations remplies ce jour';
+    posts.filter(p=>!(plGrp === 'interne' && INT_RULES.exclus.test(p.id+' '+p.label))).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ nAll++; const v = vacWho(p.id,k,part); if (v && (v.who.filter(inGrp).length || v.texte)) nFill++; }));
+    $('#plSum').textContent = nFill+' / '+nAll+' vacations pourvues ce jour'+(nAll > nFill ? ' · '+(nAll - nFill)+' à pourvoir' : ' ✓');
     const astP = trame.postes.find(isSam), kSat = key(days[5]);
     const astShort = (astP && plDay !== 5) ? (()=>{ const v = vacWho(astP.id, kSat, 'M'), w = v && v.who.length ? v.who.map(dLabel).join(', ') : ''; return '<button type="button" class="plast" data-plday="5"><span>🔔 Astreinte du '+esc(fmtShort.format(days[5]))+'<br><small>'+(w ? esc(w) : 'personne pour le moment')+'</small></span><span>'+(w ? 'Modifier ›' : 'Choisir ›')+'</span></button>'; })() : '';
     const AC = astCounts();
@@ -1693,7 +1693,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         if (isSam(p)) sug.sort((a,b)=>(AC[a]||0)-(AC[b]||0));
         const closed = !!v && !who.length && /^ferm/i.test(v.texte || '');
         if (closed) return '<div class="plr"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Astreinte' : part === 'M' ? 'Matin' : 'Après-midi')+'</span>'+tag+'</div><div class="plc"><span class="pch closed">🔒 Vacation fermée</span><button type="button" class="pladd" data-plclose="'+esc(slot+'|0')+'"'+dis+'>Rouvrir</button></div></div>';
-        return '<div class="plr'+(bad ? ' cf' : '')+'"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Astreinte' : part === 'M' ? 'Matin' : 'Après-midi')+(v && v.ou ? ' · à confirmer' : '')+'</span>'+tag+'</div>'
+        const grpTxt = plGrp === 'interne' ? 'interne' : 'médecin', exc = plGrp === 'interne' && INT_RULES.exclus.test(p.id+' '+p.label), opt = plGrp === 'interne' && INT_RULES.facultatif.includes(p.id), vide = !!plGrp && !who.length && !(v && v.texte) && !exc;
+        const badge = vide ? (opt ? '<em class="vd opt">Facultatif · aucun '+grpTxt+'</em>' : '<em class="vd">⚠ Non pourvue · aucun '+grpTxt+'</em>') : exc && !who.length ? '<em class="vd exc">Pas d’interne ici</em>' : '';
+        return '<div class="plr'+(bad ? ' cf' : '')+(vide && !opt ? ' vide' : '')+(exc && !who.length ? ' exc' : '')+'"><div class="pll"><span>'+(p.journee ? 'Journée' : isSam(p) ? 'Astreinte' : part === 'M' ? 'Matin' : 'Après-midi')+(v && v.ou ? ' · à confirmer' : '')+'</span>'+badge+tag+'</div>'
           + '<div class="plc">'+chips
           + sug.map(id=>'<button type="button" class="plsg'+(top.includes(id) ? '' : ' alt')+(reasonFor(id,k,part) ? ' na' : '')+'" data-plsg="'+esc(slot+'|'+id)+'"'+dis+'>'+(top.includes(id) ? '＋ ' : '')+esc(dLabel(id))+cn(id)+'</button>').join('')
           + '<button type="button" class="pladd" data-plopen="'+esc(slot)+'"'+dis+'>'+(sug.length || who.length ? '＋ Nouveau nom' : '＋ Ajouter un médecin')+'</button><button type="button" class="pladd" data-plclose="'+esc(slot+'|1')+'"'+dis+'>🔒 Fermer la vacation</button></div>'
@@ -1803,7 +1805,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   /* état du planning : fait ou non (semaine affichée, jours, astreintes) */
   function dayFill(d, dow){
     let f = 0, n = 0; if (!trame) return {f, n};
-    trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, dow)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ n++; const v = vacWho(p.id, key(d), part); if (v && (v.who.filter(inGrp).length || v.texte)) f++; }));
+    trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, dow) && !(plGrp === 'interne' && INT_RULES.exclus.test(p.id+' '+p.label))).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ n++; const v = vacWho(p.id, key(d), part); if (v && (v.who.filter(inGrp).length || v.texte)) f++; }));
     return {f, n};
   }
   function planStatus(){
