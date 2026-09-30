@@ -1982,6 +1982,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     extra: ['echo', 'scanner-urg'],            /* postes où l'on ajoute les internes restants */
     defaut: 1,
     autonomie: ['echo', 'scanner-urg'],        /* au moins 1 autonome ; 2 pas autonomes interdit */
+    toujours: ['echo','scanner-urg'],          /* toujours pourvus en internes, même sans senior posté ni vacation dans la trame */
+    maxRenfort: 3,                              /* au plus 3 internes à l'écho / au scanner urgences ; les autres sont off */
     seniorRequis: ['bloc'],                    /* pas d'interne sans médecin senior posté sur la vacation */
     facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
     priorite: ['scanner-urg', 'echo'],         /* si les autonomes manquent, le scanner des urgences est servi en premier */
@@ -2007,7 +2009,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const slots = [], noSrBloc = [], noOu = [];
     HP.forEach(h=>posts.forEach(p=>{
       if (!okDay(p, h.i) || (p.journee && h.part !== 'M') || R.exclus.test(p.id+' '+p.label)) return;
-      const v = vacWho(p.id, h.k, h.part); if (!v) return;
+      let v = vacWho(p.id, h.k, h.part); if (!v) { if (R.toujours.includes(p.id)) v = {who: [], stars: [], ou: false, texte: '', edited: false, open: false}; else return; }
       if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
       if (v.ou) { noOu.push(p.label+' '+fmtShort.format(parse(h.k))+' '+PART_TXT[h.part]); return; }   /* « à confirmer » côté seniors : on n'y touche pas */
       const ov = overrides[h.k] && overrides[h.k][p.id+'_'+h.part], mine = ov && ov.w ? ov.w.filter(inGrp) : [];
@@ -2154,8 +2156,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       if (ext.length) {
         const left = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
         left.sort((a,b)=>(load[a]||0) - (load[b]||0));
-        left.forEach(id=>{ const oks = ext.filter(x=>(!intOnlyAuto[x.p.id] || isAuto(id)) && !(x.p.id === 'echo' && h.part === 'AM' && ((prev[h.k+'|M'] || {}).echo || []).includes(id))); if (!oks.length) return; oks.sort((a,b)=>a.pick.length - b.pick.length); const sl = oks[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
+        left.forEach(id=>{ const oks = ext.filter(x=>x.pick.length < R.maxRenfort && (!intOnlyAuto[x.p.id] || isAuto(id)) && !(x.p.id === 'echo' && h.part === 'AM' && ((prev[h.k+'|M'] || {}).echo || []).includes(id))); if (!oks.length) return; oks.sort((a,b)=>a.pick.length - b.pick.length); const sl = oks[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
       }
+      /* internes restants, sans poste sur cette demi-journée : off (plus de 2 off possibles) */
+      ints.forEach(d=>{ if (okAt(d.id, h) && !taken[h.id].has(d.id) && !off[d.id].has(h.id)) off[d.id].add(h.id); });
       here.forEach(sl=>{
         if (sl.keep || !sl.pick) return;
         const pick = sl.pick;
