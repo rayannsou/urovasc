@@ -2012,9 +2012,14 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const ov = overrides[h.k] && overrides[h.k][p.id+'_'+h.part], mine = ov && ov.w ? ov.w.filter(inGrp) : [];
       const nd = intNeedOf(p.id, h.i, h.part); if (nd <= 0) return;
       const kp = ov && !ov.a && mine.length ? mine : null;
-      if (R.seniorRequis.includes(p.id) && !kp) {
+      if (R.seniorRequis.includes(p.id)) {
         const vs = p.journee ? PARTS.map(pt=>vacWho(p.id, h.k, pt)).filter(Boolean) : [v];
-        if (!vs.some(x=>x.who.some(isSrId))) { noSrBloc.push(p.label+' '+fmtShort.format(parse(h.k))+(p.journee ? '' : ' '+PART_TXT[h.part])); return; }
+        if (!vs.some(x=>x.who.some(isSrId))) {
+          const cur = vs.reduce((a,x)=>a.concat(x.who.filter(inGrp)), []).filter((id,ix,ar)=>ar.indexOf(id) === ix), lb = p.label+' '+fmtShort.format(parse(h.k))+(p.journee ? '' : ' '+PART_TXT[h.part]);
+          if (cur.length) { slots.push({p, h, need: 0, keep: null, before: cur, noSr: true}); noSrBloc.push(lb+' : '+cur.map(dLabel).join(', ')+' retiré'+(cur.length > 1 ? 's' : '')); }
+          else noSrBloc.push(lb);
+          return;
+        }
       }
       slots.push({p, h, need: nd, keep: kp, before: v.who.filter(inGrp)});
     }));
@@ -2052,7 +2057,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     });
     /* internes « interventionnels » : au moins 2 demi-vacations au bloc, si possible à la suite (sans manquer de monde ailleurs) ; davantage si le reste est pourvu */
     const blocRes = {}, resN = {}, resA = {}, blocSlot = {}, aNeed = {};
-    slots.forEach(sl=>{ if (sl.p.id === 'bloc' && !sl.keep) blocSlot[sl.h.id] = sl; });
+    slots.forEach(sl=>{ if (sl.p.id === 'bloc' && !sl.keep && !sl.noSr) blocSlot[sl.h.id] = sl; });
     HP.forEach(h=>{ resN[h.id] = 0; resA[h.id] = 0; aNeed[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).reduce((n,sl)=>n + (intNon[sl.p.id] ? 0 : intOnlyAuto[sl.p.id] ? sl.need : 1), 0); });
     const freeAt = (d, h)=>okAt(d.id, h) && !off[d.id].has(h.id) && !taken[h.id].has(d.id);
     const roomAt = (d, h)=>{
@@ -2167,7 +2172,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     /* vacations facultatives (bloc) laissées sans interne : listées aussi, pour pouvoir forcer quelqu'un */
     const optL = [];
     slots.forEach(sl=>{
-      if (sl.keep || !R.facultatif.includes(sl.p.id) || (sl.pick && sl.pick.length) || bad.some(b=>b.sl === sl)) return;
+      if (sl.keep || sl.noSr || !R.facultatif.includes(sl.p.id) || (sl.pick && sl.pick.length) || bad.some(b=>b.sl === sl)) return;
       if (sl.p.journee && optL.some(o=>o.sl.p.id === sl.p.id && o.sl.h.k === sl.h.k)) return;
       optL.push({t: slotTxt(sl)+' : facultatif, aucun interne', sl});
     });
@@ -2182,7 +2187,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const allDay = []; days.forEach(k=>{ const m = slots.find(x=>x.p.id === 'echo' && x.h.k === k && x.h.part === 'M'), a = slots.find(x=>x.p.id === 'echo' && x.h.k === k && x.h.part === 'AM'); if (m && a && m.pick && a.pick) m.pick.filter(id=>a.pick.includes(id)).forEach(id=>allDay.push(dLabel(id)+' ('+fmtShort.format(parse(k))+')')); });
     notes.push(bad.length ? {lvl: 'bad', h: 'Vacations obligatoires sans interne', l: bad.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true} : {lvl: 'ok', h: 'Vacations obligatoires sans interne', l: [], zero: true});
     if (noOu.length) notes.push({lvl: 'info', h: 'Vacations « à confirmer » côté seniors : laissées telles quelles', l: noOu, fold: true});
-    if (noSrBloc.length) notes.push({lvl: 'info', h: 'Bloc sans médecin senior posté : aucun interne placé', l: noSrBloc, fold: true});
+    if (noSrBloc.length) notes.push({lvl: 'info', h: 'Bloc sans médecin senior posté : aucun interne (les internes seuls sont retirés)', l: noSrBloc, fold: true});
     if (allDay.length) notes.push({lvl: 'info', h: 'À l’écho toute la journée (faute d’autre interne disponible)', l: allDay});
     if (optL.length) notes.push({lvl: 'info', h: 'Vacations facultatives sans interne', l: optL.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true});
     if (relaxed.length) notes.push({lvl: 'info', h: 'Off supprimé pour avoir 2 personnes à l’écho / au scanner urgences', l: relaxed});
