@@ -2973,8 +2973,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const isIntId = id => { const d = doctors[id]; return !!(d && d.role === 'Interne'); };
   const isSrId = id => { const d = doctors[id]; return !!(d && d.role !== 'Interne' && d.role !== 'Autre'); };   /* senior = rôle « Médecin » */
   function withTxt(v, up){
-    const nm = a=>a.map(dLabel).join(', '), ints = v.others.filter(isIntId), srs = v.others.filter(isSrId), rest = v.others.filter(x=>!isIntId(x) && !isSrId(x)), w = up ? 'Avec ' : 'avec ', out = [];
-    if (isIntId(me)) { out.push(srs.length ? (srs.length > 1 ? 'Seniors : ' : 'Senior : ')+nm(srs) : 'Senior : non indiqué'); const o = ints.concat(rest); if (o.length) out.push(w+nm(o)); }
+    /* seniors : ceux posés sur la vacation ; à défaut, ceux de la trame des médecins (vacation non modifiée par un planning d'internes) */
+    let srs = v.others.filter(isSrId);
+    if (!srs.length && isIntId(me) && trame && v.k) { const c = trame.cases[tk(v.poste, (parse(v.k).getDay()+6)%7, v.part)]; if (c && Array.isArray(c.who)) srs = c.who.filter(x=>x !== me && isSrId(x)); }
+    const nm = a=>a.map(dLabel).join(', '), ints = v.others.filter(isIntId), rest = v.others.filter(x=>!isIntId(x) && !isSrId(x)), w = up ? 'Avec ' : 'avec ', out = [];
+    if (isIntId(me)) { out.push(srs.length ? (srs.length > 1 ? 'Seniors : ' : 'Senior : ')+nm(srs) : 'Senior : aucun médecin posté (vacation ouverte)'); const o = ints.concat(rest); if (o.length) out.push(w+nm(o)); }
     else { if (ints.length) out.push((ints.length > 1 ? 'Internes : ' : 'Interne : ')+nm(ints)); const o = srs.concat(rest); if (o.length) out.push(w+nm(o)); }
     return out.join(' · ');
   }
@@ -2983,7 +2986,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!trame) return out;
     trame.postes.forEach(p=>PARTS.forEach(part=>{
       const v = vacWho(p.id,k,part);
-      if (v && v.who.includes(id)) out.push({poste:p.id, part, ou:v.ou, who:v.who, others:v.who.filter(w=>w !== id)});
+      if (v && v.who.includes(id)) out.push({poste:p.id, part, k, ou:v.ou, who:v.who, others:v.who.filter(w=>w !== id)});
     }));
     return out.sort((a,b)=>PARTS.indexOf(a.part)-PARTS.indexOf(b.part));
   }
