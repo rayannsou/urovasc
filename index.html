@@ -366,6 +366,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .swchips .swopt.swp2{border-radius:12px;text-align:left}
 @media(min-width:861px){#swBody.grid2{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr)}}
 @media(min-width:701px){#swJump{display:none}}
+.swsum{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1.5px solid var(--accent);background:var(--accent-soft);border-radius:12px;font-weight:700;color:var(--accent)}.swsum .ghost{min-height:36px;padding:0 12px}
 .swraw{display:none!important}.tag.wait{background:var(--accent-soft);color:var(--accent)}.tag.no{background:var(--red-soft);color:var(--red)}.sw-a{display:flex;gap:8px;flex-wrap:wrap}.swst{margin:14px 0 6px;font-weight:700;font-size:15px}.swst b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);margin-right:8px;font-size:13px}.swlist{display:flex;flex-direction:column;gap:6px}.swchips{display:flex;flex-wrap:wrap;gap:6px}.swopt{min-height:46px;text-align:left;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 12px;font-weight:600}.swchips .swopt{border-radius:999px;text-align:center}.swopt[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.swgrp{margin:8px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 @media(max-width:700px){#swBody .swmodecol{order:-2}#swBody .swformcol{order:-1}#swJump{display:none}}
 .subtabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent)}
@@ -3734,6 +3735,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
 
   /* parcours guidé : 1) ma vacation, 2) avec qui, 3) contre quelle vacation (les listes déroulantes servent de mémoire) */
+  let swEditMine = false;
   function swSteps(){
     const box = $('#swSteps'); if (!box) return;
     const mine = $('#swMine'), wsel = $('#swWith'), th = $('#swTheirs'), ast = swMode === 'ast', what = ast ? 'astreinte' : 'vacation';
@@ -3747,7 +3749,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const byDay = (list, k, cur, starFn) => { const days = []; list.slice().sort((x,y)=>{ const a = parseVac(x.value), c = parseVac(y.value); return a && c ? (a.date < c.date ? -1 : a.date > c.date ? 1 : (a.part === 'M' ? -1 : 1)) : 0; }).forEach(o=>{ const v = parseVac(o.value), d = v ? v.date : ''; let g = days.find(x=>x.d === d); if (!g) days.push(g = {d, os: []}); g.os.push(o); }); return '<div class="swdays">'+days.map(g=>'<div class="swday"><div class="swdl">'+dayLbl(g.d)+'</div><div class="swchips">'+g.os.map(o=>bs(k, o, o.value === cur, starFn && starFn(o))).join('')+'</div></div>').join('')+'</div>'; };
     let h = '<p class="swst"><b>1</b> '+(ast ? 'Mon' : 'Ma')+' '+what+' à échanger</p>';
     const om = opts(mine);
-    h += om.length ? (ast ? '<div class="swlist">'+om.map(o=>b('m', o, o.value === mine.value)).join('')+'</div>' : byDay(om, 'm', mine.value)) : '<p class="empty" style="border:0">'+esc(mine.options[0] ? mine.options[0].textContent : '')+'</p>';
+    if (!mine.value) swEditMine = false;
+    const mv = mine.value ? parseVac(mine.value) : null;
+    if (mv && !swEditMine) h += '<div class="swsum"><span>'+esc(vacLabel(mv))+'</span><button type="button" class="ghost" data-swedit="1">Changer</button></div>';
+    else h += om.length ? (ast ? '<div class="swlist">'+om.map(o=>b('m', o, o.value === mine.value)).join('')+'</div>' : byDay(om, 'm', mine.value)) : '<p class="empty" style="border:0">'+esc(mine.options[0] ? mine.options[0].textContent : '')+'</p>';
     if (mine.value && ast) {
       const mineV = parseVac(mine.value), c = [];
       if (mineV) sortedDocs().filter(d=>d.id !== me).forEach(d=>swVacs(d.id).filter(t=>!blockedFor(me, t, mineV) && !blockedFor(d.id, mineV, t)).forEach(t=>c.push({id: d.id, t})));
@@ -3766,7 +3771,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     box.innerHTML = h;
   }
   $('#swSteps').addEventListener('click', e=>{
+    if (e.target.closest('[data-swedit]')) { swEditMine = true; swSteps(); return; }
     const o = e.target.closest('[data-swk]'); if (!o) return;
+    if (o.dataset.swk === 'm') { swEditMine = false; setTimeout(()=>{ try { const st = document.querySelectorAll('#swSteps .swst')[1]; if (st) st.scrollIntoView({block: 'start', behavior: 'smooth'}); } catch(err) {} }, 60); }
     if (o.dataset.swk === 'a') { const ws = $('#swWith'); ws.value = o.dataset.w; ws.dispatchEvent(new Event('change', {bubbles: true})); const ts = $('#swTheirs'); ts.value = o.dataset.v; ts.dispatchEvent(new Event('change', {bubbles: true})); try { $('#swGo').scrollIntoView({block: 'nearest', behavior: 'smooth'}); } catch(err) {} return; }
     const sel = o.dataset.swk === 'm' ? $('#swMine') : o.dataset.swk === 'w' ? $('#swWith') : $('#swTheirs');
     sel.value = sel.value === o.dataset.v && o.dataset.swk !== 't' ? sel.value : o.dataset.v;
