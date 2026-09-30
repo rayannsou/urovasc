@@ -367,6 +367,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 @media(min-width:861px){#swBody.grid2{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr)}}
 @media(min-width:701px){#swJump{display:none}}
 .swsum{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1.5px solid var(--accent);background:var(--accent-soft);border-radius:12px;font-weight:700;color:var(--accent)}.swsum .ghost{min-height:36px;padding:0 12px}
+.intq{margin:8px 0 10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}.intqr{margin-top:8px}.intqr>span{display:block;font-weight:700;font-size:14px;margin-bottom:4px}.intqr .astbtn[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .swraw{display:none!important}.tag.wait{background:var(--accent-soft);color:var(--accent)}.tag.no{background:var(--red-soft);color:var(--red)}.sw-a{display:flex;gap:8px;flex-wrap:wrap}.swst{margin:14px 0 6px;font-weight:700;font-size:15px}.swst b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);margin-right:8px;font-size:13px}.swlist{display:flex;flex-direction:column;gap:6px}.swchips{display:flex;flex-wrap:wrap;gap:6px}.swopt{min-height:46px;text-align:left;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 12px;font-weight:600}.swchips .swopt{border-radius:999px;text-align:center}.swopt[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.swgrp{margin:8px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 @media(max-width:700px){#swBody .swmodecol{order:-2}#swBody .swformcol{order:-1}#swJump{display:none}}
 .subtabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent)}
@@ -1831,7 +1832,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + astMonthList().map(m=>{ const n = astMissing([m]).length; return '<label class="astrow" style="cursor:pointer"><span><input type="checkbox" data-astm="'+m+'"'+(astSel.includes(m) ? ' checked' : '')+' style="margin-right:8px"><b>'+esc(monthLbl(m))+'</b></span><small class="aststat '+(n ? 'ko' : 'ok')+'">'+(n ? n+' personne'+(n > 1 ? 's n’ont' : ' n’a')+' pas renseigné' : '✓ tout le monde a renseigné')+'</small></label>'; }).join('')
       + '<button type="button" class="astbtn go" data-astmgo="1"'+(astSel.length ? '' : ' disabled')+' style="margin-top:8px">Continuer'+(astSel.length ? ' ('+astSel.length+' mois)' : '')+'</button>';
     else if (plStage === 'man') box.innerHTML = back;
-    else box.innerHTML = back + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
+    else box.innerHTML = back + (plGrp === 'interne' && !ast ? '<div class="intq"><p class="aststat"><b>Échographie et scanner des urgences</b> : uniquement des internes autonomes ?</p>'+[['echo','Échographie'],['scanner-urg','Scanner des urgences']].filter(q=>trame.postes.some(p=>p.id === q[0])).map(q=>'<div class="intqr"><span>'+q[1]+'</span><div class="astpair"><button type="button" class="astbtn" data-intauto="'+q[0]+'|1" aria-pressed="'+!!intOnlyAuto[q[0]]+'">Oui, que des autonomes</button><button type="button" class="astbtn" data-intauto="'+q[0]+'|0" aria-pressed="'+!intOnlyAuto[q[0]]+'">Non (au moins 1)</button></div></div>').join('')+'</div>' : '') + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
       + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p><p class="aststat">Vous pourrez relire et confirmer chaque vacation avant l’enregistrement.</p>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
@@ -1860,6 +1861,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   $('#astBarBox').addEventListener('change', e=>{ const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
   $('#astBarBox').addEventListener('click', e=>{ const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
+    const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; return renderCompose(); }
     const am = e.target.closest('[data-astm]'); if (am) { const m = am.dataset.astm; astSel = am.checked ? [...new Set([...astSel, m])].sort() : astSel.filter(x=>x !== m); return renderCompose(); }
     if (e.target.closest('[data-astmgo]')) { if (!astSel.length) return; astOn = true; plStage = 'auto'; return renderCompose(); }
     const im = e.target.closest('[data-implmode]'); if (im) { plMode = im.dataset.implmode; plStage = 'imp'; renderCompose(); return; } const pk = e.target.closest('[data-plpick]'); if (pk) { if (pk.dataset.plpick === 'imp') plStage = 'impm'; else { plMode = pk.dataset.plpick; plStage = 'how'; } renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; if (plStage === 'auto' && plMode === 'ast' && !astOn) plStage = 'astm'; if (plStage === 'how' || plStage === 'astm' && sg.dataset.plstage === 'astm') astOn = false; if (plStage === '') astOn = false; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
@@ -1956,6 +1958,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
     blocJournee: true                          /* le bloc se fait de préférence toute la journée, mais peut être coupé */
   };
+  let intOnlyAuto = {};   /* poste -> true : uniquement des internes autonomes (question posée avant la génération) */
   async function plWeekGenInt(force){
     if (!trame || !trame.postes.length) return notify('Les postes du service ne sont pas encore chargés.', true);
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
@@ -1987,7 +1990,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const off = {}; ints.forEach(d=>{ off[d.id] = new Set(); });
     const demand = {}, supply = {}, chosen = {}, aDem = {}, aSup = {}, aChosen = {};
     HP.forEach(h=>{ demand[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && !R.facultatif.includes(sl.p.id)).reduce((n,sl)=>n+sl.need, 0); supply[h.id] = ints.filter(d=>okAt(d.id, h) && !taken[h.id].has(d.id)).length; chosen[h.id] = 0; aChosen[h.id] = 0;
-      aDem[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).length * 1.5;
+      aDem[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).reduce((n,sl)=>n + (intOnlyAuto[sl.p.id] ? sl.need * 1.2 : 1.5), 0);
       aSup[h.id] = ints.filter(d=>isAuto(d.id) && okAt(d.id, h) && !taken[h.id].has(d.id)).length; });
     const offDays = {};
     ints.slice().sort((a,b)=>(isAuto(b.id) - isAuto(a.id)) || (HP.filter(h=>okAt(a.id,h)).length - HP.filter(h=>okAt(b.id,h)).length)).forEach(d=>{
@@ -2011,7 +2014,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     /* internes « interventionnels » : au moins 2 demi-vacations au bloc, si possible à la suite (sans manquer de monde ailleurs) ; davantage si le reste est pourvu */
     const blocRes = {}, resN = {}, resA = {}, blocSlot = {}, aNeed = {};
     slots.forEach(sl=>{ if (sl.p.id === 'bloc' && !sl.keep) blocSlot[sl.h.id] = sl; });
-    HP.forEach(h=>{ resN[h.id] = 0; resA[h.id] = 0; aNeed[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).length; });
+    HP.forEach(h=>{ resN[h.id] = 0; resA[h.id] = 0; aNeed[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).reduce((n,sl)=>n + (intOnlyAuto[sl.p.id] ? sl.need : 1), 0); });
     const freeAt = (d, h)=>okAt(d.id, h) && !off[d.id].has(h.id) && !taken[h.id].has(d.id);
     const roomAt = (d, h)=>{
       if (!blocSlot[h.id] || blocRes[h.id] || !freeAt(d, h)) return false;
@@ -2032,7 +2035,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       (best || []).forEach(h=>{ blocRes[h.id] = d.id; resN[h.id]++; if (isAuto(d.id)) resA[h.id]++; });
     });
     /* affectations, demi-journée par demi-journée */
-    const load = {}, prev = {}, writes = [], noAuto = [], holes = []; let ouWarn = 0;
+    const load = {}, prev = {}, writes = [], noAuto = [], holes = [], relaxed = []; let ouWarn = 0;
     const score = (id, sl)=>{
       let sc = ((freq[id] && freq[id][sl.p.id]) || 0) * 3 - (load[id] || 0) * 2;
       const pv = prev[sl.h.k+'|M'];
@@ -2052,7 +2055,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         if (sl.p.id === 'bloc' && blocRes[h.id]) pick = [blocRes[h.id]];
         else if (R.autonomie.includes(sl.p.id) && sl.need >= 2) {
           const autos = pool.filter(isAuto), nons = pool.filter(id=>!isAuto(id));
-          if (!autos.length) { noAuto.push(sl); }
+          if (intOnlyAuto[sl.p.id]) { const cand = autos.slice(); while (pick.length < sl.need && cand.length) { const b = best(cand); pick.push(b); cand.splice(cand.indexOf(b), 1); } if (!pick.length) noAuto.push(sl); }
+          else if (!autos.length) { noAuto.push(sl); }
           else {
             const a1 = best(autos); pick.push(a1);
             const rest = nons.length ? nons : autos.filter(id=>id !== a1);
@@ -2065,12 +2069,29 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         sl.pick = pick;
         if (pick.length < sl.need && !R.facultatif.includes(sl.p.id)) holes.push(sl);
       });
+      /* écho et scanner urgences : 2 personnes OBLIGATOIRES (dont 1 autonome). S'il en manque, on reprend d'abord un interne du bloc (facultatif), puis on réduit un off */
+      here.filter(sl=>!sl.keep && sl.pick && R.autonomie.includes(sl.p.id) && sl.need >= 2).forEach(sl=>{
+        let guard = 8;
+        while (guard-- > 0 && (sl.pick.length < sl.need || !sl.pick.some(isAuto))) {
+          const needAuto = !sl.pick.some(isAuto), okc = id => !sl.pick.includes(id) && (!needAuto || isAuto(id)) && (!intOnlyAuto[sl.p.id] || isAuto(id));
+          let src = null;
+          for (const b of here) { if (b.p.id === 'bloc' && !b.keep && b.pick) { const c = b.pick.find(okc); if (c) { src = {b, id: c}; break; } } }
+          if (!src) { const c = ints.map(d=>d.id).filter(id=>okc(id) && okAt(id, h) && off[id].has(h.id) && !taken[h.id].has(id)).sort((a,b)=>off[b].size - off[a].size)[0]; if (c) src = {id: c, off: true}; }
+          if (!src) break;
+          if (src.b) src.b.pick.splice(src.b.pick.indexOf(src.id), 1);
+          else { off[src.id].delete(h.id); relaxed.push(dLabel(src.id)+' ('+fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'AM')+')'); taken[h.id].add(src.id); load[src.id] = (load[src.id] || 0) + 1; }
+          sl.pick.push(src.id);
+        }
+        const hi = holes.indexOf(sl); if (hi >= 0 && sl.pick.length >= sl.need) holes.splice(hi, 1);
+        const ni = noAuto.indexOf(sl); if (ni >= 0 && sl.pick.some(isAuto)) noAuto.splice(ni, 1);
+        if (sl.pick.length < sl.need && hi < 0) holes.push(sl);
+      });
       /* les internes restants renforcent l'écho et le scanner urgences (2 au minimum, davantage possible) */
       const ext = here.filter(sl=>!sl.keep && sl.pick && sl.pick.length >= sl.need && R.extra.includes(sl.p.id));
       if (ext.length) {
         const left = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
         left.sort((a,b)=>(load[a]||0) - (load[b]||0));
-        left.forEach(id=>{ ext.sort((a,b)=>a.pick.length - b.pick.length); const sl = ext[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
+        left.forEach(id=>{ const oks = ext.filter(x=>!intOnlyAuto[x.p.id] || isAuto(id)); if (!oks.length) return; oks.sort((a,b)=>a.pick.length - b.pick.length); const sl = oks[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
       }
       here.forEach(sl=>{
         if (sl.keep || !sl.pick) return;
@@ -2083,6 +2104,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const notes = [];
     if (holes.length) notes.push(holes.length+' place'+(holes.length > 1 ? 's' : '')+' sans interne disponible');
     if (noAuto.length) notes.push('aucun interne autonome disponible : '+noAuto.map(sl=>(sl.p.label)+' '+fmtShort.format(parse(sl.h.k))+' '+PART_TXT[sl.h.part]).join(', ')+' (laissé vide)');
+    const short2 = slots.filter(sl=>!sl.keep && sl.pick && R.need[sl.p.id] >= 2 && sl.pick.length < R.need[sl.p.id]);
+    if (short2.length) notes.unshift('⚠ moins de 2 internes (obligatoire) : '+short2.map(sl=>sl.p.label+' '+fmtShort.format(parse(sl.h.k))+' '+PART_TXT[sl.h.part]).join(', ')+' — trop peu d’internes disponibles');
+    if (relaxed.length) notes.push('off réduit pour garder 2 personnes à l’écho / au scanner urgences : '+relaxed.join(', '));
     const unk = ints.filter(d=>d.auto == null); if (unk.length) notes.push('niveau non indiqué (compté « pas autonome ») : '+unk.map(d=>d.label).join(', '));
     const ofs = ints.filter(d=>off[d.id].size).map(d=>d.label+' : '+[...off[d.id]].map(x=>{ const h = HP.find(y=>y.id === x); return fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'AM'); }).join(', '));
     if (ofs.length) notes.push('offs répartis — '+ofs.join(' · '));
