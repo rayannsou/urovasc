@@ -1425,7 +1425,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const opts = [['','Disponible'],['J',IND.J],['M',IND.M],['AM',IND.AM],['G','De garde · Off le lendemain']];
     const vacHtml = (k)=>dayVacs(me,k).map(v=>{
       const r = reasonFor(me,k,v.part);
-      const who = v.ou ? 'à confirmer : '+v.who.map(dLabel).join(' ou ') : (v.others.length ? 'avec '+v.others.map(dLabel).join(', ') : '');
+      const who = v.ou ? 'à confirmer : '+v.who.map(dLabel).join(' ou ') : withTxt(v, false);
       return '<div class="vac'+(r ? ' bad' : '')+'"><span class="vp"'+(r ? '' : ' style="background:'+posteColor(v.poste)+';color:#fff;border-color:'+posteColor(v.poste)+'"')+'>'+v.part+'</span><span>'+esc(postName(v.poste,k))+' <small>'+esc(who)+(r ? (who ? ' · ' : '')+'conflit : vous êtes '+esc(r) : '')+'</small></span></div>';
     }).join('');
     const rowWrap = (d,i,k,head,body)=>'<div class="dayrow'+(k === todayK ? ' today' : '')+(i > 4 ? ' we' : '')+'"><div class="dr-head">'+head+'</div>'+(body ? '<div class="dr-body">'+body+'</div>' : '')+'</div>';
@@ -1512,7 +1512,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const sty = vs.length ? ' style="--pc:'+posteColor(vs[0].poste)+'"' : '';
       if (vs.length) {
         what = vs.map(v=>esc(postName(v.poste,kk))).join(' + ');
-        sub = vs.map(v=>v.ou ? 'À confirmer : '+v.who.map(dLabel).join(' ou ') : (v.others.length ? 'Avec '+v.others.map(dLabel).join(', ') : 'Seul(e) sur ce poste')).join(' · ');
+        sub = vs.map(v=>v.ou ? 'À confirmer : '+v.who.map(dLabel).join(' ou ') : (withTxt(v, true) || 'Seul(e) sur ce poste')).join(' · ');
         cls += st && !acc ? ' bad' : '';
         if (st && !acc) sub += ' — ⚠ mais vous êtes '+(st === 'G' ? 'de garde' : st === 'R' ? 'en repos de garde' : 'indisponible');
         if (acc) sub += ' — ✓ acceptée malgré votre '+(st === 'G' ? 'garde' : st === 'R' ? 'repos de garde' : 'indisponibilité');
@@ -2950,6 +2950,14 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const parseVac = s => { if (!s) return null; const a = s.split('|'); return a.length === 3 ? {poste:a[0], date:a[1], part:a[2]} : null; };
   const vacLabel = v => fmtShort.format(parse(v.date))+' · '+(PART_TXT[v.part]||v.part)+' · '+postName(v.poste, v.date);
 
+  /* qui est avec moi : l'interne(s) pour un senior, le senior pour un interne */
+  const isIntId = id => { const d = doctors[id]; return !!(d && d.role === 'Interne'); };
+  function withTxt(v, up){
+    const nm = a=>a.map(dLabel).join(', '), ints = v.others.filter(isIntId), srs = v.others.filter(x=>!isIntId(x)), w = up ? 'Avec ' : 'avec ', out = [];
+    if (isIntId(me)) { out.push(srs.length ? (srs.length > 1 ? 'Seniors : ' : 'Senior : ')+nm(srs) : 'Senior : non indiqué'); if (ints.length) out.push(w+nm(ints)); }
+    else { if (ints.length) out.push((ints.length > 1 ? 'Internes : ' : 'Interne : ')+nm(ints)); if (srs.length) out.push(w+nm(srs)); }
+    return out.join(' · ');
+  }
   function dayVacs(id, k){
     const out = [];
     if (!trame) return out;
