@@ -1402,6 +1402,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#mwLabel').textContent = lab; $('#iwLabel').textContent = inMode === 'sat' ? 'Astreintes (samedis) · dès le '+fmtDM.format(addDays(myWeek,5)) : lab;
     document.querySelectorAll('[data-inmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.inmode === inMode)));
     $('#iwJump').closest('.f').hidden = inMode === 'sat';
+    { const pf = $('#period'); if (pf) pf.hidden = inMode === 'sat'; }
     const IND = {J:'Indisponible toute la journée', M:'Indisponible le matin', AM:"Indisponible l'après-midi"};
     const optsSat = own => { const b = [['','Disponible'],['J','Indisponible']]; if (own === 'M' || own === 'AM' || own === 'G') b.push([own, own === 'G' ? 'De garde · Off le lendemain' : own === 'M' ? 'Indisponible le matin' : "Indisponible l'après-midi"]); return b; };
     const opts = [['','Disponible'],['J',IND.J],['M',IND.M],['AM',IND.AM],['G','De garde · Off le lendemain']];
