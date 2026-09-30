@@ -12,4 +12,4 @@ Sur iPhone : ajouter l'appli à l'écran d'accueil (Partager → Sur l'écran d'
 
 ## Interfaces
 
-Mots de passe (hachés dans la page) : `interne` (interface Internes), `grenier` (interface Seniors), et l'ancien code du service (Seniors). Chaque interface ne crée et n'importe que les personnes de son groupe (fonction « Interne » = internes, les autres = seniors) ; les affichages montrent tout le monde.
+Plus de mot de passe : au premier lancement l'appli demande « Seniors » ou « Internes » (Réglages → Interface pour changer). Chaque interface ne crée et n'importe que les personnes de son groupe (fonction « Interne » = internes, les autres = seniors) ; les affichages montrent tout le monde.

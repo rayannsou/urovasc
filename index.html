@@ -806,7 +806,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         <div class="card" id="roleCard">
           <h2>Interface</h2>
           <p class="hint" id="roleHint"></p>
-          <button type="button" class="ghost" id="roleSwitch">Changer d’interface</button>
+          <div class="phbox" id="roleSwitch"><button type="button" class="ghost" data-roleset="senior">Seniors</button><button type="button" class="ghost" data-roleset="interne">Internes</button></div>
         </div>
         <div class="card" id="creerCard">
           <h2>Planning du mois</h2>
@@ -1289,6 +1289,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   document.body.dataset.role = ROLE;
   window.__applyRole = ()=>{
     ROLE = window.__ROLE === 'interne' ? 'interne' : 'senior'; document.body.dataset.role = ROLE;
+    document.querySelectorAll('[data-roleset]').forEach(x=>{ const on = x.dataset.roleset === ROLE; x.className = on ? 'primary' : 'ghost'; x.textContent = (on ? '✓ ' : '') + (x.dataset.roleset === 'interne' ? 'Internes' : 'Seniors'); });
     $('#roleHint').textContent = ROLE === 'interne' ? 'Interface Internes : vous créez et importez le planning des internes uniquement (les seniors ne sont pas modifiés). Les affichages montrent tout le monde.' : 'Interface Seniors : vous créez et importez le planning des seniors uniquement (les internes ne sont pas modifiés). Les affichages montrent tout le monde.';
     if (ROLE === 'interne') { const nr = $('#newRole'); nr.innerHTML = '<option>Interne</option>'; nr.disabled = true; }
   };
@@ -2264,7 +2265,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
   /* ---------- interface (internes / seniors) ---------- */
   window.__applyRole();
-  $('#roleSwitch').addEventListener('click', ()=>{ try { localStorage.removeItem('planning-acces'); } catch(e) {} location.reload(); });
+  $('#roleSwitch').addEventListener('click', e=>{ const b = e.target.closest('[data-roleset]'); if (!b || b.dataset.roleset === ROLE) return; try { localStorage.setItem('planning-acces', b.dataset.roleset); } catch(err) {} location.reload(); });
 
   /* ---------- rappels (notifications) ---------- */
   let rem = {on:false, hour:'20:00', veille:true, ast7:true, ast1:true}, remLoaded = '', remBusy = false;
@@ -3956,22 +3957,16 @@ const ROLES = {"e62883514d217e41ba3f301483919006cae904b105b9f889a2ef3120361b39e7
 const VAPID = "";
 const MSGURL = "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 window.__push = { vapid: !!VAPID, supported: async () => { try { if (!('Notification' in window) || !('serviceWorker' in navigator)) return false; const m = await import(MSGURL); return await m.isSupported(); } catch (e) { return false; } }, token: async () => { const m = await import(MSGURL); const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js'); await navigator.serviceWorker.ready; return m.getToken(m.getMessaging(app), { vapidKey: VAPID, serviceWorkerRegistration: reg }); } };
-const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t.trim().toLowerCase())))].map(x => x.toString(16).padStart(2, '0')).join('');
-const remembered = async () => { try { const v = localStorage.getItem('planning-acces'); if (v && ROLES[v]) { window.__ROLE = ROLES[v]; return true; } } catch (e) {} return false; };
+const remembered = () => { try { const v = localStorage.getItem('planning-acces'); const r = v === 'interne' || v === 'senior' ? v : ROLES[v]; if (r) { window.__ROLE = r; return true; } } catch (e) {} return false; };
 async function gate() {
-  if (await remembered()) return;
+  if (remembered()) return;
   await new Promise(resolve => {
     const o = document.createElement('div');
     o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#17465A;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif';
-    o.innerHTML = '<form style="background:#fff;border-radius:16px;padding:24px;max-width:340px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.25)"><h1 style="margin:0 0 6px;font-size:20px;color:#17465A">Planning Imagerie</h1><p style="margin:0 0 16px;color:#555;font-size:14px">Entrez le code d’accès du service.</p><input id="pcode" type="password" autocomplete="off" autocapitalize="off" placeholder="Code d’accès" style="width:100%;box-sizing:border-box;font-size:16px;padding:12px;border:1px solid #bbb;border-radius:10px"><p id="perr" style="margin:8px 0 0;color:#b3261e;font-size:13px;min-height:16px"></p><button style="margin-top:8px;width:100%;font-size:16px;padding:12px;border:0;border-radius:10px;background:#17465A;color:#fff;font-weight:600">Entrer</button></form>';
+    const bs = 'width:100%;font-size:17px;padding:16px;border:0;border-radius:12px;background:#17465A;color:#fff;font-weight:600;margin-top:10px';
+    o.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px;max-width:340px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.25)"><h1 style="margin:0 0 6px;font-size:20px;color:#17465A">Planning Imagerie</h1><p style="margin:0 0 8px;color:#555;font-size:14px">Quelle interface voulez-vous utiliser ?</p><button data-role="senior" style="'+bs+'">Seniors</button><button data-role="interne" style="'+bs+'">Internes</button></div>';
     document.body.appendChild(o);
-    const inp = o.querySelector('#pcode'); inp.focus();
-    o.querySelector('form').addEventListener('submit', async e => {
-      e.preventDefault();
-      const hh = await sha(inp.value);
-      if (ROLES[hh]) { window.__ROLE = ROLES[hh]; try { localStorage.setItem('planning-acces', hh); } catch (e2) {} o.remove(); resolve(); }
-      else { o.querySelector('#perr').textContent = 'Code incorrect.'; inp.select(); }
-    });
+    o.addEventListener('click', e => { const b = e.target.closest('[data-role]'); if (!b) return; window.__ROLE = b.dataset.role; try { localStorage.setItem('planning-acces', b.dataset.role); } catch (e2) {} o.remove(); resolve(); });
   });
 }
 await gate();
