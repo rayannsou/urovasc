@@ -10,6 +10,6 @@ Le code est en place (réglages dans l'appli, `firebase-messaging-sw.js`, foncti
 Règles Firestore : la collection `push` doit être lisible et modifiable comme `echanges`.
 Sur iPhone : ajouter l'appli à l'écran d'accueil (Partager → Sur l'écran d'accueil), l'ouvrir depuis l'icône, puis Réglages → Rappels → Activer.
 
-## Interfaces
+## Médecins et internes
 
-Plus de mot de passe : au premier lancement l'appli demande « Seniors » ou « Internes » (Réglages → Interface pour changer). Chaque interface ne crée et n'importe que les personnes de son groupe (fonction « Interne » = internes, les autres = seniors) ; les affichages montrent tout le monde.
+Plus de mot de passe ni d'interface séparée. En ouvrant l'onglet « Créer », l'appli demande « Médecins » ou « Internes » : la création (automatique, manuelle ou import) ne touche qu'aux personnes de ce groupe (fonction « Interne » = internes, les autres = médecins). L'autre groupe est conservé. Les affichages montrent tout le monde.
