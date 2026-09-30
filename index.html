@@ -2071,7 +2071,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const score = (id, sl)=>{
       let sc = ((freq[id] && freq[id][sl.p.id]) || 0) * 3 - (load[id] || 0) * 2;
       const pv = prev[sl.h.k+'|M'];
-      if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : 2;
+      if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : sl.p.id === 'echo' ? -12 : 2;   /* pas à l'écho toute la journée */
       if (!R.autonomie.includes(sl.p.id) && isAuto(id)) sc -= 1.5;
       if (intNon[sl.p.id] && isAuto(id)) sc -= 6;       /* 2 non autonomes acceptés ici : on garde les autonomes pour ailleurs */
       if (doctors[id] && doctors[id].interv) sc += sl.p.id === 'bloc' ? 20 : -4;     /* interventionnel : le bloc d'abord, mais seulement une fois le reste pourvu */
@@ -2119,12 +2119,29 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         const ni = noAuto.indexOf(sl); if (ni >= 0 && sl.pick.some(isAuto)) noAuto.splice(ni, 1);
         if (sl.pick.length < sl.need && hi < 0) holes.push(sl);
       });
+      /* après-midi : on évite qu'un interne reste à l'écho toute la journée, en échangeant avec un autre poste quand c'est possible */
+      if (h.part === 'AM') {
+        const pm = (prev[h.k+'|M'] || {}).echo || [];
+        const okSl = (sl, arr)=>!(R.autonomie.includes(sl.p.id) && sl.need >= 2) || ((intNon[sl.p.id] || arr.some(isAuto)) && (!intOnlyAuto[sl.p.id] || arr.every(isAuto)));
+        here.filter(sl=>!sl.keep && sl.pick && sl.p.id === 'echo').forEach(es=>{
+          es.pick.filter(x=>pm.includes(x)).forEach(x=>{
+            for (const o of here) {
+              if (o === es || o.keep || !o.pick) continue;
+              const y = o.pick.find(z=>!pm.includes(z) && !es.pick.includes(z));
+              if (!y) continue;
+              const ea = es.pick.map(z=>z === x ? y : z), oa = o.pick.map(z=>z === y ? x : z);
+              if (!okSl(es, ea) || !okSl(o, oa)) continue;
+              es.pick = ea; o.pick = oa; break;
+            }
+          });
+        });
+      }
       /* les internes restants renforcent l'écho et le scanner urgences (2 au minimum, davantage possible) */
       const ext = here.filter(sl=>!sl.keep && sl.pick && sl.pick.length >= sl.need && R.extra.includes(sl.p.id) && intNeed[sl.p.id] == null && intNeedHP[sl.p.id+'|'+h.id] == null);   /* effectif choisi explicitement : pas de renfort en plus */
       if (ext.length) {
         const left = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
         left.sort((a,b)=>(load[a]||0) - (load[b]||0));
-        left.forEach(id=>{ const oks = ext.filter(x=>!intOnlyAuto[x.p.id] || isAuto(id)); if (!oks.length) return; oks.sort((a,b)=>a.pick.length - b.pick.length); const sl = oks[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
+        left.forEach(id=>{ const oks = ext.filter(x=>(!intOnlyAuto[x.p.id] || isAuto(id)) && !(x.p.id === 'echo' && h.part === 'AM' && ((prev[h.k+'|M'] || {}).echo || []).includes(id))); if (!oks.length) return; oks.sort((a,b)=>a.pick.length - b.pick.length); const sl = oks[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
       }
       here.forEach(sl=>{
         if (sl.keep || !sl.pick) return;
@@ -2155,7 +2172,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       b.wi = wi;
     });
     const notes = [];
+    const allDay = []; days.forEach(k=>{ const m = slots.find(x=>x.p.id === 'echo' && x.h.k === k && x.h.part === 'M'), a = slots.find(x=>x.p.id === 'echo' && x.h.k === k && x.h.part === 'AM'); if (m && a && m.pick && a.pick) m.pick.filter(id=>a.pick.includes(id)).forEach(id=>allDay.push(dLabel(id)+' ('+fmtShort.format(parse(k))+')')); });
     notes.push(bad.length ? {lvl: 'bad', h: 'Vacations obligatoires sans interne', l: bad.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true} : {lvl: 'ok', h: 'Vacations obligatoires sans interne', l: [], zero: true});
+    if (allDay.length) notes.push({lvl: 'info', h: 'À l’écho toute la journée (faute d’autre interne disponible)', l: allDay});
     if (optL.length) notes.push({lvl: 'info', h: 'Vacations facultatives sans interne', l: optL.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true});
     if (relaxed.length) notes.push({lvl: 'info', h: 'Off supprimé pour avoir 2 personnes à l’écho / au scanner urgences', l: relaxed});
     const unk = ints.filter(d=>d.auto == null); if (unk.length) notes.push({lvl: 'info', h: 'Niveau d’autonomie non renseigné (compté « non autonome »)', l: [unk.map(d=>d.label).join(', ')]});
@@ -2952,10 +2971,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 
   /* qui est avec moi : l'interne(s) pour un senior, le senior pour un interne */
   const isIntId = id => { const d = doctors[id]; return !!(d && d.role === 'Interne'); };
+  const isSrId = id => { const d = doctors[id]; return !!(d && d.role !== 'Interne' && d.role !== 'Autre'); };   /* senior = rôle « Médecin » */
   function withTxt(v, up){
-    const nm = a=>a.map(dLabel).join(', '), ints = v.others.filter(isIntId), srs = v.others.filter(x=>!isIntId(x)), w = up ? 'Avec ' : 'avec ', out = [];
-    if (isIntId(me)) { out.push(srs.length ? (srs.length > 1 ? 'Seniors : ' : 'Senior : ')+nm(srs) : 'Senior : non indiqué'); if (ints.length) out.push(w+nm(ints)); }
-    else { if (ints.length) out.push((ints.length > 1 ? 'Internes : ' : 'Interne : ')+nm(ints)); if (srs.length) out.push(w+nm(srs)); }
+    const nm = a=>a.map(dLabel).join(', '), ints = v.others.filter(isIntId), srs = v.others.filter(isSrId), rest = v.others.filter(x=>!isIntId(x) && !isSrId(x)), w = up ? 'Avec ' : 'avec ', out = [];
+    if (isIntId(me)) { out.push(srs.length ? (srs.length > 1 ? 'Seniors : ' : 'Senior : ')+nm(srs) : 'Senior : non indiqué'); const o = ints.concat(rest); if (o.length) out.push(w+nm(o)); }
+    else { if (ints.length) out.push((ints.length > 1 ? 'Internes : ' : 'Interne : ')+nm(ints)); const o = srs.concat(rest); if (o.length) out.push(w+nm(o)); }
     return out.join(' · ');
   }
   function dayVacs(id, k){
