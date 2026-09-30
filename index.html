@@ -128,7 +128,7 @@ table.trame .who{min-width:112px;vertical-align:middle}
 .ch.me{background:var(--accent);color:var(--accent-ink)}
 .ch.bad{background:var(--ind);color:var(--ind-ink);text-decoration:line-through}
 .ch.off{color:var(--muted)}
-.xfr{padding:8px 0;border-top:1px solid #ddd}.remrow{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:15px}.remrow input{width:20px;height:20px}
+.insec{margin:14px 0 4px;font-size:1.1rem}.xfr{padding:8px 0;border-top:1px solid #ddd}.remrow{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:15px}.remrow input{width:20px;height:20px}
 .cap{display:block;font:500 9px/1.2 var(--font-mono);color:var(--muted)}
 .cap.alt{color:var(--accent);font-weight:700}
 .cf{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
@@ -622,6 +622,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         <div class="col">
           <div class="card">
             <div class="subtabs" role="group" aria-label="Type d’indisponibilité"><button type="button" data-inmode="week" aria-pressed="true">📅 Semaine</button><button type="button" data-inmode="sat" aria-pressed="false">🔔 Astreinte</button></div>
+            <h2 class="insec">Saisir vos indisponibilités / off</h2>
             <div class="weekbar">
               <button type="button" id="iwPrev" aria-label="Semaine précédente">‹</button>
               <h2 id="iwLabel"></h2>
