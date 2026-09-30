@@ -811,7 +811,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (rappels v28, médecins/internes)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (rappels v29, rattrapage 1-2 oct)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -3377,6 +3377,21 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (e.target.closest('#xlCancel')) { xlPlan = null; renderPlan(); }
   });
 
+
+  /* rattrapage unique : semaine du 28 sept. au 2 oct. lue dans l'onglet « septembre 2026 » du Google Sheet (jeudi 1er et vendredi 2 octobre manquants) */
+  const PATCH_AOA = [["","lundi 31 aout","","mardi 1","","mercredi 2","","jeudi 3","","vendredi 4","","samedi matin","","lundi 7","","mardi 8","","mercredi 9","","jeudi 10","","vendredi 11","","","","lundi 14","","mardi 15","","mercredi 16","","jeudi 17","","vendredi 18","","","","lundi 21","","mardi 22","","mercredi 23","","jeudi 24","","vendredi 25","","samedi matin","","lundi 28","","mardi 29","","mercredi 30","","jeudi 1 octobre","","vendredi 2 octobre","","samedi matin"],["","M","AM","M","AM","M","AM","M","AM","M","AM","","","M","AM","M","AM","M","AM","M","AM","M","AM","","","M","AM","M","AM","M","AM","M","AM","M","AM","","","M","AM","M","AM","M","AM","M","AM","M","AM","","","M","AM","M","AM","M","AM","M","AM","M","AM",""],["Echo","HR","RM/AM","Romain","AM","RM","RM","YLB","YLB","RM","RM","","Echo","RM/AM","RM","AM","AM","CM/RM","CM","YLB/AM","YLB","RM","RM","","Echo","Romain/NP","RM","CM","CM","YLB","RM","YLB/AM","YLB","RM/EF","RM/EF","","Echo","Alexandre","AM","CM","AM","YLB","HR","YLB/Alexandre","YLB","CM","Romain","","Echo","RM/Romain","RM","Alexandre","AM","YLB","HR","YLB","YLB","HR","RM",""],["Bloc","CM /Romain","CM /Romain","HR/CM/Alex","HR/Alex","EF/Alexandre","EF/Alexandre","RM/Romain","RM/Romain","AM","AM/Romain","","Bloc","CM","CM","CM/Alexandre/NP","CM/Alexandre/NP","RM/Alexandre","RM/Alexandre","RM/Alexandre","RM/Alexandre","AM/Alexandre","AM/Alexandre","","Bloc","CM","CM","Romain/NP(CM si besoin)","Romain/NP","EF","EF","RM/Romain","RM/Romain","AM/Romain","AM/Romain","","Bloc","CM/Romain","CM/Romain","NP/HR/Romain","NP/HR/Romain","EF","EF","AM/Romain","AM","AM","AM","","Bloc","CM /Alex","CM /Alex","NP/CM/Romain","NP/ Romain","EF/Alexandre","EF/Alex","RM/Romain","RM/Romain","CM/Romain","CM/Romain",""],["Bloc urgences","","","","","","","","","","","","Bloc urgences","","","","","","","","","","","","Bloc urgences","","","","","","","","","","","","Bloc urgences","","","","","","","","","","","","Bloc urgences","","","","","","","","","","",""],["Consultation","HR","fermée","AM","","RM","","EF","CM","","Romain","","Consultation","fermée","RM/NP","AM","","fermée","","EF","CM","","fermée","","Consultation","fermée","NP","fermée","","RM","","EF","CM","","Romain","","Consultation","HR","NP","AM","","fermée","","a fermer","CM","","Romain","","Consultation","fermée","NP","AM","","RM","","EF","CM","","DJ",""],["IRM","AM","","","fermée","HR","fermée","AM","","","CM","","IRM","","","","fermée","CM","fermée","AC","","","EF","","IRM","Romain/NP","","","fermée","NP","fermée","AC","","","EF","","IRM","","","","fermé","NP ou HR","fermée","AC","","","CM","","IRM","","","","Alex (PM)","NP/HR","RM","AM","","","EF + Alexandre",""],["Scanner EXT","","","","","","IMA","CM","","","YLB","","Scanner EXT","","","","","","IMA","CM","","","YLB","","Scanner EXT","","","","","","RM","CM","","","YLB","","Scanner EXT","","","","","","IMA","CM","","","Romain","","Scanner EXT","","","","","","IMA","CM","","","YLB",""],["Scanner RDC / RI","RM/Alexandre","IMA","Etienne","","","","","","RM","RM","","Scanner RDC / RI","RM/AM/NP","IMA","","","","","","","RM","RM puis fermé (manque manip)","","Scanner RDC / RI","Romain/NP","IMA (diag) puis ferme à 14h ","","","","","","","RM/EF","RM","","Scanner RDC / RI","NP/AM","IMA","EF/RM","","","","","","Romain (CM)","fermée","","Scanner RDC / RI","RM/Romain","IMA","","","","","","","HR/Alexandre","HR",""],["Scanner URG","","HR","","","","","","Alexandre","","","","Scanner URG","","AM","","","","","","AM","","","","Scanner URG","","Romain","","","","","","AM","","","","Scanner URG","","HR","","","","","","Romain","","","","Scanner URG","","Romain","","","","","","AM","","",""],["Scanner SA","YLB","YLB","","","Romain","YLB","ostéo","AM","HR","","","Scanner SA","YLB","YLB","","","MB","MB","ostéo","AC","AC","","","Scanner SA","YLB","YLB","","","MB","MB","ostéo","AC","AC","","","Scanner SA","YLB","YLB","","","MB","MB","ostéo","AC","AC","","","Scanner SA","YLB","YLB","","","MB","MB","ostéo","AC","AC","",""],["Echo SA","","","","","","fermée","","","","","","Echo SA","","","","","","YLB","","","","","","Echo SA","","","","","","YLB","","","","","","Echo SA","","","","","","YLB","","","","","","Echo SA","","","","","","YLB","","","","",""],["Scanner photonique XA","","","","","","","","","EF","","","Scanner Lyric (XA)","","","","","","","","","EF","","","Scanner Lyric (XA)","","","","","","","","","CM","","","Scanner Lyric (XA)","","","","","","","","","IMA","","","Scanner Lyric (XA)","","","","","","","","","RM","",""],["RCP","RM/HR","","","AM","","","","","EF/RM","","","RCP","RM","","","AM","","","","","","","","RCP","NP","","","Romain","","","","","","","","RCP","NP/HR","","","RM","","","","","","","","RCP","HR","","","AM","","","","","","",""],["Cours fac","","","","","","","","","","","","Cours fac","","","","","","","","","","","","Cours fac","","","","","","","","","","","","Cours fac","","","","","","","","","","","","Cours fac","","","","","","","","","","",""],["Formation","","","","","","","","","","","","Formation","Romain / EF","Romain / EF","Romain / EF","Romain / EF","Romain / EF","Romain / EF","","","","","","Formation","AM","AM","","","IMA","IMA","","","","","","Formation","","","","","RM","RM","RM / EF","RM / EF","RM / EF","RM / EF","","Formation","","","","","","","AC","","EF","",""],["Recherche","","","","","","","","","","","","Recherche","","","","","","","","","","","","Recherche","","","","","","","","","","","","Recherche","","","","","","","","","","","","Recherche","","","","","","","","","","",""],["Administratif","","","","","","","","","","","","Administratif","","","","","","","","","","","","Administratif","","","","","","","","","","","","Administratif","","","","","","","","","","","","Administratif","","","","","","","","","","",""],["off","EF","EF / Alexandre","RM / EF","RM / EF","AM/CM","AM/CM/Romain","Alexandre/HR","HR","Romain","HR","","off","Alexandre","Alexandre","RM","RM","AM","AM","","","CM","CM","","off","EF","EF","RM / EF ","RM / EF ","AM/CM","AM/CM/Romain","","","","","","off","RM / EF","RM / EF","","EF","AM/CM/Romain","AM/CM/Romain","HR","HR","","","","off","EF/","EF","RM / EF","RM / EF","AM/CM/Romain","AM/CM/Romain","HR/Alex","HR/Alex","","",""],["RDG","","","RM ","RM ","","","","","Alexandre","Alexandre","","RDG","","","","","","","","","IMA","IMA","","RDG","","","","","","","","","","","","RDG","","","","","","","","","HR","HR","","RDG","","","","","","","","","","",""],["Congés annuels","","","","","","","","","","","","Congés annuels","","","","","","","Romain","Romain","Romain","Romain","","Congés annuels","","","","","","","","","","","","Congés annuels","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","","Congés annuels","HR","HR","HR","HR","","","","","AM","AM",""],["","NP","NP","NP","NP","NP","NP","NP","NP","NP","NP","","","","","","","","","","","","","","","HR","HR","HR","HR","HR","HR","HR","HR","HR","HR","","","","","","","","","","","","","","","NP","NP","","","","","","","","",""],["","MB","MB","MB","MB","MB","MB","MB","MB","MB","MB","","","HR","HR","HR","HR","HR","HR","HR","HR","HR","HR","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","AC","AC","AC","AC","AC","AC","AC","AC","AC","AC","","","","","","","","","","","","","","","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","Alexandre","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","","","","","","RM","RM","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","thèse Charles 16h  (EF + RM)",""]];
+  let patchState = null, patchBusy = false;
+  async function maybePatch(){
+    if (patchState !== 'absent' || patchBusy || !db || !canWrite || !subs.aj || !trameLoaded || !loaded || !trame || !window.PlanningParser) return;
+    if (overrides['2026-10-01'] || overrides['2026-10-02']) { patchState = 'done'; db.doc('meta/patch-oct12').set({at: Date.now(), skipped: true}).catch(()=>{}); return; }
+    patchBusy = true;
+    try {
+      const wk = PP.mergeWeeks(PP.parseMonthGrid(PATCH_AOA, {ref: new Date(2026, 8, 15)}));
+      const pl = planSince(planFromWeeks(wk, []), '2026-10-01');
+      if (pl.weeks.length && await applyWeeks(pl)) { patchState = 'done'; await db.doc('meta/patch-oct12').set({at: Date.now()}); notify('Planning du 1er et 2 octobre importé depuis votre Google Sheet.'); }
+    } catch(e) {}
+    patchBusy = false;
+  }
   /* ---------- alertes du planning général ---------- */
   function renderGAlert(){
     const box = $('#gAlert'), b = $('#gBadge');
@@ -4026,7 +4041,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         const v = s.data() || {};
         next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : ''};
       });
-      doctors = next; loaded = true; renderAll();
+      doctors = next; loaded = true; renderAll(); maybePatch();
     }, err=>{
       loaded = true; notify('La connexion au planning partagé a été interrompue. Rechargez la page.', true); renderAll();
     });
@@ -4049,11 +4064,11 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       });
       overrides = next; subs.aj = true; renderToday(); renderTrame(); renderConflicts(); renderMe(); renderSwapForm();
       jumpToData();
-      maybeSeed();
+      maybeSeed(); maybePatch();
     }, err=>{});
     db.doc('trame/semaine').onSnapshot(s=>{
       trame = s.exists ? normalizeTrame(s.data()) : null; trameLoaded = true;
-      renderTrame(); renderConflicts(); renderSwaps(); renderSwapForm(); renderAll(); maybeSeed(); ensureAst();
+      renderTrame(); renderConflicts(); renderSwaps(); renderSwapForm(); renderAll(); maybeSeed(); ensureAst(); maybePatch();
     }, err=>{});
     db.collection('notes').onSnapshot(snap=>{
       const next = {};
@@ -4061,6 +4076,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       notesBy = next; subs.notes = true; renderGNotes(); renderToday(); maybeSeed();
     }, err=>{});
     db.doc('meta/ast1').onSnapshot(s=>{ astMeta = s.exists ? 'done' : 'absent'; ensureAst(); }, err=>{});
+    db.doc('meta/patch-oct12').onSnapshot(s=>{ patchState = s.exists ? 'done' : 'absent'; maybePatch(); }, err=>{});
     db.doc('meta/seed2').onSnapshot(s=>{ seedState = s.exists ? 'done' : 'absent'; maybeSeed(); jumpToData(); }, err=>{});
   })();
 })();
