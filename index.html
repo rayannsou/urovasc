@@ -1453,7 +1453,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     else { av.classList.remove('ph'); av.dataset.ph = ''; av.textContent = '🩻'; }
     const pb = $('#phPrev'); if (pb) pb.innerHTML = ph ? '<img alt="" src="'+ph+'">' : '<span class="phe">🩻</span>';
     if ($('#phDel')) $('#phDel').hidden = !ph;
-    const ib = $('#intBox'); if (ib) { ib.hidden = !d; const on = !!(d && d.interv); $('#intBtn').className = on ? 'primary' : 'ghost'; $('#intBtn').textContent = (on ? '☑ ' : '☐ ') + 'Interventionnel'; }
+    const ib = $('#intBox'); if (ib) { ib.hidden = !(d && d.role === 'Interne'); const on = !!(d && d.interv); $('#intBtn').className = on ? 'primary' : 'ghost'; $('#intBtn').textContent = (on ? '☑ ' : '☐ ') + 'Interventionnel'; }
     const ab = $('#autoBox'); if (ab) { ab.hidden = !(d && d.role === 'Interne'); const am = $('#autoMiss'); if (am) am.hidden = !(d && d.role === 'Interne' && d.auto == null); ab.querySelectorAll('[data-autoset]').forEach(x=>{ const on = d && ((x.dataset.autoset === '1') === d.auto) && d.auto !== null; x.className = on ? 'primary' : 'ghost'; x.textContent = (on ? '✓ ' : '') + (x.dataset.autoset === '1' ? 'Autonome' : 'Pas autonome'); }); }
     $('#goProfile').hidden = !!d || !(loaded && sortedDocs().length);
     $('#hiSub').textContent = d ? todaySummary() : (loaded && sortedDocs().length ? 'Choisissez votre nom dans Réglages pour voir votre semaine.' : 'Chargement du planning…');
