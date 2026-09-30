@@ -1880,9 +1880,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           Object.keys(trame.cases).forEach(c=>{ if (c.indexOf(p.id+'_') === 0 && c.slice(-part.length-1) === '_'+part) { const w = trame.cases[c].who; if (Array.isArray(w)) w.forEach(id=>{ freq[id] = (freq[id]||0) + 2; }); } });
           const pool = (v.ou ? v.who.concat(docs.map(d=>d.id).filter(id=>!v.who.includes(id) && freq[id])) : docs.map(d=>d.id))
             .filter((id, ix, ar)=>ar.indexOf(id) === ix && !keep.includes(id) && !taken.has(id) && !reasonFor(id, k, part));
-          const iv = id => p.id === 'bloc' && doctors[id] && doctors[id].interv ? 1 : 0;
-          pool.sort((a,b)=>(v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || (iv(b) - iv(a)) || ((freq[b]||0) - (freq[a]||0)) || ((load[a]||0) - (load[b]||0)));
-          const eligible = pool.filter(id=>freq[id] || iv(id));
+          pool.sort((a,b)=>(v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || ((freq[b]||0) - (freq[a]||0)) || ((load[a]||0) - (load[b]||0)));
+          const eligible = pool.filter(id=>freq[id]);
           const res = keep.slice();
           while (res.length < need && eligible.length) { const id = eligible.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; }
           if (res.length < need) holes++;
