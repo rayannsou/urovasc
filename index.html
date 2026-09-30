@@ -1957,7 +1957,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         off[d.id].add(best.id); offDays[d.id].push(best.i); chosen[best.id]++; if (isAuto(d.id)) aChosen[best.id]++;
       }
     });
-    /* internes « interventionnels » : 2 demi-vacations au bloc, si possible à la suite (sans manquer de monde ailleurs) */
+    /* internes « interventionnels » : au moins 2 demi-vacations au bloc, si possible à la suite (sans manquer de monde ailleurs) ; davantage si le reste est pourvu */
     const blocRes = {}, resN = {}, resA = {}, blocSlot = {}, aNeed = {};
     slots.forEach(sl=>{ if (sl.p.id === 'bloc' && !sl.keep) blocSlot[sl.h.id] = sl; });
     HP.forEach(h=>{ resN[h.id] = 0; resA[h.id] = 0; aNeed[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).length; });
@@ -1987,7 +1987,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const pv = prev[sl.h.k+'|M'];
       if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : 2;
       if (!R.autonomie.includes(sl.p.id) && isAuto(id)) sc -= 1.5;
-      if (doctors[id] && doctors[id].interv && sl.p.id !== 'bloc') sc -= 4;
+      if (doctors[id] && doctors[id].interv) sc += sl.p.id === 'bloc' ? 20 : -4;     /* interventionnel : le bloc d'abord, mais seulement une fois le reste pourvu */
       return sc;
     };
     HP.forEach(h=>{
@@ -1995,7 +1995,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const order = sl=>(sl.p.id === 'bloc' && blocRes[h.id]) ? -1 : R.autonomie.includes(sl.p.id) ? 0 : R.facultatif.includes(sl.p.id) ? 3 : 2;
       here.slice().sort((a,b)=>order(a)-order(b)).forEach(sl=>{
         if (sl.keep) { prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = sl.keep; return; }
-        const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id) && !(sl.p.id === 'bloc' && doctors[id] && doctors[id].interv));
+        const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
         const best = list => list.slice().sort((a,b)=>score(b, sl) - score(a, sl))[0];
         let pick = [];
         if (sl.p.id === 'bloc' && blocRes[h.id]) pick = [blocRes[h.id]];
