@@ -3080,22 +3080,32 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const t = await csvOf('gid=0'); const w1 = X.read(t, {type:'string'});
       /* sans l'API : recherche des onglets « mois » par leur nom (septembre 2026, oct 26…) ; Google renvoie le 1er onglet quand le nom n'existe pas */
       notify('Recherche des onglets du fichier…');
-      const found = [], seen = new Set([t.trim()]);
+      const found = [], seen = new Set([t.trim()]), failed = [];
       const MN = [['janvier','janv'],['février','fevrier','févr','fevr'],['mars'],['avril','avr'],['mai'],['juin'],['juillet','juil'],['août','aout'],['septembre','sept'],['octobre','oct'],['novembre','nov'],['décembre','decembre','déc','dec']];
-      const cands = [], t0 = new Date();
-      for (let k=-3; k<=5; k++) {
-        const d = new Date(t0.getFullYear(), t0.getMonth()+k, 1), y = d.getFullYear();
-        MN[d.getMonth()].forEach(nm=>[nm, nm.charAt(0).toUpperCase()+nm.slice(1)].forEach(nm2=>[' '+y, ' '+String(y).slice(2), '-'+String(y).slice(2), ''].forEach(sf=>{ const c = nm2+sf; if (!cands.includes(c)) cands.push(c); })));
-      }
-      for (let i=0; i<cands.length; i+=12) {
-        await Promise.all(cands.slice(i,i+12).map(async n=>{
-          try { const tx = await csvOf('sheet='+encodeURIComponent(n)); if (seen.has(tx.trim())) return; seen.add(tx.trim()); found.push({n, tx}); } catch(e) {}
-        }));
-      }
+      const t0 = new Date(), memKey = 'planning-tabs-'+m[1];
+      let mem = []; try { mem = JSON.parse(localStorage.getItem(memKey) || '[]'); } catch(e) {}
+      const candsFor = (k1, k2)=>{ const c = []; for (let k=k1; k<=k2; k++) { const d = new Date(t0.getFullYear(), t0.getMonth()+k, 1), y = d.getFullYear(); MN[d.getMonth()].forEach(nm=>[' '+y, ' '+String(y).slice(2), ''].forEach(sf=>{ const n = nm+sf; if (!c.includes(n)) c.push(n); })); } return c; };
+      /* une requête refusée ou en erreur est retentée : Google limite les requêtes rapprochées */
+      const tryTab = async n=>{
+        for (let a=0; a<3; a++) {
+          try { const tx = await csvOf('sheet='+encodeURIComponent(n)); if (!seen.has(tx.trim())) { seen.add(tx.trim()); found.push({n, tx}); } return; }
+          catch(e) { await new Promise(r=>setTimeout(r, 500*(a+1))); }
+        }
+        failed.push(n);
+      };
+      const scan = async list=>{ for (let i=0; i<list.length; i+=6) await Promise.all(list.slice(i,i+6).map(tryTab)); };
+      await scan(mem.filter((n,i,a)=>a.indexOf(n) === i));
+      await scan(candsFor(-2, 3).filter(n=>!mem.includes(n)));
+      if (!found.length) await scan(candsFor(-6, 8).filter(n=>!mem.includes(n) && !candsFor(-2, 3).includes(n)));
       const out = X.utils.book_new();
       X.utils.book_append_sheet(out, w1.Sheets[w1.SheetNames[0]], 'Onglet 1');
-      found.sort((a,b)=>cands.indexOf(a.n)-cands.indexOf(b.n)).forEach(f=>{ const w = X.read(f.tx, {type:'string'}); X.utils.book_append_sheet(out, w.Sheets[w.SheetNames[0]], f.n.slice(0,31)); });
-      setTimeout(()=>notify((found.length ? 'Onglets lus : le premier, '+found.map(f=>f.n).join(', ')+'. ' : 'Seul le premier onglet a pu être lu. ')+"Une semaine à cheval sur deux mois est dans l'autre onglet : tapez son nom exact dans « Onglet(s) » (ex. sept 26, oct 26) ou importez le .xlsx (Fichier → Télécharger)."), 500);
+      found.forEach(f=>{ const w = X.read(f.tx, {type:'string'}); X.utils.book_append_sheet(out, w.Sheets[w.SheetNames[0]], f.n.slice(0,31)); });
+      try { localStorage.setItem(memKey, JSON.stringify(found.map(f=>f.n))); } catch(e) {}
+      const msg = (found.length ? 'Onglets lus : le premier, '+found.map(f=>f.n).join(', ')+'. ' : 'Seul le premier onglet a pu être lu. ')
+        + (failed.length > 3 ? 'Google n’a pas répondu pour '+failed.length+' recherches : réessayez. ' : '')
+        + (apiMsg || '')
+        + "Un onglet manque ? Tapez son nom exact dans « Onglet(s) » ou importez le .xlsx (Fichier → Télécharger).";
+      setTimeout(()=>notify(msg), 500);
       return readBuffer(null, out);
     } catch(e) { return notify(fail, true); }
   }
