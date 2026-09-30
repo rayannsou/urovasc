@@ -623,11 +623,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     <section id="view-indispos" aria-labelledby="tab-indispos" hidden>
       <p id="inEmpty" class="empty">Chargement du planning partagé…</p>
       <div id="inBody" class="grid2" hidden>
+        <div class="card full">
+          <div class="subtabs" role="group" aria-label="Type d’indisponibilité"><button type="button" data-inmode="week" aria-pressed="true">📅 Semaine</button><button type="button" data-inmode="sat" aria-pressed="false">🔔 Astreinte</button></div>
+          <div id="confBox" class="confbox"></div>
+        </div>
         <div class="col">
           <div class="card">
-            <div class="subtabs" role="group" aria-label="Type d’indisponibilité"><button type="button" data-inmode="week" aria-pressed="true">📅 Semaine</button><button type="button" data-inmode="sat" aria-pressed="false">🔔 Astreinte</button></div>
-            <div id="confBox" class="confbox"></div>
-            <h2 class="insec">Saisir vos indisponibilités / off</h2>
+            <h2 class="insec" style="margin-top:0">Saisir vos indisponibilités / off</h2>
             <div class="weekbar">
               <button type="button" id="iwPrev" aria-label="Semaine précédente">‹</button>
               <h2 id="iwLabel"></h2>
