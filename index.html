@@ -778,8 +778,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       <select id="who"><option value="">Chargement…</option></select>
       <div class="phbox"><span id="phPrev"><span class="phe">🩻</span></span><button type="button" class="ghost" id="phPick">📷 Choisir une photo de profil</button><button type="button" class="ghost" id="phDel" hidden>Retirer</button><input type="file" id="phFile" accept="image/*" hidden></div>
       <p class="hint">Sans photo, l’emoji radiologie s’affiche en haut à droite de l’accueil.</p>
-      <div id="intBox" hidden><p class="hint"><b>Profil interventionnel</b> : vous passez en priorité au bloc lors de la création automatique.</p><div class="phbox"><button type="button" class="ghost" id="intBtn">Profil interventionnel</button></div></div>
-      <div id="autoBox" hidden><p class="hint"><b>Votre niveau</b> : utilisé pour créer le planning des internes.</p><div class="phbox"><button type="button" class="ghost" data-autoset="1">Autonome</button><button type="button" class="ghost" data-autoset="0">Pas autonome</button></div></div>
+      <div id="autoBox" hidden><p class="hint"><b>Votre niveau</b> (obligatoire) : utilisé pour créer le planning des internes.</p><div class="phbox"><button type="button" class="ghost" data-autoset="1">Autonome</button><button type="button" class="ghost" data-autoset="0">Pas autonome</button></div><p class="plwhy" id="autoMiss" hidden>À choisir : autonome ou pas autonome.</p></div>
+      <div id="intBox" hidden><div class="phbox"><button type="button" class="ghost" id="intBtn">Interventionnel</button></div><p class="hint">Facultatif, en plus du niveau : vous passez en priorité au bloc lors de la création automatique.</p></div>
       <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
       <form id="renForm" class="renform" hidden><input type="text" id="renInput" maxlength="24" autocomplete="off" aria-label="Votre prénom"><button type="submit" class="primary">Enregistrer</button><button type="button" id="renCancel" class="ghost">Annuler</button></form>
     </div>
@@ -1453,8 +1453,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     else { av.classList.remove('ph'); av.dataset.ph = ''; av.textContent = '🩻'; }
     const pb = $('#phPrev'); if (pb) pb.innerHTML = ph ? '<img alt="" src="'+ph+'">' : '<span class="phe">🩻</span>';
     if ($('#phDel')) $('#phDel').hidden = !ph;
-    const ib = $('#intBox'); if (ib) { ib.hidden = !d; const on = !!(d && d.interv); $('#intBtn').className = on ? 'primary' : 'ghost'; $('#intBtn').textContent = (on ? '✓ ' : '') + 'Profil interventionnel'; }
-    const ab = $('#autoBox'); if (ab) { ab.hidden = !(d && d.role === 'Interne'); ab.querySelectorAll('[data-autoset]').forEach(x=>{ const on = d && ((x.dataset.autoset === '1') === d.auto) && d.auto !== null; x.className = on ? 'primary' : 'ghost'; x.textContent = (on ? '✓ ' : '') + (x.dataset.autoset === '1' ? 'Autonome' : 'Pas autonome'); }); }
+    const ib = $('#intBox'); if (ib) { ib.hidden = !d; const on = !!(d && d.interv); $('#intBtn').className = on ? 'primary' : 'ghost'; $('#intBtn').textContent = (on ? '☑ ' : '☐ ') + 'Interventionnel'; }
+    const ab = $('#autoBox'); if (ab) { ab.hidden = !(d && d.role === 'Interne'); const am = $('#autoMiss'); if (am) am.hidden = !(d && d.role === 'Interne' && d.auto == null); ab.querySelectorAll('[data-autoset]').forEach(x=>{ const on = d && ((x.dataset.autoset === '1') === d.auto) && d.auto !== null; x.className = on ? 'primary' : 'ghost'; x.textContent = (on ? '✓ ' : '') + (x.dataset.autoset === '1' ? 'Autonome' : 'Pas autonome'); }); }
     $('#goProfile').hidden = !!d || !(loaded && sortedDocs().length);
     $('#hiSub').textContent = d ? todaySummary() : (loaded && sortedDocs().length ? 'Choisissez votre nom dans Réglages pour voir votre semaine.' : 'Chargement du planning…');
   }
