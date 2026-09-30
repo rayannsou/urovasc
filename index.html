@@ -1981,6 +1981,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     extra: ['echo', 'scanner-urg'],            /* postes où l'on ajoute les internes restants */
     defaut: 1,
     autonomie: ['echo', 'scanner-urg'],        /* au moins 1 autonome ; 2 pas autonomes interdit */
+    seniorRequis: ['bloc'],                    /* pas d'interne sans médecin senior posté sur la vacation */
     facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
     priorite: ['scanner-urg', 'echo'],         /* si les autonomes manquent, le scanner des urgences est servi en premier */
     exclus: /consult|formation|admin|recherche|cours|\bfac\b|[eé]cho[\s_-]?sa\b|bloc[\s_-]*(des[\s_-]*)?urg/i,                        /* postes où l'on ne met jamais d'internes (testé sur l'identifiant et le nom) */
@@ -2002,14 +2003,20 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const HP = []; days.forEach((k,i)=>PARTS.forEach(part=>HP.push({i, k, part, id: i+part})));
     const okAt = (id, h) => !reasonFor(id, h.k, h.part);
     /* vacations à pourvoir */
-    const slots = [];
+    const slots = [], noSrBloc = [], noOu = [];
     HP.forEach(h=>posts.forEach(p=>{
       if (!okDay(p, h.i) || (p.journee && h.part !== 'M') || R.exclus.test(p.id+' '+p.label)) return;
       const v = vacWho(p.id, h.k, h.part); if (!v) return;
       if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
+      if (v.ou) { noOu.push(p.label+' '+fmtShort.format(parse(h.k))+' '+PART_TXT[h.part]); return; }   /* « à confirmer » côté seniors : on n'y touche pas */
       const ov = overrides[h.k] && overrides[h.k][p.id+'_'+h.part], mine = ov && ov.w ? ov.w.filter(inGrp) : [];
       const nd = intNeedOf(p.id, h.i, h.part); if (nd <= 0) return;
-      slots.push({p, h, need: nd, keep: ov && !ov.a && mine.length ? mine : null, before: v.who.filter(inGrp)});
+      const kp = ov && !ov.a && mine.length ? mine : null;
+      if (R.seniorRequis.includes(p.id) && !kp) {
+        const vs = p.journee ? PARTS.map(pt=>vacWho(p.id, h.k, pt)).filter(Boolean) : [v];
+        if (!vs.some(x=>x.who.some(isSrId))) { noSrBloc.push(p.label+' '+fmtShort.format(parse(h.k))+(p.journee ? '' : ' '+PART_TXT[h.part])); return; }
+      }
+      slots.push({p, h, need: nd, keep: kp, before: v.who.filter(inGrp)});
     }));
     /* qui est déjà pris, fréquence des postes, charge */
     const taken = {}; HP.forEach(h=>{ taken[h.id] = new Set(); });
@@ -2174,6 +2181,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const notes = [];
     const allDay = []; days.forEach(k=>{ const m = slots.find(x=>x.p.id === 'echo' && x.h.k === k && x.h.part === 'M'), a = slots.find(x=>x.p.id === 'echo' && x.h.k === k && x.h.part === 'AM'); if (m && a && m.pick && a.pick) m.pick.filter(id=>a.pick.includes(id)).forEach(id=>allDay.push(dLabel(id)+' ('+fmtShort.format(parse(k))+')')); });
     notes.push(bad.length ? {lvl: 'bad', h: 'Vacations obligatoires sans interne', l: bad.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true} : {lvl: 'ok', h: 'Vacations obligatoires sans interne', l: [], zero: true});
+    if (noOu.length) notes.push({lvl: 'info', h: 'Vacations « à confirmer » côté seniors : laissées telles quelles', l: noOu, fold: true});
+    if (noSrBloc.length) notes.push({lvl: 'info', h: 'Bloc sans médecin senior posté : aucun interne placé', l: noSrBloc, fold: true});
     if (allDay.length) notes.push({lvl: 'info', h: 'À l’écho toute la journée (faute d’autre interne disponible)', l: allDay});
     if (optL.length) notes.push({lvl: 'info', h: 'Vacations facultatives sans interne', l: optL.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true});
     if (relaxed.length) notes.push({lvl: 'info', h: 'Off supprimé pour avoir 2 personnes à l’écho / au scanner urgences', l: relaxed});
@@ -3674,12 +3683,14 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const inGrp = id => { if (!plGrp) return true; const d = doctors[id]; return !d || ((d.role === 'Interne') === (plGrp === 'interne')); };
   const grpDocs = () => sortedDocs().filter(d=>inGrp(d.id));
   function baseW(date, poste, part){
-    const ov = overrides[date] && overrides[date][poste+'_'+part]; if (ov) return ov.w || [];
-    const c = trame && trame.cases[tk(poste, (parse(date).getDay()+6)%7, part)];
-    return c && Array.isArray(c.who) ? c.who : [];
+    const v = vacWho(poste, date, part);      /* trame + corrections + échanges conclus : on ne fait jamais perdre un senior */
+    return v ? v.who : [];
   }
   function setOverride(date, kk, val){
-    if (val && Array.isArray(val.w)) { const i = kk.lastIndexOf('_'); val = Object.assign({}, val, {w: baseW(date, kk.slice(0,i), kk.slice(i+1)).filter(id=>!inGrp(id)).concat(val.w.filter(id=>inGrp(id)))}); val.w = val.w.filter((id,ix,ar)=>ar.indexOf(id) === ix); if (val.s) val.s = val.s.filter(id=>val.w.includes(id)); }
+    if (val && Array.isArray(val.w)) { const i = kk.lastIndexOf('_'); const po = kk.slice(0,i), pa = kk.slice(i+1), cur = vacWho(po, date, pa); val = Object.assign({}, val, {w: baseW(date, po, pa).filter(id=>!inGrp(id)).concat(val.w.filter(id=>inGrp(id)))}); val.w = val.w.filter((id,ix,ar)=>ar.indexOf(id) === ix);
+      /* le planning de l'autre groupe reste intact : texte de la vacation et étoiles des autres sont conservés */
+      if (cur) { if (val.x == null && cur.texte && !/^ferm/i.test(cur.texte)) val.x = cur.texte; const keepS = (cur.stars || []).filter(id=>!inGrp(id)); if (keepS.length) val.s = (val.s || []).concat(keepS); }
+      if (val.s) val.s = val.s.filter((id,ix,ar)=>val.w.includes(id) && ar.indexOf(id) === ix); }
     if (!db) { notify("Le planning partagé n'est pas disponible dans cette vue.", true); return Promise.resolve(false); }
     if (!canWrite) { notify('Lecture seule : vous ne pouvez pas modifier le planning.', true); return Promise.resolve(false); }
     const prev = oChains[date] || Promise.resolve();
