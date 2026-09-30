@@ -583,6 +583,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         <div id="impSlotC"></div>
         <div class="card" id="cwImport">
           <h2>Importer le planning Excel</h2>
+          <button type="button" class="ghost" id="forceOct12" data-edit>Réimporter le 1er et 2 octobre</button>
           <p class="hint">Importez le fichier du service (une feuille par semaine : postes, congés, absences, astreintes, notes). Toutes les semaines du fichier sont créées d’un coup et les médecins inconnus sont ajoutés à la liste. Un tableau simple (postes en lignes, jours en colonnes) est aussi accepté.</p>
           <fieldset data-edit id="xlSet">
             <label class="filebtn primary srcx" for="xlFile">Choisir un fichier Excel…</label>
@@ -2452,6 +2453,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     }
     remBusy = false; remPaint();
   });
+  $('#forceOct12').addEventListener('click', forcePatch);
   ['#remVeille','#remA7','#remA1','#remHour'].forEach(id=>$(id).addEventListener('change', async ()=>{ if (!rem.on || !me) return; try { await remSave(); notify('Rappels mis à jour.'); } catch(e) { handleErr(e); } }));
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
   $('#auBody').addEventListener('click', async e=>{
@@ -3391,6 +3393,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       if (pl.weeks.length && await applyWeeks(pl)) { patchState = 'done'; await db.doc('meta/patch-oct12').set({at: Date.now()}); notify('Planning du 1er et 2 octobre importé depuis votre Google Sheet.'); }
     } catch(e) {}
     patchBusy = false;
+  }
+  async function forcePatch(){
+    if (!canWrite || !trame || !window.PlanningParser) return notify('Planning pas encore chargé, réessayez dans un instant.', true);
+    if (!confirm('Remplacer le planning du jeudi 1er et du vendredi 2 octobre par celui de votre Google Sheet ?')) return;
+    try {
+      const wk = PP.mergeWeeks(PP.parseMonthGrid(PATCH_AOA, {ref: new Date(2026, 8, 15)}));
+      const pl = planSince(planFromWeeks(wk, []), '2026-10-01');
+      if (pl.weeks.length && await applyWeeks(pl)) { patchState = 'done'; db.doc('meta/patch-oct12').set({at: Date.now(), forced: true}).catch(()=>{}); notify('Planning du 1er et 2 octobre remplacé.'); }
+      else notify('Rien à importer.', true);
+    } catch(e) { notify('Échec de l’import du 1er et 2 octobre.', true); }
   }
   /* ---------- alertes du planning général ---------- */
   function renderGAlert(){
