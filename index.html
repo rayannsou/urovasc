@@ -1737,7 +1737,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   const MOIS_N = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   const monthLbl = m => MOIS_N[Number(m.slice(5,7))-1]+' '+m.slice(0,4);
-  const astSats = () => [...Array(6)].map((_,i)=>addDays(plStart,5+7*i));
+  let astSel = [], astOn = false;
+  const astMonthList = () => { const b = new Date(plStart.getFullYear(), plStart.getMonth(), 1); return [...Array(8)].map((_,i)=>key(new Date(b.getFullYear(), b.getMonth()+i, 1)).slice(0,7)); };
+  const astSatsOf = ms => { const a = ms.slice().sort(), out = []; if (!a.length) return out; let d = new Date(+a[0].slice(0,4), +a[0].slice(5,7)-1, 1); const end = new Date(+a[a.length-1].slice(0,4), +a[a.length-1].slice(5,7), 0); while (d.getDay() !== 6) d = addDays(d,1); for (; d <= end; d = addDays(d,7)) if (a.includes(key(d).slice(0,7))) out.push(new Date(d)); return out; };
+  const astSats = () => plMode === 'ast' && astOn && astSel.length ? astSatsOf(astSel) : [...Array(6)].map((_,i)=>addDays(plStart,5+7*i));
   const astMonths = () => plMode === 'ast' ? [...new Set(astSats().map(d=>key(d).slice(0,7)))] : [...new Set([0,4].map(i=>key(addDays(plStart,i)).slice(0,7)))];
   const astMissing = months => grpDocs().filter(d=>(plMode !== 'ast' || !d.noAst) && months.some(m=>!(d.conf && d.conf[m])));
   async function setDocField(id, patch){
@@ -1776,7 +1779,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const months = astMonths(), miss = astMissing(months), allOk = !miss.length, dis = canWrite ? '' : ' disabled';
     box.hidden = false;
     const stat = allOk ? 'Tout le monde a renseigné ses indisponibilités' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
-    const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' || plStage === 'impm' ? '' : plStage === 'imp' ? 'impm' : (plStage === 'impx' || plStage === 'impg' || plStage === 'shot') ? 'imp' : 'how')+'">‹ Retour</button>';
+    const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' || plStage === 'impm' ? '' : plStage === 'astm' ? 'how' : plStage === 'auto' && ast && astOn ? 'astm' : plStage === 'imp' ? 'impm' : (plStage === 'impx' || plStage === 'impg' || plStage === 'shot') ? 'imp' : 'how')+'">‹ Retour</button>';
     if (!plGrp) box.innerHTML = '<p class="aststat"><b>Pour qui créer le planning ?</b></p><p class="hint">Les médecins et les internes se créent séparément : l’un ne modifie pas l’autre.</p><div class="astpair"><button type="button" class="astbtn big" data-plgrp="medecin">🩺 Médecins</button><button type="button" class="astbtn big" data-plgrp="interne">🎓 Internes</button></div>';
     else if (!plStage) box.innerHTML = '<p class="aststat">Planning des <b>'+(plGrp === 'interne' ? 'internes' : 'médecins')+'</b> <button type="button" class="ghost" data-plgrp="" style="margin-left:8px">Changer</button></p><div class="astcol"><button type="button" class="astbtn big" data-plpick="imp">📥 Importer un planning</button><button type="button" class="astbtn big" data-plpick="week">📅 Créer un planning de semaine</button><button type="button" class="astbtn big" data-plpick="ast">🔔 Créer un planning d’astreinte</button></div>';
     else if (plStage === 'impm') box.innerHTML = back + '<p class="aststat">Importer un planning…</p><div class="astpair"><button type="button" class="astbtn big" data-implmode="week">📅 de semaine</button><button type="button" class="astbtn big" data-implmode="ast">🔔 d’astreinte</button></div>';
@@ -1784,6 +1787,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     else if (plStage === 'imp') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis…</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="impx">📗 Fichier Excel</button><button type="button" class="astbtn big" data-plstage="impg">🔗 Google Sheet</button></div><button type="button" class="astbtn" data-plstage="shot">📷 Capture d’écran</button>';
     else if (plStage === 'impx' || plStage === 'impg') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · '+(plStage === 'impx' ? 'fichier Excel' : 'Google Sheet')+'. '+(ast ? 'Seules les astreintes (samedis) du fichier seront importées.' : 'Seules les vacations de la semaine (lundi à vendredi) seront importées.')+'</p>';
     else if (plStage === 'shot') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis une capture d’écran</p><label class="astbtn go filebtn" for="shotFile" style="cursor:pointer">📷 Choisir la capture</label><input type="file" id="shotFile" accept="image/*" class="visually-hidden"><p class="aststat" id="shotStat" role="status">'+(shotMsg ? esc(shotMsg) : 'Une capture nette du tableau (jours en colonnes, postes en lignes) donne le meilleur résultat. Le texte est lu sur votre téléphone ; vous relirez tout avant d’enregistrer.')+'</p>';
+    else if (plStage === 'astm') box.innerHTML = back + '<p class="aststat"><b>Planning d’astreinte</b> · quels mois voulez-vous faire ?</p>'
+      + astMonthList().map(m=>{ const n = astMissing([m]).length; return '<label class="astrow" style="cursor:pointer"><span><input type="checkbox" data-astm="'+m+'"'+(astSel.includes(m) ? ' checked' : '')+' style="margin-right:8px"><b>'+esc(monthLbl(m))+'</b></span><small class="aststat '+(n ? 'ko' : 'ok')+'">'+(n ? n+' personne'+(n > 1 ? 's n’ont' : ' n’a')+' pas renseigné' : '✓ tout le monde a renseigné')+'</small></label>'; }).join('')
+      + '<button type="button" class="astbtn go" data-astmgo="1"'+(astSel.length ? '' : ' disabled')+' style="margin-top:8px">Continuer'+(astSel.length ? ' ('+astSel.length+' mois)' : '')+'</button>';
     else if (plStage === 'man') box.innerHTML = back;
     else box.innerHTML = back + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
       + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p><p class="aststat">Vous pourrez relire et confirmer chaque vacation avant l’enregistrement.</p>'
@@ -1811,8 +1817,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Créer quand même</button>' : '';
   }
   $('#astBarBox').addEventListener('change', e=>{ const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
-  $('#astBarBox').addEventListener('click', e=>{ const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; return renderCompose(); }
-    const im = e.target.closest('[data-implmode]'); if (im) { plMode = im.dataset.implmode; plStage = 'imp'; renderCompose(); return; } const pk = e.target.closest('[data-plpick]'); if (pk) { if (pk.dataset.plpick === 'imp') plStage = 'impm'; else { plMode = pk.dataset.plpick; plStage = 'how'; } renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
+  $('#astBarBox').addEventListener('click', e=>{ const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
+    const am = e.target.closest('[data-astm]'); if (am) { const m = am.dataset.astm; astSel = am.checked ? [...new Set([...astSel, m])].sort() : astSel.filter(x=>x !== m); return renderCompose(); }
+    if (e.target.closest('[data-astmgo]')) { if (!astSel.length) return; astOn = true; plStage = 'auto'; return renderCompose(); }
+    const im = e.target.closest('[data-implmode]'); if (im) { plMode = im.dataset.implmode; plStage = 'imp'; renderCompose(); return; } const pk = e.target.closest('[data-plpick]'); if (pk) { if (pk.dataset.plpick === 'imp') plStage = 'impm'; else { plMode = pk.dataset.plpick; plStage = 'how'; } renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; if (plStage === 'auto' && plMode === 'ast' && !astOn) plStage = 'astm'; if (plStage === 'how' || plStage === 'astm' && sg.dataset.plstage === 'astm') astOn = false; if (plStage === '') astOn = false; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
   $('#astSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-astx]')) return closeMiss();
     const ex = e.target.closest('[data-astexcl]'); if (ex) { if (await setDocField(ex.dataset.astexcl, {noAst: true})) renderMiss(); return; }
@@ -2383,7 +2391,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const slot = t === 'general' ? '#impSlotP' : t === 'reglages' ? '#impSlotR' : t === 'plan' ? '#impSlotP' : '#impSlotC';
     $(slot).appendChild($('#cwImport'));
     plGrp = '';
-    if (t === 'plan') { plStage = ''; renderCompose(); }
+    if (t === 'plan') { plStage = ''; astOn = false; renderCompose(); }
     if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); renderRem(); }
   }
 
