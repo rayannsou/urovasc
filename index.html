@@ -3484,7 +3484,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const mine = $('#swMine'), wsel = $('#swWith'), th = $('#swTheirs'), ast = swMode === 'ast', what = ast ? 'astreinte' : 'vacation';
     const opts = sel => [...sel.options].filter(o=>o.value);
     const b = (k, o, on) => '<button type="button" class="swopt" data-swk="'+k+'" data-v="'+esc(o.value)+'" aria-pressed="'+on+'">'+esc(o.textContent)+'</button>';
-    let h = '<p class="swst"><b>1</b> Ma '+what+' à échanger</p>';
+    let h = '<p class="swst"><b>1</b> '+(ast ? 'Mon' : 'Ma')+' '+what+' à échanger</p>';
     const om = opts(mine);
     h += om.length ? '<div class="swlist">'+om.map(o=>b('m', o, o.value === mine.value)).join('')+'</div>' : '<p class="empty" style="border:0">'+esc(mine.options[0] ? mine.options[0].textContent : '')+'</p>';
     if (mine.value && ast) {
