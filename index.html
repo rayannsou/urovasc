@@ -778,6 +778,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       <select id="who"><option value="">Chargement…</option></select>
       <div class="phbox"><span id="phPrev"><span class="phe">🩻</span></span><button type="button" class="ghost" id="phPick">📷 Choisir une photo de profil</button><button type="button" class="ghost" id="phDel" hidden>Retirer</button><input type="file" id="phFile" accept="image/*" hidden></div>
       <p class="hint">Sans photo, l’emoji radiologie s’affiche en haut à droite de l’accueil.</p>
+      <div id="intBox" hidden><p class="hint"><b>Profil interventionnel</b> : vous passez en priorité au bloc lors de la création automatique.</p><div class="phbox"><button type="button" class="ghost" id="intBtn">Profil interventionnel</button></div></div>
       <div id="autoBox" hidden><p class="hint"><b>Votre niveau</b> : utilisé pour créer le planning des internes.</p><div class="phbox"><button type="button" class="ghost" data-autoset="1">Autonome</button><button type="button" class="ghost" data-autoset="0">Pas autonome</button></div></div>
       <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
       <form id="renForm" class="renform" hidden><input type="text" id="renInput" maxlength="24" autocomplete="off" aria-label="Votre prénom"><button type="submit" class="primary">Enregistrer</button><button type="button" id="renCancel" class="ghost">Annuler</button></form>
@@ -1452,6 +1453,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     else { av.classList.remove('ph'); av.dataset.ph = ''; av.textContent = '🩻'; }
     const pb = $('#phPrev'); if (pb) pb.innerHTML = ph ? '<img alt="" src="'+ph+'">' : '<span class="phe">🩻</span>';
     if ($('#phDel')) $('#phDel').hidden = !ph;
+    const ib = $('#intBox'); if (ib) { ib.hidden = !d; const on = !!(d && d.interv); $('#intBtn').className = on ? 'primary' : 'ghost'; $('#intBtn').textContent = (on ? '✓ ' : '') + 'Profil interventionnel'; }
     const ab = $('#autoBox'); if (ab) { ab.hidden = !(d && d.role === 'Interne'); ab.querySelectorAll('[data-autoset]').forEach(x=>{ const on = d && ((x.dataset.autoset === '1') === d.auto) && d.auto !== null; x.className = on ? 'primary' : 'ghost'; x.textContent = (on ? '✓ ' : '') + (x.dataset.autoset === '1' ? 'Autonome' : 'Pas autonome'); }); }
     $('#goProfile').hidden = !!d || !(loaded && sortedDocs().length);
     $('#hiSub').textContent = d ? todaySummary() : (loaded && sortedDocs().length ? 'Choisissez votre nom dans Réglages pour voir votre semaine.' : 'Chargement du planning…');
@@ -1878,8 +1880,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           Object.keys(trame.cases).forEach(c=>{ if (c.indexOf(p.id+'_') === 0 && c.slice(-part.length-1) === '_'+part) { const w = trame.cases[c].who; if (Array.isArray(w)) w.forEach(id=>{ freq[id] = (freq[id]||0) + 2; }); } });
           const pool = (v.ou ? v.who.concat(docs.map(d=>d.id).filter(id=>!v.who.includes(id) && freq[id])) : docs.map(d=>d.id))
             .filter((id, ix, ar)=>ar.indexOf(id) === ix && !keep.includes(id) && !taken.has(id) && !reasonFor(id, k, part));
-          pool.sort((a,b)=>(v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || ((freq[b]||0) - (freq[a]||0)) || ((load[a]||0) - (load[b]||0)));
-          const eligible = pool.filter(id=>freq[id]);
+          const iv = id => p.id === 'bloc' && doctors[id] && doctors[id].interv ? 1 : 0;
+          pool.sort((a,b)=>(v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || (iv(b) - iv(a)) || ((freq[b]||0) - (freq[a]||0)) || ((load[a]||0) - (load[b]||0)));
+          const eligible = pool.filter(id=>freq[id] || iv(id));
           const res = keep.slice();
           while (res.length < need && eligible.length) { const id = eligible.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; }
           if (res.length < need) holes++;
@@ -1960,6 +1963,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const pv = prev[sl.h.k+'|M'];
       if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : 2;
       if (!R.autonomie.includes(sl.p.id) && isAuto(id)) sc -= 1.5;
+      if (sl.p.id === 'bloc' && doctors[id] && doctors[id].interv) sc += 20;     /* profil interventionnel : prioritaire au bloc */
       return sc;
     };
     HP.forEach(h=>{
@@ -2345,6 +2349,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); renderRem(); }
   }
 
+  $('#intBtn').addEventListener('click', async ()=>{ if (!me || !db || !doctors[me]) return; try { await db.doc('medecins/'+me).update({interv: !doctors[me].interv}); notify(doctors[me].interv ? 'Profil interventionnel retiré.' : 'Profil interventionnel enregistré.'); } catch(err) { handleErr(err); } });
   $('#autoBox').addEventListener('click', async e=>{ const b = e.target.closest('[data-autoset]'); if (!b || !me || !db) return; try { await db.doc('medecins/'+me).update({auto: b.dataset.autoset === '1'}); notify('Niveau enregistré.'); } catch(err) { handleErr(err); } });
   /* ---------- photo de profil ---------- */
   $('#phPick').addEventListener('click', ()=>{ if (!me) return notify('Choisissez d’abord votre nom.', true); $('#phFile').click(); });
@@ -3982,7 +3987,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, auto: v.auto === true ? true : v.auto === false ? false : null, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : ''};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : ''};
       });
       doctors = next; loaded = true; renderAll();
     }, err=>{
