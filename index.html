@@ -454,7 +454,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
 .asth{margin:12px 0 4px;font-size:14px}.asth.ko{color:var(--red)}.asth.ok{color:#1E7B4B}
 .astcopy,.astforce{margin-top:10px;width:100%}
-.confbox{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.confbox{display:flex;flex-direction:column;gap:8px;margin-top:12px}.confbox:not(:empty){padding:12px;border:1px solid var(--line,rgba(127,127,127,.35));border-radius:16px;background:rgba(127,127,127,.06)}
 .confbtn{min-height:56px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:8px 14px;border:1.5px dashed var(--red);background:var(--red-soft);color:var(--red);border-radius:12px;font-weight:700;text-align:left}
 .confbtn small{font-weight:500;color:var(--ink);font-size:12px}
 .confbtn.on{border:1.5px solid #1E7B4B;background:#E4F4EA;color:#1E7B4B}
@@ -622,6 +622,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         <div class="col">
           <div class="card">
             <div class="subtabs" role="group" aria-label="Type d’indisponibilité"><button type="button" data-inmode="week" aria-pressed="true">📅 Semaine</button><button type="button" data-inmode="sat" aria-pressed="false">🔔 Astreinte</button></div>
+            <div id="confBox" class="confbox"></div>
             <h2 class="insec">Saisir vos indisponibilités / off</h2>
             <div class="weekbar">
               <button type="button" id="iwPrev" aria-label="Semaine précédente">‹</button>
@@ -631,7 +632,6 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             </div>
             <div class="f jump"><label for="iwJump">Aller à une date</label><input type="date" id="iwJump"></div>
             <div id="myDays" class="myweek"></div>
-            <div id="confBox" class="confbox"></div>
             <ul class="legend">
               <li>Choisissez votre statut pour chaque jour dans le menu déroulant</li>
               <li><span class="st st-r">Repos de garde</span>posé tout seul le lendemain d'une garde</li>
