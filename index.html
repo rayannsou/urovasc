@@ -1976,7 +1976,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     autonomie: ['echo', 'scanner-urg'],        /* au moins 1 autonome ; 2 pas autonomes interdit */
     facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
     priorite: ['scanner-urg', 'echo'],         /* si les autonomes manquent, le scanner des urgences est servi en premier */
-    exclus: /consult|formation|admin/i,                        /* postes où l'on ne met jamais d'internes (testé sur l'identifiant et le nom) */
+    exclus: /consult|formation|admin|recherche|cours|\bfac\b|[eé]cho[\s_-]?sa\b|bloc[\s_-]*(des[\s_-]*)?urg/i,                        /* postes où l'on ne met jamais d'internes (testé sur l'identifiant et le nom) */
     blocJournee: true                          /* le bloc se fait de préférence toute la journée, mais peut être coupé */
   };
   let intNeed = {}, intNeedHP = {}, intOpen = '';   /* effectifs choisis avant la génération : par poste, puis par demi-journée */
