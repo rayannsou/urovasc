@@ -1730,6 +1730,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     }
   }
   async function plApply(poste, date, part, arr, added){
+    if (blocBlock(poste, date, part, arr)) { renderCompose(); return; }
     if (plScope === 'once') return writeWho(poste, date, part, arr, added, 'Enregistré pour cette date seulement.');
     const dow = (parse(date).getDay()+6)%7;
     const ok = await saveTrame(t=>{
@@ -3687,6 +3688,15 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   /* interface Internes / Seniors : on ne touche qu'aux personnes de son groupe, l'autre groupe est conservé */
   const inGrp = id => { if (!plGrp) return true; const d = doctors[id]; return !d || ((d.role === 'Interne') === (plGrp === 'interne')); };
   const grpDocs = () => sortedDocs().filter(d=>inGrp(d.id));
+  /* bloc : un interne ne peut être posté que s'il y a un médecin senior sur la vacation */
+  function blocBlock(poste, date, part, arr){
+    if (!INT_RULES.seniorRequis.includes(poste)) return false;
+    const parts = slotParts(poste, part), base = pt=>baseW(date, poste, pt);
+    const add = arr.filter(isIntId).filter(id=>!parts.every(pt=>base(pt).includes(id)));
+    if (!add.length || arr.some(isSrId) || parts.some(pt=>base(pt).some(isSrId))) return false;
+    notify('Bloc : un interne ne peut être posté que s’il y a un médecin senior sur la vacation. Ajoutez d’abord le médecin.', true);
+    return true;
+  }
   function baseW(date, poste, part){
     const v = vacWho(poste, date, part);      /* trame + corrections + échanges conclus : on ne fait jamais perdre un senior */
     return v ? v.who : [];
@@ -3711,6 +3721,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   const slotParts = (poste, part) => { const p = findPost(poste); return p && p.journee ? PARTS : [part]; };
   async function writeWho(poste, date, part, arr, added, okMsg){
+    if (blocBlock(poste, date, part, arr)) { renderEditor(); renderCreate(); return; }
     let ok = true;
     for (const pt of slotParts(poste, part)) {
       const ov = overrides[date] && overrides[date][poste+'_'+pt];
