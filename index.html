@@ -2140,8 +2140,15 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     short2.forEach(sl=>bad.push({t: slotTxt(sl)+' : '+sl.pick.length+' interne'+(sl.pick.length > 1 ? 's' : '')+' au lieu de '+sl.need, sl}));
     noAuto.forEach(sl=>{ if (!bad.some(b=>b.sl === sl)) bad.push({t: slotTxt(sl)+' : aucun interne autonome disponible', sl}); });
     holes.forEach(sl=>{ if (!bad.some(b=>b.sl === sl)) bad.push({t: slotTxt(sl)+' : personne de disponible', sl}); });
+    /* vacations facultatives (bloc) laissées sans interne : listées aussi, pour pouvoir forcer quelqu'un */
+    const optL = [];
+    slots.forEach(sl=>{
+      if (sl.keep || !R.facultatif.includes(sl.p.id) || (sl.pick && sl.pick.length) || bad.some(b=>b.sl === sl)) return;
+      if (sl.p.journee && optL.some(o=>o.sl.p.id === sl.p.id && o.sl.h.k === sl.h.k)) return;
+      optL.push({t: slotTxt(sl)+' : facultatif, aucun interne', sl});
+    });
     /* une écriture (masquée tant qu'elle est vide) par vacation non pourvue, pour pouvoir forcer quelqu'un */
-    bad.forEach(b=>{
+    bad.concat(optL).forEach(b=>{
       const sl = b.sl, parts = slotParts(sl.p.id, sl.h.part);
       let wi = writes.findIndex(w=>w.k === sl.h.k && w.poste === sl.p.id && parts.includes(w.part));
       if (wi < 0) { const pk = sl.pick || []; parts.forEach((pt, i)=>{ writes.push({k: sl.h.k, kk: sl.p.id+'_'+pt, val: {w: pk.slice(), t: 0, a: 1}, poste: sl.p.id, part: pt, before: (sl.before || []).slice(), after: pk.slice(), ph: true}); if (!i) wi = writes.length-1; }); }
@@ -2149,6 +2156,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     });
     const notes = [];
     if (bad.length) notes.push({lvl: 'bad', h: 'Vacations non pourvues', l: bad.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true});
+    if (optL.length) notes.push({lvl: 'info', h: 'Vacations facultatives sans interne', l: optL.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true});
     if (relaxed.length) notes.push({lvl: 'info', h: 'Off supprimé pour avoir 2 personnes à l’écho / au scanner urgences', l: relaxed});
     const unk = ints.filter(d=>d.auto == null); if (unk.length) notes.push({lvl: 'info', h: 'Niveau d’autonomie non renseigné (compté « non autonome »)', l: [unk.map(d=>d.label).join(', ')]});
     const ofs = ints.filter(d=>off[d.id].size).map(d=>d.label+' : '+[...off[d.id]].map(x=>{ const h = HP.find(y=>y.id === x); return fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'après-midi'); }).join(', '));
