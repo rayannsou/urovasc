@@ -367,7 +367,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 @media(min-width:861px){#swBody.grid2{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr)}}
 @media(min-width:701px){#swJump{display:none}}
 .swsum{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1.5px solid var(--accent);background:var(--accent-soft);border-radius:12px;font-weight:700;color:var(--accent)}.swsum .ghost{min-height:36px;padding:0 12px}
-.intq{margin:8px 0 10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}.intqr{margin-top:8px}.intqr>span{display:block;font-weight:700;font-size:14px;margin-bottom:4px}.intqr .astbtn[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.intq{margin:8px 0 10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}.intqr{margin-top:8px}.intqr .astpair{flex-wrap:wrap}.intqr .astbtn{flex:1 1 44%}.intqr>span{display:block;font-weight:700;font-size:14px;margin-bottom:4px}.intqr .astbtn[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .swraw{display:none!important}.tag.wait{background:var(--accent-soft);color:var(--accent)}.tag.no{background:var(--red-soft);color:var(--red)}.sw-a{display:flex;gap:8px;flex-wrap:wrap}.swst{margin:14px 0 6px;font-weight:700;font-size:15px}.swst b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);margin-right:8px;font-size:13px}.swlist{display:flex;flex-direction:column;gap:6px}.swchips{display:flex;flex-wrap:wrap;gap:6px}.swopt{min-height:46px;text-align:left;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 12px;font-weight:600}.swchips .swopt{border-radius:999px;text-align:center}.swopt[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.swgrp{margin:8px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 @media(max-width:700px){#swBody .swmodecol{order:-2}#swBody .swformcol{order:-1}#swJump{display:none}}
 .subtabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent)}
@@ -1832,7 +1832,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + astMonthList().map(m=>{ const n = astMissing([m]).length; return '<label class="astrow" style="cursor:pointer"><span><input type="checkbox" data-astm="'+m+'"'+(astSel.includes(m) ? ' checked' : '')+' style="margin-right:8px"><b>'+esc(monthLbl(m))+'</b></span><small class="aststat '+(n ? 'ko' : 'ok')+'">'+(n ? n+' personne'+(n > 1 ? 's n’ont' : ' n’a')+' pas renseigné' : '✓ tout le monde a renseigné')+'</small></label>'; }).join('')
       + '<button type="button" class="astbtn go" data-astmgo="1"'+(astSel.length ? '' : ' disabled')+' style="margin-top:8px">Continuer'+(astSel.length ? ' ('+astSel.length+' mois)' : '')+'</button>';
     else if (plStage === 'man') box.innerHTML = back;
-    else box.innerHTML = back + (plGrp === 'interne' && !ast ? '<div class="intq"><p class="aststat"><b>Échographie et scanner des urgences</b> : uniquement des internes autonomes ?</p><p class="hint">Par défaut : 1 autonome + 1 autre (autonome ou non). Il peut donc n’y avoir aucun interne « pas autonome » si les autonomes suffisent. Touchez « Que des autonomes » pour l’imposer.</p>'+[['echo','Échographie'],['scanner-urg','Scanner des urgences']].filter(q=>trame.postes.some(p=>p.id === q[0])).map(q=>'<div class="intqr"><span>'+q[1]+'</span><div class="astpair"><button type="button" class="astbtn" data-intauto="'+q[0]+'|1" aria-pressed="'+!!intOnlyAuto[q[0]]+'">Que des autonomes</button><button type="button" class="astbtn" data-intauto="'+q[0]+'|0" aria-pressed="'+!intOnlyAuto[q[0]]+'">1 autonome + 1 autre</button></div></div>').join('')+'</div>' : '') + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
+    else box.innerHTML = back + (plGrp === 'interne' && !ast ? '<div class="intq"><p class="aststat"><b>Échographie et scanner des urgences</b> : uniquement des internes autonomes ?</p><p class="hint">Par défaut : 1 autonome + 1 autre (autonome ou non). Il peut donc n’y avoir aucun interne « pas autonome » si les autonomes suffisent. Touchez « Que des autonomes » pour l’imposer. À l’échographie, « 2 non autonomes » est aussi possible.</p>'+[['echo','Échographie'],['scanner-urg','Scanner des urgences']].filter(q=>trame.postes.some(p=>p.id === q[0])).map(q=>'<div class="intqr"><span>'+q[1]+'</span><div class="astpair"><button type="button" class="astbtn" data-intauto="'+q[0]+'|1" aria-pressed="'+!!intOnlyAuto[q[0]]+'">Que des autonomes</button><button type="button" class="astbtn" data-intauto="'+q[0]+'|0" aria-pressed="'+(!intOnlyAuto[q[0]] && !intNon[q[0]])+'">1 autonome + 1 autre</button>'+(q[0] === 'echo' ? '<button type="button" class="astbtn" data-intauto="echo|2" aria-pressed="'+!!intNon.echo+'">2 non autonomes</button>' : '')+'</div></div>').join('')+'</div>' : '') + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
       + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p><p class="aststat">Vous pourrez relire et confirmer chaque vacation avant l’enregistrement.</p>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
@@ -1861,7 +1861,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   $('#astBarBox').addEventListener('change', e=>{ const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
   $('#astBarBox').addEventListener('click', e=>{ const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
-    const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; return renderCompose(); }
+    const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; intNon[a[0]] = a[1] === '2'; return renderCompose(); }
     const am = e.target.closest('[data-astm]'); if (am) { const m = am.dataset.astm; astSel = am.checked ? [...new Set([...astSel, m])].sort() : astSel.filter(x=>x !== m); return renderCompose(); }
     if (e.target.closest('[data-astmgo]')) { if (!astSel.length) return; astOn = true; plStage = 'auto'; return renderCompose(); }
     const im = e.target.closest('[data-implmode]'); if (im) { plMode = im.dataset.implmode; plStage = 'imp'; renderCompose(); return; } const pk = e.target.closest('[data-plpick]'); if (pk) { if (pk.dataset.plpick === 'imp') plStage = 'impm'; else { plMode = pk.dataset.plpick; plStage = 'how'; } renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; if (plStage === 'auto' && plMode === 'ast' && !astOn) plStage = 'astm'; if (plStage === 'how' || plStage === 'astm' && sg.dataset.plstage === 'astm') astOn = false; if (plStage === '') astOn = false; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
@@ -1957,10 +1957,10 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     autonomie: ['echo', 'scanner-urg'],        /* au moins 1 autonome ; 2 pas autonomes interdit */
     facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
     priorite: ['scanner-urg', 'echo'],         /* si les autonomes manquent, le scanner des urgences est servi en premier */
-    exclus: /consult/i,                        /* postes où l'on ne met jamais d'internes (testé sur l'identifiant et le nom) */
+    exclus: /consult|formation|admin/i,                        /* postes où l'on ne met jamais d'internes (testé sur l'identifiant et le nom) */
     blocJournee: true                          /* le bloc se fait de préférence toute la journée, mais peut être coupé */
   };
-  let intOnlyAuto = {};   /* poste -> true : uniquement des internes autonomes (question posée avant la génération) */
+  let intOnlyAuto = {}, intNon = {};   /* intNon : poste où 2 internes non autonomes sont acceptés */   /* poste -> true : uniquement des internes autonomes (question posée avant la génération) */
   async function plWeekGenInt(force){
     if (!trame || !trame.postes.length) return notify('Les postes du service ne sont pas encore chargés.', true);
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
@@ -1992,7 +1992,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const off = {}; ints.forEach(d=>{ off[d.id] = new Set(); });
     const demand = {}, supply = {}, chosen = {}, aDem = {}, aSup = {}, aChosen = {};
     HP.forEach(h=>{ demand[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && !R.facultatif.includes(sl.p.id)).reduce((n,sl)=>n+sl.need, 0); supply[h.id] = ints.filter(d=>okAt(d.id, h) && !taken[h.id].has(d.id)).length; chosen[h.id] = 0; aChosen[h.id] = 0;
-      aDem[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).reduce((n,sl)=>n + (intOnlyAuto[sl.p.id] ? sl.need * 1.2 : 1.5), 0);
+      aDem[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).reduce((n,sl)=>n + (intNon[sl.p.id] ? 0 : intOnlyAuto[sl.p.id] ? sl.need * 1.2 : 1.5), 0);
       aSup[h.id] = ints.filter(d=>isAuto(d.id) && okAt(d.id, h) && !taken[h.id].has(d.id)).length; });
     const offDays = {};
     ints.slice().sort((a,b)=>(isAuto(b.id) - isAuto(a.id)) || (HP.filter(h=>okAt(a.id,h)).length - HP.filter(h=>okAt(b.id,h)).length)).forEach(d=>{
@@ -2016,7 +2016,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     /* internes « interventionnels » : au moins 2 demi-vacations au bloc, si possible à la suite (sans manquer de monde ailleurs) ; davantage si le reste est pourvu */
     const blocRes = {}, resN = {}, resA = {}, blocSlot = {}, aNeed = {};
     slots.forEach(sl=>{ if (sl.p.id === 'bloc' && !sl.keep) blocSlot[sl.h.id] = sl; });
-    HP.forEach(h=>{ resN[h.id] = 0; resA[h.id] = 0; aNeed[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).reduce((n,sl)=>n + (intOnlyAuto[sl.p.id] ? sl.need : 1), 0); });
+    HP.forEach(h=>{ resN[h.id] = 0; resA[h.id] = 0; aNeed[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).reduce((n,sl)=>n + (intNon[sl.p.id] ? 0 : intOnlyAuto[sl.p.id] ? sl.need : 1), 0); });
     const freeAt = (d, h)=>okAt(d.id, h) && !off[d.id].has(h.id) && !taken[h.id].has(d.id);
     const roomAt = (d, h)=>{
       if (!blocSlot[h.id] || blocRes[h.id] || !freeAt(d, h)) return false;
@@ -2043,6 +2043,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const pv = prev[sl.h.k+'|M'];
       if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : 2;
       if (!R.autonomie.includes(sl.p.id) && isAuto(id)) sc -= 1.5;
+      if (intNon[sl.p.id] && isAuto(id)) sc -= 6;       /* 2 non autonomes acceptés ici : on garde les autonomes pour ailleurs */
       if (doctors[id] && doctors[id].interv) sc += sl.p.id === 'bloc' ? 20 : -4;     /* interventionnel : le bloc d'abord, mais seulement une fois le reste pourvu */
       return sc;
     };
@@ -2055,7 +2056,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         const best = list => list.slice().sort((a,b)=>score(b, sl) - score(a, sl))[0];
         let pick = [];
         if (sl.p.id === 'bloc' && blocRes[h.id]) pick = [blocRes[h.id]];
-        else if (R.autonomie.includes(sl.p.id) && sl.need >= 2) {
+        else if (R.autonomie.includes(sl.p.id) && sl.need >= 2 && !intNon[sl.p.id]) {
           const autos = pool.filter(isAuto), nons = pool.filter(id=>!isAuto(id));
           if (intOnlyAuto[sl.p.id]) { const cand = autos.slice(); while (pick.length < sl.need && cand.length) { const b = best(cand); pick.push(b); cand.splice(cand.indexOf(b), 1); } if (!pick.length) noAuto.push(sl); }
           else if (!autos.length) { noAuto.push(sl); }
@@ -2073,9 +2074,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       });
       /* écho et scanner urgences : 2 personnes OBLIGATOIRES (dont 1 autonome). S'il en manque, on reprend d'abord un interne du bloc (facultatif), puis on réduit un off */
       here.filter(sl=>!sl.keep && sl.pick && R.autonomie.includes(sl.p.id) && sl.need >= 2).forEach(sl=>{
-        let guard = 8;
-        while (guard-- > 0 && (sl.pick.length < sl.need || !sl.pick.some(isAuto))) {
-          const needAuto = !sl.pick.some(isAuto), okc = id => !sl.pick.includes(id) && (!needAuto || isAuto(id)) && (!intOnlyAuto[sl.p.id] || isAuto(id));
+        let guard = 8; const nA = !intNon[sl.p.id];
+        while (guard-- > 0 && (sl.pick.length < sl.need || (nA && !sl.pick.some(isAuto)))) {
+          const needAuto = nA && !sl.pick.some(isAuto), okc = id => !sl.pick.includes(id) && (!needAuto || isAuto(id)) && (!intOnlyAuto[sl.p.id] || isAuto(id));
           let src = null;
           for (const b of here) { if (b.p.id === 'bloc' && !b.keep && b.pick) { const c = b.pick.find(okc); if (c) { src = {b, id: c}; break; } } }
           if (!src) { const c = ints.map(d=>d.id).filter(id=>okc(id) && okAt(id, h) && off[id].has(h.id) && !taken[h.id].has(id)).sort((a,b)=>off[b].size - off[a].size)[0]; if (c) src = {id: c, off: true}; }
