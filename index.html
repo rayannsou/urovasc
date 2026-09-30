@@ -588,7 +588,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <button type="button" class="ghost srcx" id="xlModel">Télécharger le modèle (semaine affichée)</button>
             <div class="srcg" style="display:flex;margin-top:12px;gap:8px;flex-wrap:wrap">
               <input type="url" id="gsLink" inputmode="url" placeholder="Ou collez un lien Google Sheets…" aria-label="Lien Google Sheets" style="flex:1 1 100%;min-width:0">
-              <input type="text" id="gsTab" placeholder="Onglet(s), ex. oct 26 (facultatif)" aria-label="Nom des onglets" style="flex:1 1 180px;min-width:0">
+              <input type="text" id="gsTab" placeholder="Onglet(s), ex. sept 26, oct 26 (facultatif)" aria-label="Nom des onglets" style="flex:1 1 180px;min-width:0">
               <button type="button" class="ghost" id="gsGo">Importer le lien</button>
             </div>
             <p class="hint srcg" style="margin-top:6px">Le classeur doit être partagé en « Toute personne disposant du lien ». Indiquez le nom de l’onglet (le mois, ex. « oct 26 ») ; plusieurs onglets : séparez par une virgule. Sans nom d’onglet, l’appli tente de lire tout le classeur.</p>
@@ -793,7 +793,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (créer v26)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (créer v27)</p>
         <div class="card" id="exportCard">
           <h2>Exporter en Excel</h2>
           <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
@@ -1108,7 +1108,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       });
     }
     }
-    const good = blocks.filter(b=>b.bl.filter(h=>h.j < 5).length >= 3 && b.bl[0].c >= 1);
+    /* semaine partielle (ex. « jeudi 1 / vendredi 2 » en fin de mois) : le nom du jour fixe la place des colonnes */
+    blocks.forEach(b=>{
+      const dh = b.bl.filter(h=>h.j < 5);
+      if (dh.length >= 1 && dh.length < 3 && dh[0].name > 0 && dh[0].n && dh[0].name + dh.length <= 5 && dh.every((h,i)=>h.name < 0 || h.name === dh[0].name + i)) { b.off = dh[0].name; dh.forEach(h=>{ h.j += b.off; }); }
+    });
+    const good = blocks.filter(b=>(b.off || b.bl.filter(h=>h.j < 5).length >= 3) && b.bl[0].c >= 1);
     if (!good.length) return null;
     good.sort((x,y)=>x.bl[0].c - y.bl[0].c);
     const ownStart = h=>{
@@ -1127,11 +1132,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       return best;
     };
     let first = good[0].bl[0].n || good[0].bl[0].mo ? ownStart(good[0].bl[0]) : null;
+    if (first && good[0].off) first = new Date(first.getFullYear(), first.getMonth(), first.getDate() - good[0].off);
     if (!first && opts.ref) { const r0 = opts.ref, dd = (8 - r0.getDay()) % 7; first = new Date(r0.getFullYear(), r0.getMonth(), r0.getDate() + (r0.getDate() < 4 ? dd : dd - (dd > 3 ? 7 : 0))); }
     if (opts.monday) first = opts.monday;
     if (!first) return null;
     const weeks = good.map((b,i)=>{
-      const st = (i && ownStart(b.bl[0])) || new Date(first.getFullYear(), first.getMonth(), first.getDate()+7*i);
+      const os = i && ownStart(b.bl[0]), st0 = os || new Date(first.getFullYear(), first.getMonth(), first.getDate()+7*i), sub = os ? (b.off || 0) : 0;
+      const st = new Date(st0.getFullYear(), st0.getMonth(), st0.getDate() - sub);
       const dates = [0,1,2,3,4].map(k=>ymd(new Date(st.getFullYear(), st.getMonth(), st.getDate()+k)));
       const sat = ymd(new Date(st.getFullYear(), st.getMonth(), st.getDate()+5));
       const mon = new Date(st.getFullYear(), st.getMonth(), st.getDate() - ((st.getDay()+6)%7));
@@ -2956,7 +2963,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const cands = [], t0 = new Date();
       for (let k=-3; k<=5; k++) {
         const d = new Date(t0.getFullYear(), t0.getMonth()+k, 1), y = d.getFullYear();
-        MN[d.getMonth()].forEach(nm=>[' '+y, ' '+String(y).slice(2), ''].forEach(sf=>{ const c = nm+sf; if (!cands.includes(c)) cands.push(c); }));
+        MN[d.getMonth()].forEach(nm=>[nm, nm.charAt(0).toUpperCase()+nm.slice(1)].forEach(nm2=>[' '+y, ' '+String(y).slice(2), '-'+String(y).slice(2), ''].forEach(sf=>{ const c = nm2+sf; if (!cands.includes(c)) cands.push(c); })));
       }
       for (let i=0; i<cands.length; i+=12) {
         await Promise.all(cands.slice(i,i+12).map(async n=>{
@@ -2966,7 +2973,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const out = X.utils.book_new();
       X.utils.book_append_sheet(out, w1.Sheets[w1.SheetNames[0]], 'Onglet 1');
       found.sort((a,b)=>cands.indexOf(a.n)-cands.indexOf(b.n)).forEach(f=>{ const w = X.read(f.tx, {type:'string'}); X.utils.book_append_sheet(out, w.Sheets[w.SheetNames[0]], f.n.slice(0,31)); });
-      setTimeout(()=>notify((found.length ? (found.length+1)+' onglets lus. ' : 'Seul le premier onglet a pu être lu. ')+"Pour être certain de tout lire, activez l'API Sheets ou indiquez les noms d'onglets."), 500);
+      setTimeout(()=>notify((found.length ? 'Onglets lus : le premier, '+found.map(f=>f.n).join(', ')+'. ' : 'Seul le premier onglet a pu être lu. ')+"Une semaine à cheval sur deux mois est dans l'autre onglet : tapez son nom exact dans « Onglet(s) » (ex. sept 26, oct 26) ou importez le .xlsx (Fichier → Télécharger)."), 500);
       return readBuffer(null, out);
     } catch(e) { return notify(fail, true); }
   }
