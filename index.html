@@ -778,6 +778,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       <select id="who"><option value="">Chargement…</option></select>
       <div class="phbox"><span id="phPrev"><span class="phe">🩻</span></span><button type="button" class="ghost" id="phPick">📷 Choisir une photo de profil</button><button type="button" class="ghost" id="phDel" hidden>Retirer</button><input type="file" id="phFile" accept="image/*" hidden></div>
       <p class="hint">Sans photo, l’emoji radiologie s’affiche en haut à droite de l’accueil.</p>
+      <div id="autoBox" hidden><p class="hint"><b>Votre niveau</b> : utilisé pour créer le planning des internes.</p><div class="phbox"><button type="button" class="ghost" data-autoset="1">Autonome</button><button type="button" class="ghost" data-autoset="0">Pas autonome</button></div></div>
       <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
       <form id="renForm" class="renform" hidden><input type="text" id="renInput" maxlength="24" autocomplete="off" aria-label="Votre prénom"><button type="submit" class="primary">Enregistrer</button><button type="button" id="renCancel" class="ghost">Annuler</button></form>
     </div>
@@ -1451,6 +1452,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     else { av.classList.remove('ph'); av.dataset.ph = ''; av.textContent = '🩻'; }
     const pb = $('#phPrev'); if (pb) pb.innerHTML = ph ? '<img alt="" src="'+ph+'">' : '<span class="phe">🩻</span>';
     if ($('#phDel')) $('#phDel').hidden = !ph;
+    const ab = $('#autoBox'); if (ab) { ab.hidden = !(d && d.role === 'Interne'); ab.querySelectorAll('[data-autoset]').forEach(x=>{ const on = d && ((x.dataset.autoset === '1') === d.auto) && d.auto !== null; x.className = on ? 'primary' : 'ghost'; x.textContent = (on ? '✓ ' : '') + (x.dataset.autoset === '1' ? 'Autonome' : 'Pas autonome'); }); }
     $('#goProfile').hidden = !!d || !(loaded && sortedDocs().length);
     $('#hiSub').textContent = d ? todaySummary() : (loaded && sortedDocs().length ? 'Choisissez votre nom dans Réglages pour voir votre semaine.' : 'Chargement du planning…');
   }
@@ -1593,7 +1595,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     manSig = sig;
     $('#people').innerHTML = list.length ? list.map(d=>{
       const c = pendingRemove === d.id;
-      return '<li><input type="text" data-ren="'+esc(d.id)+'" value="'+esc(d.label)+'" maxlength="24" autocomplete="off" aria-label="Nom de '+esc(d.label)+' (modifiable)"'+(canWrite?'':' disabled')+'><select data-role="'+esc(d.id)+'" aria-label="Fonction de '+esc(d.label)+'"'+(canWrite?'':' disabled')+'>'+['Médecin','Interne','Autre'].map(r=>'<option'+((d.role||'Médecin') === r ? ' selected' : '')+'>'+r+'</option>').join('')+'</select><button type="button" data-rm="'+esc(d.id)+'" class="'+(c?'confirm':'')+'"'+(canWrite?'':' disabled')+' aria-label="Retirer '+esc(d.label)+'">'+(c?'Confirmer le retrait':'Retirer')+'</button></li>';
+      return '<li><input type="text" data-ren="'+esc(d.id)+'" value="'+esc(d.label)+'" maxlength="24" autocomplete="off" aria-label="Nom de '+esc(d.label)+' (modifiable)"'+(canWrite?'':' disabled')+'><select data-role="'+esc(d.id)+'" aria-label="Fonction de '+esc(d.label)+'"'+(canWrite?'':' disabled')+'>'+['Médecin','Interne','Autre'].map(r=>'<option'+((d.role||'Médecin') === r ? ' selected' : '')+'>'+r+'</option>').join('')+'</select>'+(d.role === 'Interne' ? '<select data-auto="'+esc(d.id)+'" aria-label="Autonomie de '+esc(d.label)+'"'+(canWrite?'':' disabled')+'><option value=""'+(d.auto == null ? ' selected' : '')+'>Autonomie ?</option><option value="1"'+(d.auto === true ? ' selected' : '')+'>Autonome</option><option value="0"'+(d.auto === false ? ' selected' : '')+'>Pas autonome</option></select>' : '')+'<button type="button" data-rm="'+esc(d.id)+'" class="'+(c?'confirm':'')+'"'+(canWrite?'':' disabled')+' aria-label="Retirer '+esc(d.label)+'">'+(c?'Confirmer le retrait':'Retirer')+'</button></li>';
     }).join('') : '<li class="muted" style="border:0;font-family:inherit">Aucun médecin.</li>';
   }
 
@@ -1822,7 +1824,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   });
   /* ---------- attribution automatique des astreintes ---------- */
   async function plAssign(force){
-    if (plMode !== 'ast') return plWeekGen(force);
+    if (plMode !== 'ast') return plGrp === 'interne' ? plWeekGenInt(force) : plWeekGen(force);
     const ap = trame && trame.postes.find(isSam); if (!ap) return notify('Le poste d’astreinte n’existe pas encore.', true);
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
     const months = astMonths(), miss = astMissing(months);
@@ -1889,6 +1891,111 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     }
     if (!writes.length) { plStage = 'man'; renderCompose(); return notify(holes ? 'Certaines places n’ont pas de remplaçant disponible.' : 'La trame convient déjà : personne d’indisponible cette semaine.', !!holes); }
     genOpen('Semaine proposée', writes, holes ? holes+' place'+(holes > 1 ? 's' : '')+' sans remplaçant disponible' : '');
+  }
+
+  /* ---------- règles du planning des internes (à compléter au fil du temps) ---------- */
+  const INT_RULES = {
+    offs: 2,                                   /* demi-journées off par semaine (un repos de garde compte pour 1) */
+    need: {echo: 2, 'scanner-urg': 2},         /* personnes par vacation (1 par défaut) */
+    defaut: 1,
+    autonomie: ['echo', 'scanner-urg'],        /* au moins 1 autonome ; 2 pas autonomes interdit */
+    blocJournee: true                          /* le bloc se fait de préférence toute la journée, mais peut être coupé */
+  };
+  async function plWeekGenInt(force){
+    if (!trame || !trame.postes.length) return notify('Les postes du service ne sont pas encore chargés.', true);
+    if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
+    const months = astMonths(), miss = astMissing(months);
+    if (miss.length && !force) return openMiss(true);
+    const R = INT_RULES, ints = grpDocs(), posts = trame.postes.filter(p=>!p.info && !isSam(p));
+    if (!ints.length) return notify('Aucun interne dans la liste : ajoutez-les dans Réglages → Équipe (fonction Interne).', true);
+    const isAuto = id => !!(doctors[id] && doctors[id].auto === true);
+    const days = [0,1,2,3,4].map(i=>key(addDays(plStart, i)));
+    const HP = []; days.forEach((k,i)=>PARTS.forEach(part=>HP.push({i, k, part, id: i+part})));
+    const okAt = (id, h) => !reasonFor(id, h.k, h.part);
+    /* vacations à pourvoir */
+    const slots = [];
+    HP.forEach(h=>posts.forEach(p=>{
+      if (!okDay(p, h.i) || (p.journee && h.part !== 'M')) return;
+      const v = vacWho(p.id, h.k, h.part); if (!v) return;
+      if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
+      const ov = overrides[h.k] && overrides[h.k][p.id+'_'+h.part], mine = ov && ov.w ? ov.w.filter(inGrp) : [];
+      slots.push({p, h, need: R.need[p.id] || R.defaut, keep: ov && !ov.a && mine.length ? mine : null, before: v.who.filter(inGrp)});
+    }));
+    /* qui est déjà pris, fréquence des postes, charge */
+    const taken = {}; HP.forEach(h=>{ taken[h.id] = new Set(); });
+    slots.forEach(sl=>{ if (sl.keep) sl.keep.forEach(id=>taken[sl.h.id].add(id)); });
+    const freq = {};
+    const fq = (id, poste)=>{ freq[id] = freq[id] || {}; freq[id][poste] = (freq[id][poste] || 0) + 1; };
+    Object.keys(overrides).forEach(d=>Object.keys(overrides[d]).forEach(kk=>{ const o = overrides[d][kk], po = kk.slice(0, kk.lastIndexOf('_')); (o.w || []).filter(inGrp).forEach(id=>fq(id, po)); }));
+    Object.keys(trame.cases).forEach(c=>{ const w = trame.cases[c].who, po = c.split('_')[0]; if (Array.isArray(w)) w.filter(inGrp).forEach(id=>fq(id, po)); });
+    /* offs : chacun doit avoir R.offs demi-journées sans poste ; repos de garde = 1 off ; répartis sur la semaine */
+    const off = {}; ints.forEach(d=>{ off[d.id] = new Set(); });
+    const demand = {}, supply = {}, chosen = {}, aDem = {}, aSup = {}, aChosen = {};
+    HP.forEach(h=>{ demand[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep).reduce((n,sl)=>n+sl.need, 0); supply[h.id] = ints.filter(d=>okAt(d.id, h) && !taken[h.id].has(d.id)).length; chosen[h.id] = 0; aChosen[h.id] = 0;
+      aDem[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).length * 1.5;
+      aSup[h.id] = ints.filter(d=>isAuto(d.id) && okAt(d.id, h) && !taken[h.id].has(d.id)).length; });
+    const offDays = {};
+    ints.slice().sort((a,b)=>(isAuto(b.id) - isAuto(a.id)) || (HP.filter(h=>okAt(a.id,h)).length - HP.filter(h=>okAt(b.id,h)).length)).forEach(d=>{
+      const rest = days.filter(k=>dayInfo(d, k).kind === 'R').length;     /* un repos de garde = 1 off */
+      let n = Math.max(0, R.offs - rest); offDays[d.id] = [];
+      while (n-- > 0) {
+        let best = null, bs = -1e9;
+        HP.forEach(h=>{
+          if (!okAt(d.id, h) || taken[h.id].has(d.id) || off[d.id].has(h.id)) return;
+          let slack = supply[h.id] - chosen[h.id] - demand[h.id];
+          if (isAuto(d.id)) slack = Math.min(slack, aSup[h.id] - aChosen[h.id] - aDem[h.id]);
+          let sc = slack * 10;
+          offDays[d.id].forEach(j=>{ const dd = Math.abs(j - h.i); if (dd === 0) sc -= 6; else if (dd === 1) sc -= 3; });
+          HP.forEach(x=>{ if (dayInfo(d, x.k)[x.part] === 'R') { const dd = Math.abs(x.i - h.i); if (dd === 0) sc -= 6; else if (dd === 1) sc -= 3; } });
+          if (sc > bs) { bs = sc; best = h; }
+        });
+        if (!best) break;
+        off[d.id].add(best.id); offDays[d.id].push(best.i); chosen[best.id]++; if (isAuto(d.id)) aChosen[best.id]++;
+      }
+    });
+    /* affectations, demi-journée par demi-journée */
+    const load = {}, prev = {}, writes = [], noAuto = [], holes = []; let ouWarn = 0;
+    const score = (id, sl)=>{
+      let sc = ((freq[id] && freq[id][sl.p.id]) || 0) * 3 - (load[id] || 0) * 2;
+      const pv = prev[sl.h.k+'|M'];
+      if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : 2;
+      if (!R.autonomie.includes(sl.p.id) && isAuto(id)) sc -= 1.5;
+      return sc;
+    };
+    HP.forEach(h=>{
+      const here = slots.filter(sl=>sl.h.id === h.id);
+      const order = sl=>R.autonomie.includes(sl.p.id) ? 0 : sl.p.id === 'bloc' ? 1 : 2;
+      here.slice().sort((a,b)=>order(a)-order(b)).forEach(sl=>{
+        if (sl.keep) { prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = sl.keep; return; }
+        const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
+        const best = list => list.slice().sort((a,b)=>score(b, sl) - score(a, sl))[0];
+        let pick = [];
+        if (R.autonomie.includes(sl.p.id) && sl.need >= 2) {
+          const autos = pool.filter(isAuto), nons = pool.filter(id=>!isAuto(id));
+          if (!autos.length) { noAuto.push(sl); }
+          else {
+            const a1 = best(autos); pick.push(a1);
+            const rest = nons.length ? nons : autos.filter(id=>id !== a1);
+            const a2 = rest.length ? best(rest) : null; if (a2) pick.push(a2);
+          }
+        } else {
+          const cand = pool.slice(); while (pick.length < sl.need && cand.length) { const b = best(cand); pick.push(b); cand.splice(cand.indexOf(b), 1); }
+        }
+        pick.forEach(id=>{ taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
+        prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = pick;
+        if (pick.length < sl.need) holes.push(sl);
+        if (pick.length === sl.before.length && pick.every(x=>sl.before.includes(x))) return;
+        slotParts(sl.p.id, h.part).forEach(pt=>writes.push({k: h.k, kk: sl.p.id+'_'+pt, val: {w: pick.slice(), t: 0, a: 1}, poste: sl.p.id, part: pt, before: sl.before.slice(), after: pick.slice()}));
+      });
+    });
+    const notes = [];
+    if (holes.length) notes.push(holes.length+' place'+(holes.length > 1 ? 's' : '')+' sans interne disponible');
+    if (noAuto.length) notes.push('aucun interne autonome disponible : '+noAuto.map(sl=>(sl.p.label)+' '+fmtShort.format(parse(sl.h.k))+' '+PART_TXT[sl.h.part]).join(', ')+' (laissé vide)');
+    const unk = ints.filter(d=>d.auto == null); if (unk.length) notes.push('niveau non indiqué (compté « pas autonome ») : '+unk.map(d=>d.label).join(', '));
+    const ofs = ints.filter(d=>off[d.id].size).map(d=>d.label+' : '+[...off[d.id]].map(x=>{ const h = HP.find(y=>y.id === x); return fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'AM'); }).join(', '));
+    if (ofs.length) notes.push('offs répartis — '+ofs.join(' · '));
+    if (!writes.length) { plStage = 'man'; renderCompose(); return notify(holes.length || noAuto.length ? notes.join(' · ') : 'Le planning des internes convient déjà.', !!(holes.length || noAuto.length)); }
+    genOpen('Semaine des internes proposée', writes, notes.join(' · '));
   }
   /* ---------- page de confirmation avant d'enregistrer une génération automatique ---------- */
   let genPending = null, genRows = [], genStep = -1, genWarn = '', genPastAsk = false, genScope = 'from';
@@ -2238,6 +2345,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); renderRem(); }
   }
 
+  $('#autoBox').addEventListener('click', async e=>{ const b = e.target.closest('[data-autoset]'); if (!b || !me || !db) return; try { await db.doc('medecins/'+me).update({auto: b.dataset.autoset === '1'}); notify('Niveau enregistré.'); } catch(err) { handleErr(err); } });
   /* ---------- photo de profil ---------- */
   $('#phPick').addEventListener('click', ()=>{ if (!me) return notify('Choisissez d’abord votre nom.', true); $('#phFile').click(); });
   $('#phFile').addEventListener('change', async e=>{
@@ -2420,6 +2528,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   });
 
   $('#people').addEventListener('change', async e=>{
+    const au = e.target.closest('select[data-auto]');
+    if (au) { if (!db || !canWrite) return notify('Lecture seule : modification impossible.', true); try { await db.doc('medecins/'+au.dataset.auto).update({auto: au.value === '' ? null : au.value === '1'}); notify('Niveau enregistré.'); } catch(err) { handleErr(err); } return; }
     const sel = e.target.closest('select[data-role]'); if (!sel) return;
     if (!db || !canWrite) return notify('Lecture seule : modification impossible.', true);
     try { await db.doc('medecins/'+sel.dataset.role).update({role: sel.value}); notify('Fonction enregistrée.'); } catch(err) { handleErr(err); }
@@ -3872,7 +3982,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : ''};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, auto: v.auto === true ? true : v.auto === false ? false : null, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : ''};
       });
       doctors = next; loaded = true; renderAll();
     }, err=>{
