@@ -395,7 +395,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .plwhy{font-size:12px;color:var(--red);font-weight:600}
 .genn{border-radius:12px;padding:10px 12px;margin:0 0 10px;font-size:13px;line-height:1.35}
 .genn ul{margin:6px 0 0;padding-left:18px}.genn li{margin:3px 0}
-.genn.bad{border:1px solid var(--red);color:var(--red)}.genn.bad b{display:block}.genn.bad summary{font-weight:600;cursor:pointer}.genn li.gf{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;margin-left:-18px}.genforce{min-height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--red);background:transparent;color:var(--red);font-weight:600;flex:none}
+.genn.ok{border:1px solid var(--line,#2a3a36);color:var(--muted,#9aa8a3)}.genn.ok b{display:block;font-weight:600}.genn.bad{border:1px solid var(--red);color:var(--red)}.genn.bad b{display:block}.genn.bad summary{font-weight:600;cursor:pointer}.genn li.gf{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;margin-left:-18px}.genforce{min-height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--red);background:transparent;color:var(--red);font-weight:600;flex:none}
 .genn.info{border:1px solid var(--line,#2a3a36);color:var(--muted,#9aa8a3)}.genn.info b,.genn.info summary{font-weight:600;cursor:pointer}
 .cwr.empty select{flex:1 1 180px;max-width:280px;min-height:40px}
 .cwr input[type=text]{min-height:40px}
@@ -2155,7 +2155,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       b.wi = wi;
     });
     const notes = [];
-    if (bad.length) notes.push({lvl: 'bad', h: 'Vacations non pourvues', l: bad.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true});
+    notes.push(bad.length ? {lvl: 'bad', h: 'Vacations obligatoires sans interne', l: bad.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true} : {lvl: 'ok', h: 'Vacations obligatoires sans interne', l: [], zero: true});
     if (optL.length) notes.push({lvl: 'info', h: 'Vacations facultatives sans interne', l: optL.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true});
     if (relaxed.length) notes.push({lvl: 'info', h: 'Off supprimé pour avoir 2 personnes à l’écho / au scanner urgences', l: relaxed});
     const unk = ints.filter(d=>d.auto == null); if (unk.length) notes.push({lvl: 'info', h: 'Niveau d’autonomie non renseigné (compté « non autonome »)', l: [unk.map(d=>d.label).join(', ')]});
@@ -2172,6 +2172,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (!w || (Array.isArray(w) && !w.length)) return '';
     if (!Array.isArray(w)) return '<p class="plwhy">⚠ '+esc(w)+'</p>';
     return w.map(n=>{
+      if (n.zero) return '<div class="genn ok"><b>✓ '+esc(n.h)+' (0)</b></div>';
       const items = '<ul>'+n.l.map(x=>typeof x === 'string' ? '<li>'+esc(x)+'</li>' : '<li class="gf"><span>'+esc(x.t)+'</span><button type="button" class="ghost genforce" data-genforce="'+x.wi+'">Forcer</button></li>').join('')+'</ul>';
       if (n.fold) return '<details class="genn '+n.lvl+'"><summary>'+(n.lvl === 'bad' ? '⚠ ' : '')+esc(n.h)+' ('+n.l.length+')</summary>'+items+'</details>';
       return '<div class="genn '+n.lvl+'"><b>'+(n.lvl === 'bad' ? '⚠ ' : 'ℹ ')+esc(n.h)+'</b>'+items+'</div>';
