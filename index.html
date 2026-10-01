@@ -1483,6 +1483,15 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
 
   /* ---------- date butoir des indisponibilités (réglée mois par mois par Rim) ---------- */
+  /* code « grenier » : demandé pour tout ce qui peut toucher les autres (planning modifié sans passer par un échange, dates butoirs…) ; valable 30 min une fois saisi */
+  let codeUntil = 0;
+  function askCode(why){
+    if (Date.now() < codeUntil) return true;
+    const c = window.prompt('Code requis ('+why+') :');
+    if (c === null) return false;
+    if (c.trim().toLowerCase() !== 'grenier') { notify('Code incorrect.', true); return false; }
+    codeUntil = Date.now() + 30*60*1000; return true;
+  }
   let butoir = {d: {}, unlock: {}, req: {}, nm: 3}, butKind = 'sem';
   const BUT_KIND = {sem: 'semaine', ast: 'astreinte'};
   const butAdminOf = g => { const ids = Object.keys(doctors).filter(i=>g === 'int' ? ['rayann'].includes(plNorm(doctors[i].label)) || i === 'rayann' : ['rm','rim'].includes(plNorm(doctors[i].label)) || i === 'rim'); return ids.includes(g === 'int' ? 'rayann' : 'rim') ? (g === 'int' ? 'rayann' : 'rim') : (ids[0] || (g === 'int' ? 'rayann' : 'rim')); };
@@ -2024,6 +2033,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   async function plWeekDel(){
     if (!trame || !db) return notify('Les postes du service ne sont pas encore chargés.', true);
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
+    if (!askCode('supprimer le planning')) return;
     const posts = trame.postes.filter(p=>!p.info && !isSam(p)); let n = 0;
     try {
       for (let i = 0; i < 5; i++) {
@@ -2612,6 +2622,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const gn = e.target.closest('[data-gennext]');
     if (gn && genStep >= 0) { const r = genRows[genStep]; const on = gn.dataset.gennext === '1' && genPending[r.idx[0]].after.length > 0; r.idx.forEach(i=>{ genPending[i].on = on; }); genStep++; if (genSolo || genStep >= genRows.length) { genStep = -1; genSolo = false; } genRender(); return; }
     if (!e.target.closest('[data-genok]') || !genPending) return;
+    if (!askCode('enregistrer le planning')) return;
     const ws = genPending.filter(w=>w.on), imp = genImp; genImp = null; genClose();
     let ok = true;
     if (imp) ok = await applyWeeks(imp, {extrasOnly: true});     /* nouvelles personnes, absences */
@@ -3270,22 +3281,23 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const t = e.target.closest && e.target; if (!t) return;
     const ak = t.closest('[data-butask]'); if (ak) return butAsk([ak.dataset.butask]);
     const gb = t.closest('[data-butgrp]'); if (gb) { butSel = gb.dataset.butgrp; return renderBut(); }
-    const sf = t.closest('[data-butself]'); if (sf) { if (!db || !me || !isButAdmin()) return; const bk = sf.dataset.butself; const code = window.prompt('Code de déverrouillage :'); if (code === null) return; if (code.trim().toLowerCase() !== 'grenier') return notify('Code incorrect.', true); try { await db.doc('meta/butoir').update({unlock: {[bk]: (butoir.unlock[bk] || []).filter(x=>x !== me).concat([me])}}); notify('Vous pouvez modifier vos indisponibilités ('+butLbl(bk)+').'); } catch(err) { handleErr(err); } return; }
+    const sf = t.closest('[data-butself]'); if (sf) { if (!db || !me || !isButAdmin()) return; const bk = sf.dataset.butself; if (!askCode('se déverrouiller')) return; try { await db.doc('meta/butoir').update({unlock: {[bk]: (butoir.unlock[bk] || []).filter(x=>x !== me).concat([me])}}); notify('Vous pouvez modifier vos indisponibilités ('+butLbl(bk)+').'); } catch(err) { handleErr(err); } return; }
     const kb = t.closest('[data-butkind]'); if (kb) { butKind = kb.dataset.butkind; return renderBut(); }
     if (t.closest('[data-butgo]')) { e.preventDefault(); e.stopPropagation(); butKind = butKindNow(); showTab('reglages'); const f = $('#butFold'); if (f) { f.open = true; setTimeout(()=>{ try { f.scrollIntoView({block: 'start'}); } catch(err) {} }, 50); } return; }
     const ok = t.closest('[data-butok]'), lk = t.closest('[data-butlock]');
     if (ok || lk) {
       if (!isButAdmin() || !db) return;
-      if (ok) { const code = window.prompt('Code pour accepter la demande :'); if (code === null) return; if (code.trim().toLowerCase() !== 'grenier') return notify('Code incorrect.', true); }
+      if (ok && !askCode('accepter la demande')) return;
       const pp = (ok || lk).dataset[ok ? 'butok' : 'butlock'].split('|'), id = pp[2], m = pp[0]+'|'+pp[1], cur = (butoir.unlock[m] || []).filter(x=>x !== id);
       try { await db.doc('meta/butoir').update({unlock: {[m]: ok ? cur.concat([id]) : cur}, req: {[m]: {[id]: null}}}); notify(ok ? dLabel(id)+' peut modifier ses indisponibilités ('+butLbl(m)+').' : 'Verrouillé de nouveau.'); } catch(err) { handleErr(err); }
     }
   });
   document.addEventListener('change', async e=>{
     const nmSel = e.target.closest && e.target.closest('#butNm');
-    if (nmSel) { if (!isButAdmin() || !db) return; try { await db.doc('meta/butoir').update({nm: Number(nmSel.value)}); notify('« Mes indisponibilités » affiche '+nmSel.value+' mois.'); } catch(err) { handleErr(err); } return; }
+    if (nmSel) { if (!isButAdmin() || !db) return; if (!askCode('changer le nombre de mois')) { nmSel.value = String(butNm()); return; } try { await db.doc('meta/butoir').update({nm: Number(nmSel.value)}); notify('« Mes indisponibilités » affiche '+nmSel.value+' mois.'); } catch(err) { handleErr(err); } return; }
     const inp = e.target.closest && e.target.closest('[data-butm]'); if (!inp || !isButAdmin() || !db) return;
     const gk = butGrp()+'|'+butKind;
+    { const old = ((butoir.d[gk]) || {})[inp.dataset.butm]; if (old && (inp.value || '') !== old && !askCode('modifier une date butoir déjà fixée')) { inp.value = old; return; } }
     try { await db.doc('meta/butoir').update({d: {[gk]: {[inp.dataset.butm]: inp.value || null}}}); notify(inp.value ? 'Date butoir '+BUT_KIND[butKind]+' de '+monthLbl(inp.dataset.butm)+' : '+butFmt(inp.value)+'.' : 'Date butoir retirée.'); } catch(err) { handleErr(err); }
   });
   $('#confBox').addEventListener('click', async e=>{
@@ -3370,6 +3382,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       renderManage(); applyRO(); return;
     }
     pendingRemove = ''; clearTimeout(pendingTimer);
+    if (!askCode('retirer une personne')) return;
     try {
       await db.doc('medecins/'+id).delete();
       if (me === id) { me = ''; try { localStorage.removeItem('planning-me'); } catch(err) {} }
@@ -4187,7 +4200,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (!pl.weeks.length) return notify('Rien à importer à partir d’aujourd’hui.', true);
     const ad = importAdds(pl), nAbs = pl.weeks.reduce((n,w)=>n + w.absences.length, 0);
     if (!ad.writes.length) {
-      if (nAbs) { const ok = await applyWeeks(pl, {extrasOnly: true}); if (!ok) { renderPlan(); return; } importFinish(pl); return notify('Aucune personne à ajouter ('+ad.present+' déjà sur le planning). Absences du fichier enregistrées.'); }
+      if (nAbs) { if (!askCode('importer')) return; const ok = await applyWeeks(pl, {extrasOnly: true}); if (!ok) { renderPlan(); return; } importFinish(pl); return notify('Aucune personne à ajouter ('+ad.present+' déjà sur le planning). Absences du fichier enregistrées.'); }
       xlPlan = null; renderPlan(); return notify('Rien à ajouter : toutes les personnes du fichier sont déjà sur le planning.');
     }
     genImp = pl;
@@ -4333,6 +4346,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       if (val.s) val.s = val.s.filter((id,ix,ar)=>val.w.includes(id) && ar.indexOf(id) === ix); }
     if (!db) { notify("Le planning partagé n'est pas disponible dans cette vue.", true); return Promise.resolve(false); }
     if (!canWrite) { notify('Lecture seule : vous ne pouvez pas modifier le planning.', true); return Promise.resolve(false); }
+    if (!askCode('modification du planning')) return Promise.resolve(false);
     const prev = oChains[date] || Promise.resolve();
     const run = prev.then(async ()=>{
       const ref = db.doc('ajustements/'+date);
@@ -4761,7 +4775,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (!trame || !db || !canWrite || !astMeta || astAdding || astTried || seeding || !trameLoaded) return;
     if (trame.postes.some(p=>p.samedi)) { if (astMeta === 'absent') { astMeta = 'done'; db.doc('meta/ast1').set({v:1}).catch(()=>{}); } return; }
     astAdding = true; astTried = true;
-    saveTrame(t=>{ t.postes.push({id:'astreinte', label:'Astreinte', samedi:true}); }).then(ok=>ok && db.doc('meta/ast1').set({v:1})).catch(()=>{}).then(()=>{ astAdding = false; });
+    saveTrame(t=>{ t.postes.push({id:'astreinte', label:'Astreinte', samedi:true}); }, true).then(ok=>ok && db.doc('meta/ast1').set({v:1})).catch(()=>{}).then(()=>{ astAdding = false; });
   }
   function jumpToData(){
     if (jumped || seeding || seedState !== 'done') return;
@@ -4919,8 +4933,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       return '<li><input type="text" data-pren="'+esc(p.id)+'" value="'+esc(p.label)+'" maxlength="40" autocomplete="off" aria-label="Nom du poste"'+(canWrite?'':' disabled')+'><button type="button" data-prm="'+esc(p.id)+'" class="'+(c?'confirm':'')+'"'+(canWrite?'':' disabled')+'>'+(c?'Confirmer':'Retirer')+'</button></li>';
     }).join('') || '<li class="muted" style="border:0;font-family:inherit">Aucun poste.</li>';
   }
-  async function saveTrame(mut){
+  async function saveTrame(mut, noCode){
     if (!db || !canWrite || !trame) { notify('Lecture seule : modification impossible.', true); return false; }
+    if (!noCode && !askCode('modifier les postes du service')) return false;
     const t = JSON.parse(JSON.stringify(trame)); mut(t);
     try { await db.doc('trame/semaine').set(t); return true; } catch(err) { handleErr(err); return false; }
   }
