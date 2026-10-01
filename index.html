@@ -471,7 +471,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .astcol{display:flex;flex-direction:column;gap:8px}.astbtn.big{min-height:64px;font-size:17px;flex-direction:column;gap:2px}.astbtn.go{width:100%}.astback{align-self:flex-start;min-height:36px;padding:0 10px}.astbar .astbtn.go{margin-top:2px}.astgo[aria-pressed=true]{outline:3px solid var(--accent)}
 .astgo.ko{background:#C62828}.astgo.ok{background:#1E7B4B}
 .astmiss{min-height:48px;text-align:left}
-.astrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.astrow{flex-wrap:wrap;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
 .asth{margin:12px 0 4px;font-size:14px}.asth.ko{color:var(--red)}.asth.ok{color:#1E7B4B}
 .astcopy,.astforce{margin-top:10px;width:100%}
 .confbox{display:flex;flex-direction:column;gap:8px;margin-top:12px}.confbox:not(:empty){padding:12px;border:1px solid var(--line,rgba(127,127,127,.35));border-radius:16px;background:rgba(127,127,127,.06)}
@@ -479,7 +479,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .confbtn small{font-weight:500;color:var(--ink);font-size:12px}
 .confbtn.on{border:1.5px solid #1E7B4B;background:#E4F4EA;color:#1E7B4B}
 :root[data-theme=dark] .confbtn.on{background:#173325;color:#7FD6A3;border-color:#3E8F63}
-</style>
+.astmax{min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card,var(--bg));color:inherit;padding:0 8px;font:inherit;font-size:13px}</style>
 
 <div class="wrap">
   <header class="top">
@@ -1882,15 +1882,16 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const months = astMonths(), miss = astMissing(months), all = grpDocs();
     const done = all.filter(d=>!d.noAst && !miss.includes(d)), excl = all.filter(d=>d.noAst);
     $('#astShS').textContent = 'Période : '+months.map(monthLbl).join(' et ');
+    const mxSel = d => plMode === 'ast' ? '<select class="astmax" data-astmax="'+esc(d.id)+'" aria-label="Nombre maximum d’astreintes pour '+esc(d.label)+'"'+(canWrite ? '' : ' disabled')+'><option value="0">Max : —</option>'+[1,2,3,4,5,6].map(n=>'<option value="'+n+'"'+(d.astMax === n ? ' selected' : '')+'>Max : '+n+'</option>').join('')+'</select> ' : '';
     const row = (d, extra, btn) => '<div class="astrow"><span><b>'+esc(d.label)+'</b>'+(extra ? ' <small>'+extra+'</small>' : '')+'</span>'+btn+'</div>';
     let h = '';
     if (!canSeeMiss()) {
       h += miss.length ? '<p class="empty" style="border:0">'+miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités.</p>' : '<p class="empty" style="border:0">✓ Tout le monde a renseigné ses indisponibilités.</p>';
     } else if (miss.length) {
-      h += '<h4 class="asth ko">À relancer ('+miss.length+')</h4>' + miss.map(d=>row(d, 'manque : '+months.filter(m=>!(d.conf && d.conf[m])).map(monthLbl).join(', '), (plMode === 'ast' ? '<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Pas d’astreinte</button>' : ''))).join('');
+      h += '<h4 class="asth ko">À relancer ('+miss.length+')</h4>' + miss.map(d=>row(d, 'manque : '+months.filter(m=>!(d.conf && d.conf[m])).map(monthLbl).join(', '), (plMode === 'ast' ? mxSel(d)+'<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Pas d’astreinte</button>' : ''))).join('');
       h += '<button type="button" class="ghost astcopy" data-astcopy="1">📋 Copier un message de rappel</button>';
     } else h += '<p class="empty" style="border:0">✓ Tout le monde a renseigné ses indisponibilités.</p>';
-    if (canSeeMiss() && done.length) h += '<h4 class="asth ok">Ont renseigné ('+done.length+')</h4><p class="hint">'+done.map(d=>esc(d.label)).join(', ')+'</p>';
+    if (canSeeMiss() && done.length) h += '<h4 class="asth ok">Ont renseigné ('+done.length+')</h4>'+(plMode === 'ast' ? done.map(d=>row(d, '', mxSel(d)+'<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Pas d’astreinte</button>')).join('') : '<p class="hint">'+done.map(d=>esc(d.label)).join(', ')+'</p>');
     if (plMode === 'ast' && canSeeMiss() && excl.length) h += '<h4 class="asth">Sans astreinte ('+excl.length+')</h4>' + excl.map(d=>row(d, '', '<button type="button" class="ghost" data-astincl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Réintégrer</button>')).join('');
     $('#astShL').innerHTML = h;
     $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Créer quand même</button>' : '';
@@ -1906,6 +1907,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const am = e.target.closest('[data-astm]'); if (am) { const m = am.dataset.astm; astSel = am.checked ? [...new Set([...astSel, m])].sort() : astSel.filter(x=>x !== m); return renderCompose(); }
     if (e.target.closest('[data-astmgo]')) { if (!astSel.length) return; astOn = true; plStage = 'auto'; return renderCompose(); }
     const im = e.target.closest('[data-implmode]'); if (im) { plMode = im.dataset.implmode; plStage = 'imp'; renderCompose(); return; } const pk = e.target.closest('[data-plpick]'); if (pk) { if (pk.dataset.plpick === 'imp') plStage = 'impm'; else { plMode = pk.dataset.plpick; plStage = 'how'; } renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; if (plStage === 'auto' && plMode === 'ast' && !astOn) plStage = 'astm'; if (plStage === 'how' || plStage === 'astm' && sg.dataset.plstage === 'astm') astOn = false; if (plStage === '') astOn = false; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
+  $('#astSheet').addEventListener('change', async e=>{ const mx = e.target.closest && e.target.closest('[data-astmax]'); if (!mx) return; const n = +mx.value || 0; if (await setDocField(mx.dataset.astmax, {astMax: n || null})) notify(n ? 'Maximum : '+n+' astreinte'+(n > 1 ? 's' : '')+' sur la période.' : 'Plus de maximum.'); renderMiss(); });
   $('#astSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-astx]')) return closeMiss();
     const ex = e.target.closest('[data-astexcl]'); if (ex) { if (await setDocField(ex.dataset.astexcl, {noAst: true})) renderMiss(); return; }
@@ -1927,17 +1929,20 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (miss.length && !force) return openMiss(true);
     const sats = astSats().map(key), cnt = astCounts(), pool = grpDocs().filter(d=>!d.noAst);
     let last = (vacWho(ap.id, key(addDays(parse(sats[0]),-7)), 'M') || {who:[]}).who.filter(inGrp), done = 0, skipped = 0; const writes = [];
+    const per = {}, capped = new Set();   /* astreintes par personne sur la période demandée (maximum fixé à côté de « Pas d'astreinte ») */
+    sats.forEach(k=>{ const v = vacWho(ap.id, k, 'M'); if (v) v.who.filter(inGrp).forEach(id=>{ per[id] = (per[id] || 0) + 1; }); });
     for (const k of sats) {
       const v = vacWho(ap.id, k, 'M');
       if (v && v.who.filter(inGrp).length) { last = v.who.filter(inGrp); continue; }
-      const cands = pool.filter(d=>!reasonFor(d.id, k, 'M'));
+      const free = pool.filter(d=>!reasonFor(d.id, k, 'M')), cands = free.filter(d=>!d.astMax || (per[d.id] || 0) < d.astMax);
+      free.forEach(d=>{ if (!cands.includes(d)) capped.add(d.label); });
       cands.sort((a,b)=>((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
       const pick = cands[0]; if (!pick) { skipped++; continue; }
       writes.push({k, kk: ap.id+'_M', val: {w:[pick.id], t: 0, a: 1}, poste: ap.id, part: 'M', before: [], after: [pick.id]});
-      cnt[pick.id] = (cnt[pick.id]||0) + 1; last = [pick.id]; done++;
+      cnt[pick.id] = (cnt[pick.id]||0) + 1; per[pick.id] = (per[pick.id] || 0) + 1; last = [pick.id]; done++;
     }
     if (!writes.length) { plStage = 'man'; renderCompose(); return notify(skipped ? 'Personne de disponible sur les samedis restants.' : 'Tous les samedis affichés ont déjà une astreinte.', !!skipped); }
-    genOpen('Astreintes proposées', writes, skipped ? skipped+' samedi'+(skipped > 1 ? 's' : '')+' sans personne disponible' : '');
+    genOpen('Astreintes proposées', writes, skipped ? skipped+' samedi'+(skipped > 1 ? 's' : '')+' sans personne disponible'+(capped.size ? ' (maximum atteint pour : '+[...capped].join(', ')+')' : '') : '');
   }
   /* ---------- génération automatique de la semaine : 1) la trame, 2) les indisponibilités ---------- */
   async function plWeekGen(force){
@@ -4477,7 +4482,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : ''};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, astMax: typeof v.astMax === 'number' && v.astMax > 0 ? Math.floor(v.astMax) : 0, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : ''};
       });
       doctors = next; loaded = true; renderAll(); maybePatch();
     }, err=>{
