@@ -526,6 +526,24 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 .astbar .astbtn.go{min-height:52px;border-radius:14px;font-size:16px}
 .astrow.mrow b{text-transform:none;letter-spacing:normal;color:var(--ink);font-size:15px;font-weight:700}
 .astrow.mrow small{text-transform:none;letter-spacing:normal;font-weight:600;font-size:12.5px}
+
+/* Choix de la semaine : une seule ligne compacte */
+#plCard{padding-block:12px}
+#plCard #plTitle{margin:0 0 8px;font-size:1rem}
+#plCard .weekbar{flex-wrap:nowrap;gap:6px}
+#plCard .weekbar h2{min-width:0;margin:0;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:1rem;line-height:1.2}
+#plCard .weekbar h2 small.wr{font:600 12px var(--font-body);color:var(--muted)}
+#plCard .weekbar h2 small.wr.now{color:var(--accent)}
+#plCard .weekbar button,.jumpbtn{min-width:44px;min-height:44px;flex:none}
+.jumpbtn{position:relative;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;font-size:18px}
+.jumpbtn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+/* ligne « n'ont pas renseigné » cliquable */
+.plrow.plrem .pt[data-astmiss]{cursor:pointer;text-decoration:underline;text-decoration-color:rgba(0,0,0,.25);text-underline-offset:3px}
+.plgo{display:inline-block;margin-left:4px;font-weight:700;white-space:nowrap}
+
+.astrow.mrow.done{opacity:.65;cursor:default}
+.mrow b small{font-weight:500;color:var(--muted)}
+#clSheet .seg{margin:0}
 </style>
 
 <div class="wrap">
@@ -593,9 +611,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <div class="weekbar">
             <button type="button" id="plPrev" aria-label="Semaine précédente">‹</button>
             <h2 id="plLabel"></h2>
+            <label class="jumpbtn" title="Aller à une semaine"><span aria-hidden="true">📅</span><input type="date" id="plJump" aria-label="Aller à une semaine"></label>
             <button type="button" id="plNext" aria-label="Semaine suivante">›</button>
           </div>
-          <div class="f jump"><label for="plJump">Aller à une semaine</label><input type="date" id="plJump"></div>
           <button type="button" class="ghost" id="plPdf" hidden>📄 Télécharger le PDF de la semaine</button>
           <div id="plManBox">
           <div class="seg" role="group" aria-label="Portée de la modification">
@@ -614,6 +632,15 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
             <div class="sheet-h"><div><h3 id="astShT">Indisponibilités non renseignées</h3><p id="astShS" class="hint"></p></div><button type="button" class="ghost" data-astx>Fermer</button></div>
             <div id="astShL" class="sheet-l"></div>
             <div id="astShF"></div>
+          </div>
+        </div>
+        <div id="clSheet" class="sheet" hidden>
+          <div class="sheet-bg" data-clx></div>
+          <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="clShT">
+            <div class="sheet-h"><div><h3 id="clShT">Quelle vacation fermer ?</h3><p id="clShS" class="hint"></p></div><button type="button" class="ghost" data-clx>Annuler</button></div>
+            <div class="seg" role="group" aria-label="Portée de la fermeture"><button type="button" data-clscope="once">Cette semaine seulement</button><button type="button" data-clscope="always">Toutes les semaines</button></div>
+            <div id="clShL" class="sheet-l"></div>
+            <div id="clShF"></div>
           </div>
         </div>
         <div id="genSheet" class="sheet" hidden>
@@ -1734,7 +1761,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (plSheet) renderSheet();
     const a = document.activeElement;
     const days = [...Array(6)].map((_,i)=>addDays(plStart,i));
-    $('#plLabel').textContent = plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear();
+    { const wk = Math.round((plStart - mondayOf(new Date())) / 604800000), rel = plMode === 'ast' ? '' : wk === 0 ? 'Cette semaine' : wk === 1 ? 'Semaine prochaine' : wk === -1 ? 'Semaine dernière' : wk > 1 ? 'Dans '+wk+' semaines' : 'Il y a '+(-wk)+' semaines';
+      $('#plLabel').innerHTML = '<span class="wl">'+esc(plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear())+'</span>'+(rel ? '<small class="wr'+(wk === 0 ? ' now' : '')+'">'+rel+'</small>' : ''); }
     document.querySelectorAll('[data-plmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plmode === plMode)));
     $('#plTitle').textContent = plMode === 'ast' ? 'Planning d’astreinte' : 'Planning de la semaine';
     $('#impSlotP').hidden = plStage !== 'impx' && plStage !== 'impg'; { const ci = $('#cwImport'); if (ci) ci.dataset.src = plStage === 'impg' ? 'gs' : 'xl'; }
@@ -1913,7 +1941,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (ap) { const sats = astSatsOf(astMonthList().slice(0,1).concat(astMonthList().slice(1,2))).filter(d=>d >= addDays(new Date(), -6)).slice(0,6), fs_ = sats.filter(d=>{ const v = vacWho(ap.id, key(d), 'M'); return v && v.who.filter(inGrp).length; }).length; if (sats.length) h += row(fs_ === sats.length ? 1 : fs_ ? 2 : 0, 'Astreintes des '+sats.length+' prochains samedis : '+(fs_ === sats.length ? 'faites' : fs_ ? 'à compléter' : 'pas encore faites')+' <small>('+fs_+' / '+sats.length+')</small>'); }
     /* 3e ligne : qui n'a pas renseigné ses indispos, avec un bouton de rappel (notification) */
     if (plGrp) { const mm = astMissing(astMonths()), lbl = plGrp === 'interne' ? 'interne' : 'médecin';
-      h += '<div class="plrow '+(mm.length ? 'ko' : 'ok')+' plrem"><span class="pt">'+(mm.length ? '⛔ '+mm.length+' '+lbl+(mm.length > 1 ? 's n’ont pas renseigné leurs' : ' n’a pas renseigné ses')+' indispos' : '✅ Tous les '+lbl+'s ont renseigné leurs indispos')+'</span>'
+      h += '<div class="plrow '+(mm.length ? 'ko' : 'ok')+' plrem"><span class="pt"'+(mm.length ? ' data-astmiss="1" role="button" tabindex="0"' : '')+'>'+(mm.length ? '⛔ '+mm.length+' '+lbl+(mm.length > 1 ? 's n’ont pas renseigné leurs' : ' n’a pas renseigné ses')+' indispos' : '✅ Tous les '+lbl+'s ont renseigné leurs indispos')+(mm.length ? ' <span class="plgo">Voir qui ›</span>' : '')+'</span>'
         + (mm.length && canSeeMiss() ? '<button type="button" class="ghost" data-remind="1"'+(canWrite ? '' : ' disabled')+'>🔔 Rappel</button>' : '')+'</div>'; }
     return h + '</div>';
   }
@@ -1968,9 +1996,44 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
   const _rab = renderAstBar;
-  renderAstBar = function(){ _rab(); const pb = $('#plPdf'); if (pb) { pb.hidden = plMode === 'ast'; pb.className = plPdfNew ? 'primary' : 'ghost'; pb.textContent = plPdfNew ? '📄 Planning enregistré · télécharger le PDF' : '📄 Télécharger le PDF de la semaine'; } const pc = $('#plCard'); if (pc) pc.style.order = plStage === 'auto' ? '-1' : ''; const box = $('#astBarBox'); if (box && !box.hidden && plGrp) box.insertAdjacentHTML('afterbegin', planStatus()); };
+  renderAstBar = function(){ _rab(); const pb = $('#plPdf'); if (pb) { pb.hidden = true; pb.className = plPdfNew ? 'primary' : 'ghost'; pb.textContent = plPdfNew ? '📄 Planning enregistré · télécharger le PDF' : '📄 Télécharger le PDF de la semaine'; } const pc = $('#plCard'); if (pc) pc.style.order = plStage === 'auto' ? '-1' : ''; const box = $('#astBarBox'); if (box && !box.hidden && plGrp) box.insertAdjacentHTML('afterbegin', planStatus()); };
   /* ---------- qui n'a pas renseigné ses indisponibilités ---------- */
   let missForce = false;
+  /* ---------- fermer des vacations : menu de choix (semaine de médecins ou d'internes) ---------- */
+  let clSel = new Set();
+  function clItems(){
+    const out = [];
+    [...Array(5)].map((_,i)=>[addDays(plStart,i), i]).forEach(([d,i])=>{
+      const k = key(d), rows = [];
+      trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{
+        const v = vacWho(p.id, k, part), closed = !!v && !v.who.length && /^ferm/i.test(v.texte || ''), r = aPourvoir(p, k, i, part);
+        if (!r && !closed) return;
+        rows.push({slot: p.id+'|'+k+'|'+part, closed, name: postName(p.id, k), part: p.journee ? 'Journée' : part === 'M' ? 'Matin' : 'Après-midi', who: v ? v.who.filter(inGrp).map(dLabel) : []});
+      }));
+      if (rows.length) out.push({d, rows});
+    });
+    return out;
+  }
+  function renderClose(){
+    const days = clItems(), n = clSel.size;
+    $('#clShS').textContent = 'Semaine du '+fmtDM.format(plStart)+' · cochez les vacations qui doivent rester sans personne.';
+    document.querySelectorAll('[data-clscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.clscope === plScope)));
+    $('#clShL').innerHTML = days.length ? days.map(({d, rows})=>'<h4 class="asth">'+esc(fmtLong.format(d).replace(/^./, c=>c.toUpperCase()))+'</h4>'+rows.map(r=>'<label class="astrow mrow'+(clSel.has(r.slot) ? ' on' : '')+(r.closed ? ' done' : '')+'"><span class="mt"><input type="checkbox" data-clsel="'+esc(r.slot)+'"'+(clSel.has(r.slot) || r.closed ? ' checked' : '')+(r.closed || !canWrite ? ' disabled' : '')+'><b>'+esc(r.name)+' <small>· '+r.part+'</small></b></span><small class="aststat">'+(r.closed ? '🔒 déjà fermée' : r.who.length ? esc(r.who.join(', ')) : 'à pourvoir')+'</small></label>').join('')).join('') : '<p class="empty" style="border:0">Aucune vacation à fermer cette semaine.</p>';
+    $('#clShF').innerHTML = '<button type="button" class="astbtn go" data-clgo="1"'+(canWrite ? '' : ' disabled')+'>'+(n ? '🔒 Fermer '+n+' vacation'+(n > 1 ? 's' : '')+' et continuer' : 'Continuer sans fermer')+'</button>';
+  }
+  function openClose(){ clSel = new Set(); $('#clSheet').hidden = false; renderClose(); }
+  function closeClose(){ $('#clSheet').hidden = true; }
+  $('#clSheet').addEventListener('click', async e=>{
+    if (e.target.closest('[data-clx]')) return closeClose();
+    const sc = e.target.closest('[data-clscope]'); if (sc) { plScope = sc.dataset.clscope; return renderClose(); }
+    if (e.target.closest('[data-clgo]')) {
+      const list = [...clSel]; closeClose();
+      for (const slot of list) { try { await plClose(slot, true); } catch(err) { handleErr(err); } }
+      if (list.length) notify(list.length+' vacation'+(list.length > 1 ? 's fermées' : ' fermée')+'.');
+      qAns = ''; plStage = 'man'; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {}
+    }
+  });
+  $('#clSheet').addEventListener('change', e=>{ const c = e.target.closest && e.target.closest('[data-clsel]'); if (!c) return; if (c.checked) clSel.add(c.dataset.clsel); else clSel.delete(c.dataset.clsel); renderClose(); });
   function openMiss(force){ missForce = !!force; $('#astSheet').hidden = false; renderMiss(); }
   function closeMiss(){ $('#astSheet').hidden = true; missForce = false; renderCompose(); }
   function renderMiss(){
@@ -2005,7 +2068,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (e.target.closest('[data-astmgo]')) { if (!astSel.length) return; astOn = true; plStage = 'auto'; return renderCompose(); }
     const im = e.target.closest('[data-implmode]'); if (im) { plMode = im.dataset.implmode; plStage = 'imp'; renderCompose(); return; } const pk = e.target.closest('[data-plpick]'); if (pk) { if (pk.dataset.plpick === 'imp') plStage = 'impm'; else { plMode = pk.dataset.plpick; plStage = 'how'; } renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; if (plStage === 'auto' && plMode === 'ast' && !astOn) plStage = 'astm'; if (plStage === 'how' || plStage === 'astm' && sg.dataset.plstage === 'astm') astOn = false; if (plStage === '') astOn = false; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false);
     if (e.target.closest('[data-astqno]')) { qAns = 'no'; renderCompose(); return; }
-    if (e.target.closest('[data-astyes]')) { qAns = ''; plStage = 'man'; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} }
+    if (e.target.closest('[data-astyes]')) { if (plMode !== 'ast' && trame && trame.postes.length) return openClose(); qAns = ''; plStage = 'man'; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} }
     if (e.target.closest('[data-astno]')) plAssign(false); if (e.target.closest('[data-astmiss]')) openMiss(false); });
   $('#astSheet').addEventListener('change', async e=>{ const mx = e.target.closest && e.target.closest('[data-astmax]'); if (!mx) return; const n = +mx.value || 0; if (await setDocField(mx.dataset.astmax, {astMax: n || null})) notify(n ? 'Maximum : '+n+' astreinte'+(n > 1 ? 's' : '')+' sur la période.' : 'Plus de maximum.'); renderMiss(); });
   $('#astSheet').addEventListener('click', async e=>{
