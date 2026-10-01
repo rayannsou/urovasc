@@ -3276,6 +3276,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const ok = t.closest('[data-butok]'), lk = t.closest('[data-butlock]');
     if (ok || lk) {
       if (!isButAdmin() || !db) return;
+      if (ok) { const code = window.prompt('Code pour accepter la demande :'); if (code === null) return; if (code.trim().toLowerCase() !== 'grenier') return notify('Code incorrect.', true); }
       const pp = (ok || lk).dataset[ok ? 'butok' : 'butlock'].split('|'), id = pp[2], m = pp[0]+'|'+pp[1], cur = (butoir.unlock[m] || []).filter(x=>x !== id);
       try { await db.doc('meta/butoir').update({unlock: {[m]: ok ? cur.concat([id]) : cur}, req: {[m]: {[id]: null}}}); notify(ok ? dLabel(id)+' peut modifier ses indisponibilités ('+butLbl(m)+').' : 'Verrouillé de nouveau.'); } catch(err) { handleErr(err); }
     }
