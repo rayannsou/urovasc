@@ -1009,7 +1009,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   <ol><li>Touchez <b>Partager</b> <span aria-hidden="true">⬆︎</span> en bas de Safari</li><li>Puis <b>« Sur l’écran d’accueil »</b></li><li>Puis <b>Ajouter</b></li></ol>
   <p>L’icône « Planning » s’ouvrira comme une vraie application.</p>
 </div>
-<style>.instbox{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:60;background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 28px rgba(0,0,0,.28);font-size:14px;line-height:1.4}.instbox ol{margin:6px 0 4px;padding-left:20px}.instbox p{margin:4px 0 0;opacity:.9}.instbox #instX{position:absolute;top:4px;right:6px;min-width:44px;min-height:44px;background:none;border:0;color:inherit;font-size:24px}</style>
+<style>.instbox{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:60;background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 28px rgba(0,0,0,.28);font-size:14px;line-height:1.4}.instbox ol{margin:6px 0 4px;padding-left:20px}.instbox p{margin:4px 0 0;opacity:.9}.instbox #instX{position:absolute;top:4px;right:6px;min-width:44px;min-height:44px;background:none;border:0;color:inherit;font-size:24px}.astbar .qgo,.astbar .qgo[disabled]{background:var(--card,#fff);color:var(--ink,#1c2a2e);border:1.5px solid var(--accent,#1E7B4B);box-shadow:none}.astbar .qgo:not([disabled]):hover{background:var(--accent-soft,#e6f1ea)}.astbar .qgo .dot,.astbar .qgo .dot.ko,.astbar .qgo .dot.ok{background:var(--accent,#1E7B4B);margin-right:8px}.redoq{margin:8px 0 4px;padding:14px;border-radius:14px;background:var(--accent-soft,#eef3f1);border:1px solid var(--line,#d9e0e3);text-align:center}.redoq p{margin:0 0 10px}
+</style>
 <script>
 (function(){try{
   var ua=navigator.userAgent||'', ios=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
@@ -1932,6 +1933,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, dow)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ const r = aPourvoir(p, key(d), dow, part); if (!r) return; n++; if (r.ok) f++; }));
     return {f, n};
   }
+  let redoOk = '';
+  function weekDone(){ if (!trame || plMode === 'ast') return false; const ds = [...Array(5)].map((_,i)=>addDays(plStart,i)).map((d,i)=>dayFill(d,i)); const f = ds.reduce((x,y)=>x+y.f,0), n = ds.reduce((x,y)=>x+y.n,0); return n > 0 && f === n; }
   function planStatus(){
     if (!trame) return '';
     const ds = [...Array(5)].map((_,i)=>addDays(plStart,i)).map((d,i)=>dayFill(d,i)), f = ds.reduce((a,x)=>a+x.f,0), n = ds.reduce((a,x)=>a+x.n,0);
@@ -1980,6 +1983,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (!plGrp) box.innerHTML = '<p class="aststat"><b>Pour qui créer le planning ?</b></p><p class="hint">Les médecins et les internes se créent séparément : l’un ne modifie pas l’autre.</p><div class="astcol">'+lb('data-plgrp="medecin"','🩺','Médecins')+lb('data-plgrp="interne"','🎓','Internes')+'</div>';
     else if (!plStage) { const bt = (k, ic, t)=>'<button type="button" class="astbtn big lrow" data-plpick="'+k+'"><span class="ai">'+ic+'</span><span class="at">'+t+'</span><span class="ac">›</span></button>'; box.innerHTML = '<div class="asthead"><span>Planning des <b>'+(plGrp === 'interne' ? 'internes' : 'médecins')+'</b></span><button type="button" class="ghost" data-plgrp="">Changer</button></div><div class="astcol">'+bt('imp','📥','Importer un planning')+bt('week','📅','Créer un planning de semaine')+bt('ast','🔔','Créer un planning d’astreinte')+'</div>'; }
     else if (plStage === 'impm') box.innerHTML = back + '<p class="aststat">Importer un planning…</p><div class="astcol">'+lb('data-implmode="week"','📅','Planning de semaine')+lb('data-implmode="ast"','🔔','Planning d’astreinte')+'</div>';
+    else if (plStage === 'how' && !ast && weekDone() && redoOk !== key(plStart)) box.innerHTML = back + '<div class="redoq"><p class="aststat"><b>Le planning de cette semaine est déjà fait.</b></p><p class="hint">Faut-il quand même en créer un autre ? Il remplacera celui-ci une fois enregistré.</p><div class="astpair"><button type="button" class="astbtn" data-redono="1">Non</button><button type="button" class="astbtn" data-redoyes="1">Oui, en créer un autre</button></div></div>';
     else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Planning d’astreinte' : 'Planning de semaine')+'</b> · comment la créer ?</p><div class="astcol">'+lb('data-plstage="auto"','⚡','Création automatique')+lb('data-plstage="man"','✋','Création manuelle')+'</div>';
     else if (plStage === 'imp') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis…</p><div class="astcol">'+lb('data-plstage="impx"','📗','Fichier Excel')+lb('data-plstage="impg"','🔗','Google Sheet')+lb('data-plstage="pdf"','📄','PDF')+lb('data-plstage="shot"','📷','Photo ou capture')+'</div>';
     else if (plStage === 'impx' || plStage === 'impg') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · '+(plStage === 'impx' ? 'fichier Excel' : 'Google Sheet')+'. '+(ast ? 'Seules les astreintes (samedis) du fichier seront importées.' : 'Seules les vacations de la semaine (lundi à vendredi) seront importées.')+'</p>';
@@ -3667,6 +3671,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#cwNext').addEventListener('click',()=>{ cwStart = addDays(cwStart,7); renderCreate(); });
   $('#plPdf').addEventListener('click', ()=>pdfDownload(plStart));
   document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-plpdf]')) pdfDownload(plStart); });
+  document.addEventListener('click', e=>{ const t = e.target.closest && e.target; if (!t) return; if (t.closest('[data-redoyes]')) { redoOk = key(plStart); renderCompose(); } else if (t.closest('[data-redono]')) { plStage = ''; astOn = false; renderCompose(); } });
   $('#gPdf').addEventListener('click', ()=>pdfDownload(weekStart));
   $('#cwJump').addEventListener('change', e=>{ if (e.target.value) { cwStart = mondayOf(parse(e.target.value)); renderCreate(); } });
   $('#cwPostes').addEventListener('toggle', e=>{ const d = e.target; if (!d.dataset || !d.dataset.cwp || !cwOpen) return; if (d.open) cwOpen.add(d.dataset.cwp); else cwOpen.delete(d.dataset.cwp); }, true);
