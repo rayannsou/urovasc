@@ -548,6 +548,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <button type="button" id="plNext" aria-label="Semaine suivante">›</button>
           </div>
           <div class="f jump"><label for="plJump">Aller à une semaine</label><input type="date" id="plJump"></div>
+          <button type="button" class="ghost" id="plPdf" hidden>📄 Télécharger le PDF de la semaine</button>
           <div id="plManBox">
           <div class="seg" role="group" aria-label="Portée de la modification">
             <button type="button" data-plscope="once" aria-pressed="true">Une seule fois</button>
@@ -744,6 +745,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
             <li>Dernière ligne : nombre de médecins absents sur la demi-journée</li>
           </ul>
         </div>
+        <button type="button" class="ghost" id="gPdf">📄 Télécharger le PDF de la semaine</button>
         </div>
         <div id="gAstWrap" class="col" hidden>
           <div class="weekbar">
@@ -1859,7 +1861,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
   const _rab = renderAstBar;
-  renderAstBar = function(){ _rab(); const pc = $('#plCard'); if (pc) pc.style.order = plStage === 'auto' ? '-1' : ''; const box = $('#astBarBox'); if (box && !box.hidden && plGrp) box.insertAdjacentHTML('afterbegin', planStatus()); };
+  renderAstBar = function(){ _rab(); const pb = $('#plPdf'); if (pb) { pb.hidden = plMode === 'ast'; pb.className = plPdfNew ? 'primary' : 'ghost'; pb.textContent = plPdfNew ? '📄 Planning enregistré · télécharger le PDF' : '📄 Télécharger le PDF de la semaine'; } const pc = $('#plCard'); if (pc) pc.style.order = plStage === 'auto' ? '-1' : ''; const box = $('#astBarBox'); if (box && !box.hidden && plGrp) box.insertAdjacentHTML('afterbegin', planStatus()); };
   /* ---------- qui n'a pas renseigné ses indisponibilités ---------- */
   let missForce = false;
   function openMiss(force){ missForce = !!force; $('#astSheet').hidden = false; renderMiss(); }
@@ -2291,6 +2293,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const ws = genPending.filter(w=>w.on); genClose();
     let ok = true;
     for (const w of ws) { w.val.t = Date.now(); ok = (await setOverride(w.k, w.kk, w.val)) && ok; if (!ok) break; }
+    if (ok && plMode !== 'ast') plPdfNew = true;
     plStage = 'man'; renderCompose();
     if (ok) notify(ws.length+' modification'+(ws.length > 1 ? 's enregistrées' : ' enregistrée')+'. Vous pouvez encore les corriger à la main.');
   });
@@ -2690,6 +2693,114 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   function renderGLabel(){
     const b = addDays(weekStart,6);
     $('#gLabel').textContent = fmtDM.format(weekStart)+' – '+fmtDM.format(b)+' '+b.getFullYear();
+  }
+  /* ---------- PDF de la semaine : dessiné sur un canvas puis encapsulé dans un PDF (sans bibliothèque) ---------- */
+  let plPdfNew = false;
+  function pdfWeekCanvas(mon){
+    const W = 2339, H = 1654, M = 56, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d'), FONT = 'Helvetica, Arial, sans-serif';
+    const days = [0,1,2,3,4].map(i=>addDays(mon,i)), dk = days.map(key), INK = '#13201D', INTC = '#1B5FA8', LINE = '#C9D3CF';
+    const rows = [];
+    trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>{
+      const rs = (p.journee ? ['M'] : PARTS).map(part=>({p, part, cells: days.map((d,i)=>okDay(p,i) ? vacWho(p.id, dk[i], part) : null)}));
+      if (rs.some(r=>r.cells.some(x=>x && (x.who.length || x.texte)))) rs.forEach(r=>rows.push(r));
+    });
+    const ap = trame.postes.find(isSam), av = ap ? vacWho(ap.id, key(addDays(mon,5)), 'M') : null;
+    const LAB = 300, PCOLW = 160, CW = (W - 2*M - LAB - PCOLW) / 5, HEAD = 200, DH = 64, FOOT = av ? 86 : 40, pad = 10;
+    const toks = v => {
+      if (!v) return [];
+      if (v.ou) return [{t: 'À confirmer : '+v.who.map(dLabel).join(' ou '), g: 1}];
+      const a = v.who.map(id=>({t: dLabel(id), i: isIntId(id)}));
+      if (v.texte) a.push({t: v.texte, g: 1});
+      return a;
+    };
+    const wrap = (tk, width, fs)=>{
+      const lines = [[]]; let x = 0;
+      tk.forEach((k, ix)=>{
+        g.font = (k.i || k.g ? 'italic ' : 'bold ')+fs+'px '+FONT; const w = g.measureText(k.t).width, sep = g.measureText(', ').width, last = lines[lines.length-1];
+        if (last.length && x + sep + w > width) { lines.push([]); x = 0; }
+        const cur = lines[lines.length-1]; cur.push(k); x += (cur.length > 1 ? sep : 0) + w;
+      });
+      return lines;
+    };
+    let fs = 32, heights;
+    for (; fs >= 14; fs -= 2) {
+      heights = rows.map(r=>Math.max(fs*1.5+pad, ...r.cells.map(v=>wrap(toks(v), CW - 2*pad, fs).length * fs * 1.25 + pad)));
+      if (heights.reduce((a,b)=>a+b, 0) <= H - HEAD - DH - FOOT - M) break;
+    }
+    g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, W, H);
+    g.fillStyle = INK; g.textBaseline = 'alphabetic';
+    g.font = 'bold 54px '+FONT; g.fillText('Planning Imagerie', M, M+54);
+    const sat = addDays(mon,5), rng = new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long'});
+    g.font = '36px '+FONT; g.fillStyle = '#586964'; g.fillText('Semaine du '+rng.format(mon)+' au '+rng.format(addDays(mon,4))+' '+addDays(mon,4).getFullYear(), M, M+104);
+    g.textAlign = 'right'; g.font = '26px '+FONT; g.fillText('Généré le '+new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}).format(new Date()), W-M, M+104);
+    g.font = 'italic 26px '+FONT; g.fillText('Les internes sont en italique bleu', W-M, M+60); g.textAlign = 'left';
+    const x0 = M, y0 = HEAD;
+    g.fillStyle = '#17302C'; g.fillRect(x0, y0, W-2*M, DH);
+    g.fillStyle = '#FFFFFF'; g.font = 'bold 30px '+FONT; g.textAlign = 'center';
+    days.forEach((d,i)=>g.fillText(new Intl.DateTimeFormat('fr-FR',{weekday:'long', day:'numeric', month:'numeric'}).format(d).replace(/^./, s=>s.toUpperCase()), x0+LAB+PCOLW+CW*i+CW/2, y0+DH/2+11));
+    g.textAlign = 'left';
+    let y = y0 + DH, shade = false, prevP = null, startY = y;
+    rows.forEach((r, ri)=>{
+      const h = heights[ri], first = r.p !== prevP;
+      if (first) { shade = !shade; startY = y; }
+      g.fillStyle = shade ? '#F3F6F5' : '#FFFFFF'; g.fillRect(x0, y, W-2*M, h);
+      g.fillStyle = posteColor(r.p.id); if (first) g.fillRect(x0, y, 10, rows.filter(z=>z.p === r.p).reduce((a,z)=>a+heights[rows.indexOf(z)], 0));
+      if (first) { g.fillStyle = INK; const pn = postName(r.p.id, dk[0]); let pf = Math.min(32, fs+4); g.font = 'bold '+pf+'px '+FONT; while (pf > 14 && g.measureText(pn).width > LAB-36) { pf -= 2; g.font = 'bold '+pf+'px '+FONT; } g.fillText(pn, x0+24, y+fs+pad); }
+      g.fillStyle = '#586964'; g.font = (fs-2)+'px '+FONT; g.fillText(r.p.journee ? 'Journée' : r.part === 'M' ? 'Matin' : 'Après-midi', x0+LAB, y+fs+pad);
+      r.cells.forEach((v, i)=>{
+        const cx = x0+LAB+PCOLW+CW*i;
+        if (!v) { g.strokeStyle = '#E0E6E3'; g.lineWidth = 2; g.beginPath(); for (let k=-h; k<CW; k+=22) { g.moveTo(cx+Math.max(0,k), y+(k<0?-k:0)); g.lineTo(cx+Math.min(CW,k+h), y+Math.min(h, h-(k+h>CW?k+h-CW:0))); } g.stroke(); return; }
+        const lines = wrap(toks(v), CW - 2*pad, fs);
+        lines.forEach((ln, li)=>{
+          let tx = cx+pad;
+          ln.forEach((k, ki)=>{
+            if (ki) { g.font = fs+'px '+FONT; g.fillStyle = INK; g.fillText(', ', tx, y+fs+pad/2+li*fs*1.25); tx += g.measureText(', ').width; }
+            g.font = (k.i || k.g ? 'italic ' : 'bold ')+fs+'px '+FONT; g.fillStyle = k.i ? INTC : k.g ? '#586964' : INK;
+            g.fillText(k.t, tx, y+fs+pad/2+li*fs*1.25); tx += g.measureText(k.t).width;
+          });
+        });
+      });
+      g.strokeStyle = LINE; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x0, y+h); g.lineTo(W-M, y+h); g.stroke();
+      y += h; prevP = r.p;
+    });
+    g.strokeStyle = LINE; g.lineWidth = 1.5;
+    for (let i=0; i<=5; i++) { const lx = x0+LAB+PCOLW+CW*i; g.beginPath(); g.moveTo(lx, y0+DH); g.lineTo(lx, y); g.stroke(); }
+    g.beginPath(); g.moveTo(x0+LAB, y0+DH); g.lineTo(x0+LAB, y); g.stroke();
+    if (av) {
+      const nm = av.who.map(dLabel).join(', ') || '—';
+      g.fillStyle = INK; g.font = 'bold 32px '+FONT; g.fillText('Astreinte du samedi '+new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long'}).format(sat)+' : ', x0, y+58);
+      const bw = g.measureText('Astreinte du samedi '+new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long'}).format(sat)+' : ').width;
+      g.font = '32px '+FONT; g.fillText(nm, x0+bw, y+58);
+    }
+    return c;
+  }
+  function pdfFromCanvas(c){
+    const bin = atob(c.toDataURL('image/jpeg', 0.92).split(',')[1]), img = new Uint8Array(bin.length);
+    for (let i=0; i<bin.length; i++) img[i] = bin.charCodeAt(i);
+    const asc = s=>{ const a = new Uint8Array(s.length); for (let i=0; i<s.length; i++) a[i] = s.charCodeAt(i) & 255; return a; };
+    const parts = [], offs = []; let len = 0;
+    const put = b=>{ const u = typeof b === 'string' ? asc(b) : b; parts.push(u); len += u.length; };
+    const obj = (n, body)=>{ offs[n] = len; put(n+' 0 obj\n'+body+'\nendobj\n'); };
+    put('%PDF-1.4\n');
+    obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+    obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+    obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>');
+    const cs = 'q 842 0 0 595 0 0 cm /Im0 Do Q';
+    obj(4, '<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream');
+    offs[5] = len; put('5 0 obj\n<< /Type /XObject /Subtype /Image /Width '+c.width+' /Height '+c.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>\nstream\n'); put(img); put('\nendstream\nendobj\n');
+    const xr = len; let x = 'xref\n0 6\n0000000000 65535 f \n'; for (let n=1; n<=5; n++) x += String(offs[n]).padStart(10, '0')+' 00000 n \n';
+    put(x+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF');
+    return new Blob(parts, {type: 'application/pdf'});
+  }
+  function pdfDownload(mon){
+    if (!trame || !trame.postes.length) return notify('Le planning n’est pas encore chargé.', true);
+    try {
+      const blob = pdfFromCanvas(pdfWeekCanvas(mon)), url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = 'planning-imagerie-'+key(mon)+'.pdf'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 60000);
+      plPdfNew = false; notify('PDF de la semaine du '+fmtDM.format(mon)+' prêt.'); renderAstBar();
+    } catch (e) { notify('Impossible de créer le PDF : '+(e && e.message || e), true); }
   }
   function moveWeek(n){ gDay = -1; weekStart = n === 0 ? mondayOf(new Date()) : addDays(weekStart, 7*n); renderGLabel(); renderTeam(); renderTrame(); }
   /* balayage gauche / droite pour changer de jour (téléphone) */
@@ -3236,6 +3347,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   $('#cwPrev').addEventListener('click',()=>{ cwStart = addDays(cwStart,-7); renderCreate(); });
   $('#cwNext').addEventListener('click',()=>{ cwStart = addDays(cwStart,7); renderCreate(); });
+  $('#plPdf').addEventListener('click', ()=>pdfDownload(plStart));
+  $('#gPdf').addEventListener('click', ()=>pdfDownload(weekStart));
   $('#cwJump').addEventListener('change', e=>{ if (e.target.value) { cwStart = mondayOf(parse(e.target.value)); renderCreate(); } });
   $('#cwPostes').addEventListener('toggle', e=>{ const d = e.target; if (!d.dataset || !d.dataset.cwp || !cwOpen) return; if (d.open) cwOpen.add(d.dataset.cwp); else cwOpen.delete(d.dataset.cwp); }, true);
   $('#cwPostes').addEventListener('change', e=>{
