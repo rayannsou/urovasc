@@ -481,7 +481,19 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .confbtn.on{border:1.5px solid #1E7B4B;background:#E4F4EA;color:#1E7B4B}
 :root[data-theme=dark] .confbtn.on{background:#173325;color:#7FD6A3;border-color:#3E8F63}
 .astmax{min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card,var(--bg));color:inherit;padding:0 8px;font:inherit;font-size:13px}.pals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.pals button{min-height:56px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}.pals button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.pals i{display:flex;gap:3px}.pals i b{width:16px;height:16px;border-radius:50%;display:block}
-html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>summary{min-height:48px;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface)}.teamfold[open]>summary{margin-bottom:10px}.cardfold>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font:600 1.05rem var(--font-display);color:var(--accent);list-style:none}.cardfold>summary::-webkit-details-marker{display:none}.cardfold>summary::after{content:'▾';font-size:16px;color:var(--muted)}.cardfold[open]>summary::after{content:'▴'}.cardfold[open]>summary{margin-bottom:8px}.addset .f:not(.grow){flex:0 0 auto}.addset select{min-width:112px}.exfmt{display:flex;gap:8px}.exfmt button{flex:1;min-height:44px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600}.exfmt button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}</style>
+html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>summary{min-height:48px;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface)}.teamfold[open]>summary{margin-bottom:10px}.cardfold>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font:600 1.05rem var(--font-display);color:var(--accent);list-style:none}.cardfold>summary::-webkit-details-marker{display:none}.cardfold>summary::after{content:'▾';font-size:16px;color:var(--muted)}.cardfold[open]>summary::after{content:'▴'}.cardfold[open]>summary{margin-bottom:8px}.addset .f:not(.grow){flex:0 0 auto}.addset select{min-width:112px}.exfmt{display:flex;gap:8px}.exfmt button{flex:1;min-height:44px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600}.exfmt button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}/* feuille « indispos non renseignées » : lignes aérées, animation d'ouverture */
+@keyframes sheetUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}@keyframes sheetFade{from{opacity:0}to{opacity:1}}
+.sheet:not([hidden]) .sheet-p{animation:sheetUp .24s cubic-bezier(.2,.8,.2,1)}.sheet:not([hidden]) .sheet-bg{animation:sheetFade .2s ease-out}
+@media(prefers-reduced-motion:reduce){.sheet:not([hidden]) .sheet-p,.sheet:not([hidden]) .sheet-bg{animation:none}}
+.mhead{display:flex;flex-direction:column;gap:8px;margin:4px 0 6px}.mhead .asth{margin:0}.mall{min-height:48px;border-radius:14px;font-size:15px}
+.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);transition:background .15s}
+.mav{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font:700 16px var(--font-display);flex:none}
+.mi{flex:1 1 130px;min-width:0;display:flex;flex-direction:column;gap:2px}.mi small{color:var(--muted);font-size:12.5px;line-height:1.3}
+.ma{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}.ma .ghost,.ma select{min-height:40px;border-radius:10px}
+.mrem{border-color:var(--accent);color:var(--accent);font-weight:600}.mrem.sent{border-color:var(--line);color:var(--muted)}
+.sheet-l{gap:8px;scroll-behavior:smooth}.sheet-p{box-shadow:0 -10px 40px rgba(0,0,0,.18)}
+button{transition:transform .08s ease,background-color .15s,border-color .15s}button:active:not(:disabled){transform:scale(.98)}
+</style>
 
 <div class="wrap">
   <header class="top">
@@ -1851,14 +1863,16 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
         + (mm.length && canSeeMiss() ? ' <button type="button" class="ghost" data-remind="1"'+(canWrite ? '' : ' disabled')+'>🔔 Rappel</button>' : '')+'</div>'; }
     return h + '</div>';
   }
-  async function remindMissing(){
+  const remSent = new Set();   /* personnes déjà relancées pendant cette session */
+  async function remindMissing(only){
     if (!canWrite || !canSeeMiss() || !db) return;
-    const mm = astMissing(astMonths()); if (!mm.length) return notify('Tout le monde a déjà renseigné ses indispos.');
+    let mm = astMissing(astMonths()); if (only) mm = mm.filter(d=>d.id === only); else mm = mm.filter(d=>!remSent.has(d.id));
+    if (!mm.length) return notify('Tout le monde a déjà renseigné ses indispos.');
     const ms = astMonths(), txt = 'Bonjour, merci de renseigner vos indisponibilités ('+ms.map(monthLbl).join(' et ')+') dans le planning Imagerie, puis de toucher « J’ai renseigné mes indisponibilités ». Merci !', to = mm.map(d=>d.id);
-    if (!confirm('Envoyer un rappel à '+to.length+' personne'+(to.length > 1 ? 's' : '')+' ?\n\n'+mm.map(d=>d.label).join(', '))) return;
-    try { await db.collection('messages').add({from: me, to, text: txt, at: Date.now(), sent: false}); notify('Rappel en file d’envoi : il partira dans les 10 à 15 minutes.'); } catch(e) { handleErr(e); }
+    if (!only && !confirm('Envoyer un rappel à '+to.length+' personne'+(to.length > 1 ? 's' : '')+' ?\n\n'+mm.map(d=>d.label).join(', '))) return;
+    try { await db.collection('messages').add({from: me, to, text: txt, at: Date.now(), sent: false}); to.forEach(id=>remSent.add(id)); notify(only ? 'Rappel envoyé à '+mm[0].label+' (il part dans les 10 à 15 minutes).' : 'Rappel en file d’envoi : il partira dans les 10 à 15 minutes.'); if (!$('#astSheet').hidden) renderMiss(); } catch(e) { handleErr(e); }
   }
-  document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-remind]')) remindMissing(); });
+  document.addEventListener('click', e=>{ const one = e.target.closest && e.target.closest('[data-remindid]'); if (one) return remindMissing(one.dataset.remindid); if (e.target.closest && e.target.closest('[data-remind]')) remindMissing(); });
   function intModified(){ return !!(Object.keys(intNeed).length || Object.keys(intNeedHP).length || Object.values(intOnlyAuto).some(Boolean) || Object.values(intNon).some(Boolean)); }
   function intCustomBtn(){ return '<button type="button" class="astbtn" data-intcustom="1" aria-expanded="'+intCustom+'">⚙ Personnalisé'+(intModified() ? ' · modifié' : '')+' <small>'+(intCustom ? '▲' : '▼')+'</small></button>'+(intCustom ? '' : '<p class="hint" style="margin:6px 0 10px">Par défaut : 2 internes à l’écho et au scanner des urgences, 1 sur chaque autre vacation de la trame. Touchez « Personnalisé » pour choisir les effectifs par poste.</p>'); }
   function intNeedUI(){
@@ -1912,7 +1926,9 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
     if (!canSeeMiss()) {
       h += miss.length ? '<p class="empty" style="border:0">'+miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités.</p>' : '<p class="empty" style="border:0">✓ Tout le monde a renseigné ses indisponibilités.</p>';
     } else if (miss.length) {
-      h += '<h4 class="asth ko">À relancer ('+miss.length+')</h4>' + miss.map(d=>row(d, 'manque : '+months.filter(m=>!(d.conf && d.conf[m])).map(monthLbl).join(', '), (plMode === 'ast' ? mxSel(d)+'<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Pas d’astreinte</button>' : ''))).join('');
+      const allSent = miss.every(d=>remSent.has(d.id)), can = canWrite ? '' : ' disabled';
+      h += '<div class="mhead"><h4 class="asth ko">À relancer ('+miss.length+')</h4>'+(canWrite ? '<button type="button" class="primary mall" data-remind="1"'+(allSent ? ' disabled' : '')+'>'+(allSent ? '✓ Rappel envoyé à tous' : (()=>{ const k = miss.filter(d=>!remSent.has(d.id)).length; return '🔔 Rappeler '+(k > 1 ? 'les '+k+' personnes' : 'la personne restante'); })())+'</button>' : '')+'</div>'
+        + miss.map(d=>'<div class="mrow"><span class="mav" aria-hidden="true">'+esc((d.label || '?').trim().charAt(0).toUpperCase())+'</span><div class="mi"><b>'+esc(d.label)+'</b><small>manque : '+months.filter(m=>!(d.conf && d.conf[m])).map(monthLbl).join(', ')+'</small></div><div class="ma">'+(plMode === 'ast' ? mxSel(d)+'<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+can+'>Pas d’astreinte</button>' : '')+'<button type="button" class="ghost mrem'+(remSent.has(d.id) ? ' sent' : '')+'" data-remindid="'+esc(d.id)+'"'+can+(remSent.has(d.id) ? ' disabled' : '')+'>'+(remSent.has(d.id) ? '✓ Envoyé' : '🔔 Rappel')+'</button></div></div>').join('');
       h += '<button type="button" class="ghost astcopy" data-astcopy="1">📋 Copier un message de rappel</button>';
     } else h += '<p class="empty" style="border:0">✓ Tout le monde a renseigné ses indisponibilités.</p>';
     if (canSeeMiss() && done.length) h += '<h4 class="asth ok">Ont renseigné ('+done.length+')</h4>'+(plMode === 'ast' ? done.map(d=>row(d, '', mxSel(d)+'<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Pas d’astreinte</button>')).join('') : '<p class="hint">'+done.map(d=>esc(d.label)).join(', ')+'</p>');
