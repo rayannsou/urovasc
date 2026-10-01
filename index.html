@@ -889,6 +889,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
     <section id="view-reglages" aria-labelledby="tab-reglages" hidden>
       <div class="col">
+        <div class="card" id="butCard" hidden>
+          <details class="cardfold" id="butFold"><summary>📅 Date butoir indispo <b class="acn" id="butN" hidden></b></summary>
+          <div id="butBody"></div>
+          </details>
+        </div>
         <div class="card mp">
           <h2>Mon profil</h2>
           <p class="hint">Choisissez votre nom : l’accueil vous dira « Bonjour » avec votre nom et affichera votre semaine.</p>
@@ -907,11 +912,6 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <h2>Écran d’accueil</h2>
           <p class="hint" id="instHint">Ajoutez le planning sur l’écran d’accueil de votre téléphone pour l’ouvrir comme une application.</p>
           <button type="button" class="primary" id="instBtn">📲 Ajouter à l’écran d’accueil</button>
-        </div>
-        <div class="card" id="butCard" hidden>
-          <details class="cardfold" id="butFold"><summary>Date butoir indispo <b class="acn" id="butN" hidden></b></summary>
-          <div id="butBody"></div>
-          </details>
         </div>
         <div class="card" id="remCard">
           <h2>Rappels</h2>
@@ -1611,7 +1611,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       return rowWrap(d,i,k,head,body);
     }).join('');
     const cms = [...new Set(inList.map(x=>key(x[0]).slice(0,7)))];
-    $('#confBox').innerHTML = cms.map(m=>{ const on = !!(doc.conf && doc.conf[m]); const dl = butoir.m[m], lk = butLocked(me, m+'-01'), dlh = dl ? '<em class="butdl'+(lk ? ' lock' : '')+'">'+(lk ? '🔒 Verrouillé depuis le ' : '⏳ Date butoir : ')+esc(butFmt(dl))+'</em>' : isButAdmin() ? '<em class="butdl">⏳ Date butoir : non fixée · à régler dans Réglages › Date butoir indispo</em>' : '';
+    $('#confBox').innerHTML = cms.map(m=>{ const on = !!(doc.conf && doc.conf[m]); const dl = butoir.m[m], lk = butLocked(me, m+'-01'), dlh = dl ? '<em class="butdl'+(lk ? ' lock' : '')+'">'+(lk ? '🔒 Verrouillé depuis le ' : '⏳ Date butoir : ')+esc(butFmt(dl))+'</em>' : isButAdmin() ? '<em class="butdl">⏳ Date butoir : non fixée · <u data-butgo="1" role="button" tabindex="0">Régler la date ›</u></em>' : '';
       return butBanners([m]) + '<button type="button" class="confbtn'+(on ? ' on' : '')+'" data-conf="'+m+'"'+(canWrite ? '' : ' disabled')+'>'+(on ? '✓ Indisponibilités de '+esc(monthLbl(m))+' renseignées <small>Toucher pour annuler</small>' : 'J’ai renseigné mes indisponibilités de '+esc(monthLbl(m))+' <small>Toucher quand vous avez terminé (même si aucune)</small>')+dlh+'</button>'; }).join('');
   }
 
@@ -3207,6 +3207,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   document.addEventListener('click', async e=>{
     const t = e.target.closest && e.target; if (!t) return;
     const ak = t.closest('[data-butask]'); if (ak) return butAsk([ak.dataset.butask]);
+    if (t.closest('[data-butgo]')) { e.preventDefault(); e.stopPropagation(); showTab('reglages'); const f = $('#butFold'); if (f) { f.open = true; setTimeout(()=>{ try { f.scrollIntoView({block: 'start'}); } catch(err) {} }, 50); } return; }
     const ok = t.closest('[data-butok]'), lk = t.closest('[data-butlock]');
     if (ok || lk) {
       if (!isButAdmin() || !db) return;
@@ -3219,6 +3220,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     try { await db.doc('meta/butoir').update({m: {[inp.dataset.butm]: inp.value || null}}); notify(inp.value ? 'Date butoir de '+monthLbl(inp.dataset.butm)+' : '+butFmt(inp.value)+'.' : 'Date butoir retirée.'); } catch(err) { handleErr(err); }
   });
   $('#confBox').addEventListener('click', async e=>{
+    if (e.target.closest('[data-butgo]')) return;
     const b = e.target.closest('[data-conf]'); if (!b || !doctors[me]) return;
     const m = b.dataset.conf, on = !(doctors[me].conf && doctors[me].conf[m]);
     if (await setDocField(me, {conf: {[m]: on ? true : null}})) notify(on ? 'Merci ! Indisponibilités de '+monthLbl(m)+' enregistrées comme complètes.' : 'Confirmation retirée.');
