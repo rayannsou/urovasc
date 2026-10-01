@@ -4182,7 +4182,10 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     go.disabled = !tv || !canWrite;
     chk.textContent = !tv && theirs.length ? 'Choisissez la vacation contre laquelle échanger.' : tv
       ? "Après l'échange : vous faites "+vacLabel(tv)+", "+dLabel(wid)+" fait "+vacLabel(mineV)+"."
-      : dLabel(wid)+" n'a aucune vacation compatible avec la vôtre (indisponibilité, garde, repos ou déjà sur cette vacation).";
+      : (()=>{ const r1 = reasonFor(wid, mineV.date, mineV.part), nv = swVacs(wid).length, when = fmtShort.format(parse(mineV.date))+' '+(PART_TXT[mineV.part]||mineV.part);
+          if (r1) return dLabel(wid)+' est '+r1+' le '+when+' : '+dLabel(wid)+' ne peut pas prendre votre vacation.';
+          if (!nv) return dLabel(wid)+" n'a aucune vacation à venir à échanger (les 8 prochaines semaines sont regardées).";
+          return 'Aucune des '+nv+' vacations de '+dLabel(wid)+' ne convient : pour chacune, vous êtes indisponible, de garde, en repos, OFF ou déjà posté(e) dessus.'; })();
     swSteps();
   }
 
