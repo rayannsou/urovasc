@@ -1767,7 +1767,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     document.querySelectorAll('[data-plmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plmode === plMode)));
     $('#plTitle').textContent = plMode === 'ast' ? 'Planning d’astreinte' : 'Planning de la semaine';
     $('#impSlotP').hidden = plStage !== 'impx' && plStage !== 'impg'; { const ci = $('#cwImport'); if (ci) ci.dataset.src = plStage === 'impg' ? 'gs' : 'xl'; }
-    $('#plCard').hidden = plStage !== 'auto' && plStage !== 'man' && plStage !== 'shot'; $('#plManBox').hidden = plStage !== 'man'; grid.hidden = plStage !== 'man'; if (plStage !== 'man') { grid.innerHTML = ''; return; }
+    $('#plCard').hidden = plStage !== 'auto' && plStage !== 'man' && plStage !== 'shot' && !(plStage === 'how' && plMode !== 'ast'); $('#plManBox').hidden = plStage !== 'man'; grid.hidden = plStage !== 'man'; if (plStage !== 'man') { grid.innerHTML = ''; return; }
     $('#plDays').hidden = plMode === 'ast'; $('#plCopy').hidden = plMode === 'ast';
     document.querySelectorAll('[data-plscope]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plscope === plScope)));
     const dn = ['lundi','mardi','mercredi','jeudi','vendredi','samedi'];
