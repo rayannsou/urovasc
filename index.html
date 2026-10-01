@@ -350,9 +350,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .plcard.ast{border:1.5px solid var(--accent)}
 .acn{display:inline-block;min-width:20px;height:20px;line-height:20px;margin-left:8px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 11px/20px var(--font-mono);text-align:center}
 .plsg.na .acn{background:var(--red);color:#fff;text-decoration:none}
-.astr{display:flex;gap:8px;align-items:center;margin:0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);color:var(--ink);font-size:14px}
+.astr{display:flex;gap:10px;align-items:center;margin:0;padding:14px 16px;min-height:76px;border-radius:12px;background:var(--accent-soft);color:var(--ink);font-size:16px;border-left:6px solid var(--accent)}
 .astr.mine{background:var(--accent);color:var(--accent-ink)}
-.lview .astr{margin-top:-2px}
+.lview .astr{margin-top:0}
 .subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
 .subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
 .gastrow{padding:12px 14px;cursor:pointer}.gaed{margin-left:8px;color:var(--muted);font-size:14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
@@ -659,9 +659,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <div class="subtabs" role="group" aria-label="Type d’indisponibilité"><button type="button" data-inmode="week" aria-pressed="true">📅 Semaine</button><button type="button" data-inmode="sat" aria-pressed="false">🔔 Astreinte</button></div>
           <div id="confBox" class="confbox"></div>
         </div>
-        <div class="col">
+        <div class="col full">
           <div class="card">
-            <h2 class="insec" style="margin-top:0">Saisir vos indisponibilités / off</h2>
+            <details class="cardfold" id="inFold1" open><summary>1) Vos indisponibilités / off</summary>
             <div class="weekbar">
               <button type="button" id="iwPrev" aria-label="Semaine précédente">‹</button>
               <h2 id="iwLabel"></h2>
@@ -674,11 +674,10 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
               <li>Choisissez votre statut pour chaque jour dans le menu déroulant</li>
               <li><span class="st st-r">Repos de garde</span>posé tout seul le lendemain d'une garde</li>
             </ul>
+            </details>
           </div>
-        </div>
-        <div class="col">
           <form id="period" class="card">
-            <h2>Saisir vos congés</h2>
+            <details class="cardfold" id="inFold2"><summary>2) Vos congés</summary>
             <p class="hint">Congés, semaine entière ou série de gardes : choisissez les dates de début et de fin. Le repos de garde se pose tout seul le lendemain.</p>
             <fieldset data-edit id="pSet">
               <div class="row2">
@@ -699,11 +698,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
               <button type="submit" class="primary">Appliquer à ma fiche</button>
               <p class="hint">Une indisponibilité ne remplace pas une garde déjà saisie.</p>
             </fieldset>
+            </details>
           </form>
           <div class="card">
-            <h2>Exporter</h2>
-            <p class="hint">Dans le format choisi dans Réglages (Excel par défaut) : un fichier avec les indisponibilités, gardes et Off de toute l'équipe pour le mois affiché.</p>
-            <button type="button" class="primary" id="exIndispQuick">Exporter les indisponibilités</button>
+            <details class="cardfold" id="inFold3"><summary>3) Exporter</summary>
+            <p class="hint">Un fichier avec les indisponibilités, gardes et Off de toute l'équipe pour le mois affiché.</p>
+            <p class="hint">Sous quelle forme ?</p>
+            <div class="exfmt" id="exIndispQuick"><button type="button" class="primary" data-exq="xlsx">📊 Excel</button><button type="button" class="primary" data-exq="pdf">📄 PDF</button><button type="button" class="primary" data-exq="png">📷 Photo</button></div>
+            </details>
           </div>
         </div>
       </div>
@@ -4169,23 +4171,24 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       sel.innerHTML = '<option value="">'+(wid ? '—' : "Choisissez d'abord un confrère")+'</option>';
       go.disabled = true; chk.textContent = ''; swSteps(); return;
     }
-    const opt = t => '<option value="'+esc(vacVal(t))+'">'+esc(vacLabel(t))+'</option>';
-    const theirs = swVacs(wid).filter(t=>!blockedFor(me, t, mineV) && !blockedFor(wid, mineV, t));
+    const cf = t => blockedFor(me, t, mineV) || blockedFor(wid, mineV, t);
+    const opt = t => '<option value="'+esc(vacVal(t))+'">'+esc(vacLabel(t))+(cf(t) ? ' (indisponible)' : '')+'</option>';
+    const theirs = swVacs(wid).filter(t=>!(t.poste === mineV.poste && t.date === mineV.date && t.part === mineV.part));
     const sameSlot = t => t.date === mineV.date && t.part === mineV.part;
     const same = theirs.filter(sameSlot), other = theirs.filter(t=>!sameSlot(t));
     let h = '';
     if (same.length) h += '<optgroup label="Même créneau">'+same.map(opt).join('')+'</optgroup>';
     if (other.length) h += '<optgroup label="Autres créneaux">'+other.map(opt).join('')+'</optgroup>';
-    sel.innerHTML = h ? '<option value="">Choisir…</option>'+h : '<option value="">Aucune vacation compatible</option>';
+    sel.innerHTML = h ? '<option value="">Choisir…</option>'+h : '<option value="">Aucune vacation</option>';
     if (theirs.some(t=>vacVal(t) === prev)) sel.value = prev;
     const tv = parseVac(sel.value);
     go.disabled = !tv || !canWrite;
     chk.textContent = !tv && theirs.length ? 'Choisissez la vacation contre laquelle échanger.' : tv
-      ? "Après l'échange : vous faites "+vacLabel(tv)+", "+dLabel(wid)+" fait "+vacLabel(mineV)+"."
+      ? "Après l'échange : vous faites "+vacLabel(tv)+", "+dLabel(wid)+" fait "+vacLabel(mineV)+"."+(cf(tv) ? " ⚠ Conflit possible (indisponibilité, garde ou vacation déjà prise) : vous pouvez quand même proposer, "+dLabel(wid)+" décidera." : '')
       : (()=>{ const r1 = reasonFor(wid, mineV.date, mineV.part), nv = swVacs(wid).length, when = fmtShort.format(parse(mineV.date))+' '+(PART_TXT[mineV.part]||mineV.part);
           if (r1) return dLabel(wid)+' est '+r1+' le '+when+' : '+dLabel(wid)+' ne peut pas prendre votre vacation.';
           if (!nv) return dLabel(wid)+" n'a aucune vacation à venir à échanger (les 8 prochaines semaines sont regardées).";
-          return 'Aucune des '+nv+' vacations de '+dLabel(wid)+' ne convient : pour chacune, vous êtes indisponible, de garde, en repos, OFF ou déjà posté(e) dessus.'; })();
+          return dLabel(wid)+" n'a aucune autre vacation à proposer."; })();
     swSteps();
   }
 
@@ -4210,7 +4213,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     else h += om.length ? (ast ? '<div class="swlist">'+om.map(o=>b('m', o, o.value === mine.value)).join('')+'</div>' : byDay(om, 'm', mine.value)) : '<p class="empty" style="border:0">'+esc(mine.options[0] ? mine.options[0].textContent : '')+'</p>';
     if (mine.value && ast) {
       const mineV = parseVac(mine.value), c = [];
-      if (mineV) sortedDocs().filter(d=>d.id !== me).forEach(d=>swVacs(d.id).filter(t=>!blockedFor(me, t, mineV) && !blockedFor(d.id, mineV, t)).forEach(t=>c.push({id: d.id, t})));
+      if (mineV) sortedDocs().filter(d=>d.id !== me).forEach(d=>swVacs(d.id).forEach(t=>c.push({id: d.id, t})));
       c.sort((x,y)=>(x.t.date < y.t.date ? -1 : x.t.date > y.t.date ? 1 : 0));
       h += '<p class="swst"><b>2</b> Dates possibles pour l’échange</p>';
       const selA = c.find(x=>wsel.value === x.id && th.value === vacVal(x.t)); if (!selA) swEditAst = false;
@@ -4284,7 +4287,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const w1 = vacWho(mineV.poste, mineV.date, mineV.part), w2 = vacWho(tv.poste, tv.date, tv.part);
     if (!w1 || !w1.who.includes(me)) return notify("Vous n'êtes plus affecté à votre vacation.", true);
     if (!w2 || !w2.who.includes(wid)) return notify(dLabel(wid)+" n'est plus affecté à cette vacation.", true);
-    if (blockedFor(me, tv, mineV) || blockedFor(wid, mineV, tv)) return notify('Cet échange crée un conflit de planning.', true);
+    if ((blockedFor(me, tv, mineV) || blockedFor(wid, mineV, tv)) && !confirm('Cet échange semble créer un conflit de planning (indisponibilité, garde ou vacation déjà prise). Le proposer quand même ? '+dLabel(wid)+' pourra accepter ou refuser.')) return;
     if (Object.values(swaps).some(x=>x.status === 'attente' && x.from === me && x.poste === mineV.poste && x.date === mineV.date && x.part === mineV.part)) return notify('Une demande est déjà en attente pour cette vacation.', true);
     if (!db || !canWrite) return notify('Lecture seule : vous ne pouvez pas échanger.', true);
     try {
@@ -4304,7 +4307,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         const A = {poste: x0.poste, date: x0.date, part: x0.part}, B = {poste: x0.poste2, date: x0.date2, part: x0.part2};
         const w1 = vacWho(A.poste, A.date, A.part), w2 = vacWho(B.poste, B.date, B.part);
         if (!w1 || !w1.who.includes(x0.from) || !w2 || !w2.who.includes(x0.to)) return notify('Le planning a changé : cette demande n’est plus possible.', true);
-        if (blockedFor(x0.from, B, A) || blockedFor(x0.to, A, B)) return notify('Cet échange crée maintenant un conflit de planning (indisponibilité, garde ou vacation déjà prise).', true);
+        if ((blockedFor(x0.from, B, A) || blockedFor(x0.to, A, B)) && !confirm('Cet échange semble créer un conflit de planning (indisponibilité, garde ou vacation déjà prise). Accepter quand même ?')) return;
       }
       try {
         await db.doc('echanges/'+x0.id).update({status: act === 'accept' ? 'conclu' : act === 'refuse' ? 'refuse' : 'annule', updatedAt: Date.now()});
@@ -4481,8 +4484,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   exFmtSync();
   document.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-exfmt]'); if (!b) return; exFmt = b.dataset.exfmt; try { localStorage.setItem('planning-exfmt', exFmt); } catch(err) {} exFmtSync(); });
   /* sheets : [{name, aoa, cols, merges, title, hdr, pdf}] */
+  let exOnce = null;
   async function deliverSheets(sheets, base){
-    const fmt = exFmt;
+    const fmt = exOnce || exFmt; exOnce = null;
     if (fmt === 'xlsx') {
       const X = window.XLSX; if (!X) return notify("Les fichiers Excel ne sont pas disponibles dans cette vue.", true);
       const wb = X.utils.book_new();
@@ -4493,6 +4497,17 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const q = v => { const t = String(v == null ? '' : v); return /[";\n]/.test(t) ? '"'+t.replace(/"/g, '""')+'"' : t; };
       const txt = sheets.map(sh=>(sheets.length > 1 ? q(sh.title || sh.name)+'\n' : '')+sh.aoa.map(r=>r.map(q).join(';')).join('\n')).join('\n\n');
       return saveBlob(new Blob(['﻿'+txt], {type: 'text/csv;charset=utf-8'}), base+'.csv');
+    }
+    if (fmt === 'png') {
+      try {
+        const pages = []; sheets.filter(sh=>sh.pdf !== false).forEach(sh=>tableCanvases({t: sh.title || sh.name, hdr: sh.hdr || 1}, sh.aoa, sh.merges).forEach(c=>pages.push(c)));
+        if (!pages.length) return notify('Rien à exporter.', true);
+        for (let i = 0; i < pages.length; i++) {
+          const blob = await new Promise(res=>pages[i].toBlob(res, 'image/png'));
+          await saveBlob(blob, base+(pages.length > 1 ? '-'+(i+1) : '')+'.png');
+        }
+      } catch(e) { notify("Impossible de créer l'image : "+(e && e.message || e), true); }
+      return;
     }
     try {
       const pages = []; sheets.filter(sh=>sh.pdf !== false).forEach(sh=>tableCanvases({t: sh.title || sh.name, hdr: sh.hdr || 1}, sh.aoa, sh.merges).forEach(c=>pages.push(c)));
@@ -4566,7 +4581,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#goImpOther').addEventListener('click', ()=>{ const t = document.querySelector('[data-tab=plan]'); if (t) t.click(); plMode = 'week'; plStage = plGrp ? 'imp' : ''; astOn = false; renderCompose(); });
   $('#exIndisp').addEventListener('click', ()=>exportIndispos($('#exMonth').value));
   $('#exPlan').addEventListener('click', ()=>exportPlanning($('#exMonth').value));
-  $('#exIndispQuick').addEventListener('click', ()=>{ const d = addDays(myWeek,2); exportIndispos(d.getFullYear()+'-'+pad(d.getMonth()+1)); });
+  $('#exIndispQuick').addEventListener('click', e=>{ const b = e.target.closest('[data-exq]'); if (!b) return; exOnce = b.dataset.exq; const d = addDays(myWeek,2); exportIndispos(d.getFullYear()+'-'+pad(d.getMonth()+1)); });
 
   /* ---------- réglages : postes du service ---------- */
   let pSig = '', pendingPost = '', pendingPostTimer = 0;
