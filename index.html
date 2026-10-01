@@ -2028,7 +2028,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         posts.forEach(p=>{ if (!okDay(p, i)) return; (p.journee ? ['M'] : partsOf(p)).forEach(part=>{
           const v = vacWho(p.id, d, part); if (!v || !v.who.some(inGrp)) return;
           const kk = p.id+'_'+part, keep = v.who.filter(id=>!inGrp(id)), o = out[kk] || {};
-          const nv = Object.assign({}, o, {w: keep, t: Date.now()}); if (o.s) nv.s = o.s.filter(id=>keep.includes(id)); delete nv.a;
+          const nv = Object.assign({}, o, {w: keep, t: Date.now(), dl: 1}); if (o.s) nv.s = o.s.filter(id=>keep.includes(id)); delete nv.a;
           out[kk] = nv; touched = true; n++; }); });
         if (!touched) continue;
         const ref = db.doc('ajustements/'+d);
@@ -2235,7 +2235,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         const taken = new Set();
         const slots = [];
         posts.forEach(p=>{ if (!okDay(p, i)) return; if (p.journee && part !== 'M') return;
-          const v = vacWho(p.id, k, part); if (!v) return;
+          let v = vacWho(p.id, k, part);
+          if (v && v.dl && !v.who.length && !v.ou) v = Object.assign({}, v, {synth: true});
+          if (!v) { const oh = overrides && Object.keys(overrides).some(d=>{ const o = overrides[d][p.id+'_'+part]; return o && o.w && o.w.some(inGrp); }); if (!oh) return; v = {who: [], stars: [], ou: false, texte: '', edited: false, open: false, synth: true}; }   /* vacation vide mais déjà tenue par le passé : à pourvoir */
           if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
           if (v.open || v.edited && !v.ou) { v.who.forEach(id=>taken.add(id)); return; }
           slots.push({p, v: Object.assign({}, v, {who: v.who.filter(inGrp)})}); });
@@ -2246,11 +2248,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           const rec = by[p.label] = by[p.label] || {n: 0, ok: 0};
           if (ov && ov.w && ov.w.filter(inGrp).length && !ov.a) { rec.n++; rec.ok++; continue; }
           if (v.ou && !v.who.length) continue;
-          const need = v.ou ? 1 : v.who.length; if (!need) continue;
+          const need = v.ou || v.synth ? 1 : v.who.length; if (!need) continue;
           rec.n++;
           let keep = v.ou ? [] : v.who.filter(id=>!reasonFor(id, k, part));
           if (v.ou) { ous++; }
-          if (!v.ou && keep.length === v.who.length) { rec.ok++; continue; }
+          if (!v.ou && !v.synth && keep.length === v.who.length) { rec.ok++; continue; }
           /* 2) remplaçants : ceux qui font le plus souvent ce poste (fréquence), sinon les moins chargés */
           const freq = {};
           Object.keys(overrides).forEach(d=>{ const o = overrides[d][p.id+'_'+part]; if (o) o.w.forEach(id=>{ freq[id] = (freq[id]||0) + 1; }); });
@@ -3501,7 +3503,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         if (!who.includes(x.from)) who.push(x.from);
       }
     });
-    return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : ''), edited: !!(ov && c), open: !!ov && !who.length && !ov.x};
+    return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : ''), edited: !!(ov && c), open: !!ov && !who.length && !ov.x && !ov.dl, dl: !!(ov && ov.dl)};
   }
   /* pourquoi id ne peut pas être sur ce créneau ('' si tout va bien) */
   function reasonFor(id, date, part){
@@ -4989,7 +4991,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       snap.docs.forEach(s=>{
         if (!isDate(s.id)) return;
         const v = s.data() || {}, o = {};
-        Object.keys(v).forEach(k=>{ const x = v[k]; if (x && typeof x === 'object' && Array.isArray(x.w)) o[k] = {w: x.w.filter(y=>typeof y === 'string'), t: Number(x.t) || 0, x: typeof x.x === 'string' ? x.x : '', s: Array.isArray(x.s) ? x.s.filter(y=>typeof y === 'string') : [], a: x.a ? 1 : 0}; });
+        Object.keys(v).forEach(k=>{ const x = v[k]; if (x && typeof x === 'object' && Array.isArray(x.w)) o[k] = {w: x.w.filter(y=>typeof y === 'string'), t: Number(x.t) || 0, x: typeof x.x === 'string' ? x.x : '', s: Array.isArray(x.s) ? x.s.filter(y=>typeof y === 'string') : [], a: x.a ? 1 : 0, dl: x.dl ? 1 : 0}; });
         next[s.id] = o;
       });
       overrides = next; subs.aj = true; renderToday(); renderTrame(); renderConflicts(); renderMe(); renderSwapForm();
