@@ -1986,6 +1986,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     autonomie: ['echo', 'scanner-urg'],        /* au moins 1 autonome ; 2 pas autonomes interdit */
     toujours: ['echo','scanner-urg'],          /* toujours pourvus en internes, même sans senior posté ni vacation dans la trame */
     seulement: {'scanner-urg': ['0AM','3AM']},  /* scanner des urgences : uniquement le lundi et le jeudi après-midi */
+    sansInterne: [{re: /scanner[\s_-]*sa\b/i, slots: ['3M']}],   /* scanner SA le jeudi matin : personne, sauf mention contraire (interne déjà posé à la main) */
     maxRenfort: 3,                              /* au plus 3 internes à l'écho / au scanner urgences ; les autres sont off */
     seniorRequis: ['bloc'],                    /* pas d'interne sans médecin senior posté sur la vacation */
     facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
@@ -2019,6 +2020,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const ov = overrides[h.k] && overrides[h.k][p.id+'_'+h.part], mine = ov && ov.w ? ov.w.filter(inGrp) : [];
       const nd = intNeedOf(p.id, h.i, h.part); if (nd <= 0) return;
       const kp = ov && !ov.a && mine.length ? mine : null;
+      if (!kp && R.sansInterne.some(x=>x.re.test(p.id+' '+p.label) && x.slots.includes(h.i+h.part))) return;
       if (R.seniorRequis.includes(p.id)) {
         const vs = p.journee ? PARTS.map(pt=>vacWho(p.id, h.k, pt)).filter(Boolean) : [v];
         if (!vs.some(x=>x.who.some(isSrId))) {
