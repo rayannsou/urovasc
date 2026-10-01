@@ -1484,7 +1484,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
   /* ---------- date butoir des indisponibilités (réglée mois par mois par Rim) ---------- */
   let butoir = {m: {}, unlock: {}, req: {}};
-  const BUT_ADMIN = 'rim', isButAdmin = () => me === BUT_ADMIN;
+  const butAdminId = () => { const ids = Object.keys(doctors).filter(i=>['rm','rim'].includes(plNorm(doctors[i].label))); return ids.includes('rim') ? 'rim' : (ids[0] || 'rim'); };
+  const BUT_ADMIN = 'rim', isButAdmin = () => me === BUT_ADMIN || isRim();
   const butFmt = k => new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long', year:'numeric'}).format(parse(k));
   function butLocked(id, k){
     if (id !== me || isButAdmin() || typeof k !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(k)) return false;
@@ -1493,8 +1494,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   function butAsk(ms){
     ms = [...new Set(ms)].filter(m=>!(butoir.req[m] && butoir.req[m][me]));
-    if (!ms.length) return notify('Votre demande est déjà envoyée à '+dLabel(BUT_ADMIN)+'.');
-    if (!confirm('Les indisponibilités de '+ms.map(monthLbl).join(' et ')+' sont verrouillées depuis le '+ms.map(m=>butFmt(butoir.m[m])).join(' / ')+'.\n\nEnvoyer une demande de modification à '+dLabel(BUT_ADMIN)+' ?')) return;
+    if (!ms.length) return notify('Votre demande est déjà envoyée à '+dLabel(butAdminId())+'.');
+    if (!confirm('Les indisponibilités de '+ms.map(monthLbl).join(' et ')+' sont verrouillées depuis le '+ms.map(m=>butFmt(butoir.m[m])).join(' / ')+'.\n\nEnvoyer une demande de modification à '+dLabel(butAdminId())+' ?')) return;
     butRequest(ms);
   }
   async function butRequest(ms){
@@ -1502,15 +1503,15 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     try {
       const req = {}; ms.forEach(m=>{ req[m] = {[me]: Date.now()}; });
       await db.doc('meta/butoir').update({req});
-      await db.collection('messages').add({from: me, to: [BUT_ADMIN], text: dLabel(me)+' demande à modifier ses indisponibilités de '+ms.map(monthLbl).join(' et ')+' (date butoir dépassée).', at: Date.now(), sent: false});
-      notify('Demande envoyée à '+dLabel(BUT_ADMIN)+'.');
+      await db.collection('messages').add({from: me, to: [butAdminId()], text: dLabel(me)+' demande à modifier ses indisponibilités de '+ms.map(monthLbl).join(' et ')+' (date butoir dépassée).', at: Date.now(), sent: false});
+      notify('Demande envoyée à '+dLabel(butAdminId())+'.');
     } catch(e) { handleErr(e); }
   }
   function butBanners(months){
     return months.map(m=>{
       const dl = butoir.m[m]; if (!dl) return '';
-      if ((butoir.unlock[m] || []).includes(me) && key(new Date()) >= dl) return '<div class="butban ok">✓ '+esc(dLabel(BUT_ADMIN))+' vous a autorisé(e) à modifier vos indisponibilités de '+esc(monthLbl(m))+'.</div>';
-      if (butLocked(me, m+'-01')) return '<div class="butban lock"><span>🔒 Indisponibilités de '+esc(monthLbl(m))+' verrouillées depuis le '+esc(butFmt(dl))+'.</span>'+(butoir.req[m] && butoir.req[m][me] ? '<small>Demande envoyée à '+esc(dLabel(BUT_ADMIN))+'</small>' : '<button type="button" class="ghost" data-butask="'+m+'">Demander une modification</button>')+'</div>';
+      if ((butoir.unlock[m] || []).includes(me) && key(new Date()) >= dl) return '<div class="butban ok">✓ '+esc(dLabel(butAdminId()))+' vous a autorisé(e) à modifier vos indisponibilités de '+esc(monthLbl(m))+'.</div>';
+      if (butLocked(me, m+'-01')) return '<div class="butban lock"><span>🔒 Indisponibilités de '+esc(monthLbl(m))+' verrouillées depuis le '+esc(butFmt(dl))+'.</span>'+(butoir.req[m] && butoir.req[m][me] ? '<small>Demande envoyée à '+esc(dLabel(butAdminId()))+'</small>' : '<button type="button" class="ghost" data-butask="'+m+'">Demander une modification</button>')+'</div>';
       return '';
     }).join('');
   }
