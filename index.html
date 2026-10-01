@@ -1908,7 +1908,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   document.querySelectorAll('[data-plmode]').forEach(b=>b.addEventListener('click', ()=>{ plMode = b.dataset.plmode; renderCompose(); }));
   $('#plJump').addEventListener('change', e=>{ if (e.target.value) { const d = parse(e.target.value); plStart = mondayOf(d); plDay = Math.min((d.getDay()+6)%7, 5); renderCompose(); } });
   document.querySelectorAll('[data-plscope]').forEach(b=>b.addEventListener('click', ()=>{ plScope = b.dataset.plscope; renderCompose(); }));
-  const MISS_VIEWERS = ['rayann','rm','rim','im'];
+  const MISS_VIEWERS = ['rayann','rm','rim','im','antoine'];
   const canSeeMiss = () => !!(doctors[me] && MISS_VIEWERS.includes(plNorm(doctors[me].label)));
   /* état du planning : fait ou non (semaine affichée, jours, astreintes) */
   /* vacation « à pourvoir » : ouverte dans la trame des médecins (ou déjà posée) ; pour les internes, selon leurs règles (hors facultatif, hors mentions seules). Renvoie null sinon, sinon {ok: pourvue ?} */
