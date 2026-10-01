@@ -927,13 +927,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <button type="button" class="primary" id="remBtn">🔔 Activer les rappels</button>
         </div>
         <div class="card" id="msgCard" hidden>
-          <h2>Envoyer un rappel</h2>
+          <details class="cardfold" id="fMsg"><summary>Envoyer un rappel</summary>
           <p class="hint">Envoyez une notification à des collègues (ex. rappeler de remplir leurs indisponibilités). Elle part dans les 10 à 15 minutes.</p>
           <div class="plc" style="margin-bottom:8px"><button type="button" class="ghost" id="msgMiss">Ceux sans indispos</button><button type="button" class="ghost" id="msgAll">Tous</button><button type="button" class="ghost" id="msgNone">Aucun</button></div>
           <div id="msgWho"></div>
           <div class="f"><label for="msgTxt">Message</label><textarea id="msgTxt" rows="3" maxlength="200" placeholder="Bonjour, merci de renseigner vos indisponibilités dans le planning."></textarea></div>
           <button type="button" class="primary" id="msgSend">📨 Envoyer…</button>
           <div id="msgHist" class="hint"></div>
+          </details>
         </div>
         <div class="card">
           <details class="cardfold" id="fApp"><summary>Apparence</summary>
