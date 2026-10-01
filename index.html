@@ -1487,8 +1487,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const BUT_KIND = {sem: 'semaine', ast: 'astreinte'};
   const butAdminOf = g => { const ids = Object.keys(doctors).filter(i=>g === 'int' ? ['rayann'].includes(plNorm(doctors[i].label)) || i === 'rayann' : ['rm','rim'].includes(plNorm(doctors[i].label)) || i === 'rim'); return ids.includes(g === 'int' ? 'rayann' : 'rim') ? (g === 'int' ? 'rayann' : 'rim') : (ids[0] || (g === 'int' ? 'rayann' : 'rim')); };
   const butGrpOf = id => (doctors[id] && doctors[id].role === 'Interne') ? 'int' : 'sen';
-  const butGrp = () => { if (!me) return ''; const d = doctors[me], l = d ? plNorm(d.label) : ''; if (me === 'rayann' || l === 'rayann') return 'int'; if (me === 'rim' || ['rm','rim'].includes(l)) return 'sen'; return ''; };
-  const isButAdmin = () => !!butGrp();
+  let butSel = '';
+  const butGrps = () => { if (!me) return []; const d = doctors[me], l = d ? plNorm(d.label) : ''; if (me === 'rayann' || l === 'rayann') return ['sen','int']; if (me === 'rim' || ['rm','rim'].includes(l)) return ['sen']; return []; };   /* Rim : seniors ; Rayann : seniors et internes */
+  const butGrp = () => { const g = butGrps(); return g.length ? (g.includes(butSel) ? butSel : g[0]) : ''; };
+  const isButAdmin = () => butGrps().length > 0;
+  const butAdminIds = g => g === 'int' ? [butAdminOf('int')] : [...new Set([butAdminOf('sen'), butAdminOf('int')])];
   const butNm = () => { const n = Number(butoir.nm); return n >= 1 && n <= 12 ? Math.floor(n) : 3; };
   const butMonths = () => { const t = new Date(); return [...Array(butNm())].map((_,i)=>{ const d = new Date(t.getFullYear(), t.getMonth()+i, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }); };
   const butKindNow = () => inMode === 'sat' ? 'ast' : 'sem';
@@ -1515,7 +1518,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     try {
       const req = {}; bks.forEach(bk=>{ req[bk] = {[me]: Date.now()}; });
       await db.doc('meta/butoir').update({req});
-      await db.collection('messages').add({from: me, to: [adm], text: dLabel(me)+' demande à modifier ses indisponibilités ('+bks.map(butLbl).join(' ; ')+') : date butoir dépassée.', at: Date.now(), sent: false});
+      await db.collection('messages').add({from: me, to: butAdminIds(butGrpOf(me)).filter(x=>x !== me), text: dLabel(me)+' demande à modifier ses indisponibilités ('+bks.map(butLbl).join(' ; ')+') : date butoir dépassée.', at: Date.now(), sent: false});
       notify('Demande envoyée à '+dLabel(adm)+'.');
     } catch(e) { handleErr(e); }
   }
@@ -1534,12 +1537,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const g = butGrp();
     card.hidden = !g; if (!g) return;
     const gl = g === 'int' ? 'des internes' : 'des seniors', gk = g+'|'+butKind;
-    const mine = id => butGrpOf(id) === g;
+    const mine = id => butGrps().includes(butGrpOf(id));
     const reqs = [], unl = [];
     Object.keys(butoir.req).forEach(bk=>Object.keys(butoir.req[bk] || {}).forEach(id=>{ if (butoir.req[bk][id] && mine(id) && !(butoir.unlock[bk] || []).includes(id)) reqs.push({bk, id}); }));
     Object.keys(butoir.unlock).forEach(bk=>(butoir.unlock[bk] || []).forEach(id=>{ if (mine(id)) unl.push({bk, id}); }));
     const nm = butNm();
-    $('#butBody').innerHTML = '<p class="hint">Vous gérez la date butoir <b>'+gl+'</b>. Après cette date, chacun ne peut plus modifier ses indisponibilités du mois, sauf si vous l’y autorisez.</p>'
+    $('#butBody').innerHTML = '<p class="hint">Vous gérez la date butoir <b>'+gl+'</b>'+(butGrps().length > 1 ? ' (et celle des '+(g === 'int' ? 'seniors' : 'internes')+')' : '')+'. Après cette date, chacun ne peut plus modifier ses indisponibilités du mois, sauf si vous l’y autorisez.</p>'
+      + (butGrps().length > 1 ? '<h4 class="asth">Pour qui ?</h4><div class="exfmt"><button type="button" data-butgrp="sen" aria-pressed="'+(g === 'sen')+'">Seniors</button><button type="button" data-butgrp="int" aria-pressed="'+(g === 'int')+'">Internes</button></div>' : '')
       + '<div class="f"><label for="butNm">Mois visibles dans « Mes indisponibilités »</label><select id="butNm">'+[...Array(12)].map((_,i)=>'<option value="'+(i+1)+'"'+(i+1 === nm ? ' selected' : '')+'>'+(i+1)+' mois</option>').join('')+'</select></div>'
       + '<h4 class="asth">Quelle date butoir régler ?</h4>'
       + '<div class="exfmt"><button type="button" data-butkind="sem" aria-pressed="'+(butKind === 'sem')+'">Semaine</button><button type="button" data-butkind="ast" aria-pressed="'+(butKind === 'ast')+'">Astreinte</button></div>'
@@ -3263,6 +3267,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   document.addEventListener('click', async e=>{
     const t = e.target.closest && e.target; if (!t) return;
     const ak = t.closest('[data-butask]'); if (ak) return butAsk([ak.dataset.butask]);
+    const gb = t.closest('[data-butgrp]'); if (gb) { butSel = gb.dataset.butgrp; return renderBut(); }
     const kb = t.closest('[data-butkind]'); if (kb) { butKind = kb.dataset.butkind; return renderBut(); }
     if (t.closest('[data-butgo]')) { e.preventDefault(); e.stopPropagation(); butKind = butKindNow(); showTab('reglages'); const f = $('#butFold'); if (f) { f.open = true; setTimeout(()=>{ try { f.scrollIntoView({block: 'start'}); } catch(err) {} }, 50); } return; }
     const ok = t.closest('[data-butok]'), lk = t.closest('[data-butlock]');
