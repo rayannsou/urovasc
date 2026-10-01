@@ -481,7 +481,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .confbtn.on{border:1.5px solid #1E7B4B;background:#E4F4EA;color:#1E7B4B}
 :root[data-theme=dark] .confbtn.on{background:#173325;color:#7FD6A3;border-color:#3E8F63}
 .astmax{min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card,var(--bg));color:inherit;padding:0 8px;font:inherit;font-size:13px}.pals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.pals button{min-height:56px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}.pals button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.pals i{display:flex;gap:3px}.pals i b{width:16px;height:16px;border-radius:50%;display:block}
-html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>summary{min-height:48px;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface)}.teamfold[open]>summary{margin-bottom:10px}.cardfold>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font:600 1.05rem var(--font-display);color:var(--accent);list-style:none}.cardfold>summary::-webkit-details-marker{display:none}.cardfold>summary::after{content:'▾';font-size:16px;color:var(--muted)}.cardfold[open]>summary::after{content:'▴'}.cardfold[open]>summary{margin-bottom:8px}.addset .f:not(.grow){flex:0 0 auto}.addset select{min-width:112px}.exfmt{display:flex;gap:8px}.exfmt button{flex:1;min-height:44px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600}.exfmt button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}/* feuille « indispos non renseignées » : lignes aérées, animation d'ouverture */
+html,body{max-width:100%;overflow-x:clip}.rcp{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:10px;background:var(--surface)}.rcp h3,.rcout>h3{margin:0 0 6px;font:600 1.05rem var(--font-display);color:var(--accent)}.rcrow{display:flex;gap:10px;padding:4px 0;align-items:baseline}.rcrow i{flex:0 0 92px;font:600 12px var(--font-mono);text-transform:uppercase;color:var(--muted);font-style:normal}.rcrow em{color:var(--muted)}.teamfold{margin:6px 0 12px}.teamfold>summary{min-height:48px;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface)}.teamfold[open]>summary{margin-bottom:10px}.cardfold>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font:600 1.05rem var(--font-display);color:var(--accent);list-style:none}.cardfold>summary::-webkit-details-marker{display:none}.cardfold>summary::after{content:'▾';font-size:16px;color:var(--muted)}.cardfold[open]>summary::after{content:'▴'}.cardfold[open]>summary{margin-bottom:8px}.addset .f:not(.grow){flex:0 0 auto}.addset select{min-width:112px}.exfmt{display:flex;gap:8px}.exfmt button{flex:1;min-height:44px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600}.exfmt button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}/* feuille « indispos non renseignées » : lignes aérées, animation d'ouverture */
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}@keyframes sheetFade{from{opacity:0}to{opacity:1}}
 .sheet:not([hidden]) .sheet-p{animation:sheetUp .24s cubic-bezier(.2,.8,.2,1)}.sheet:not([hidden]) .sheet-bg{animation:sheetFade .2s ease-out}
 @media(prefers-reduced-motion:reduce){.sheet:not([hidden]) .sheet-p,.sheet:not([hidden]) .sheet-bg{animation:none}}
@@ -516,6 +516,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     <button type="button" role="tab" id="tab-indispos" aria-selected="false" data-tab="indispos"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span class="tl">Mes indisponibilités</span><span class="ts">Indispos</span></button>
     <button type="button" role="tab" id="tab-echanges" aria-selected="false" data-tab="echanges"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15l-3.5-3.5M20 16H5l3.5 3.5"/></svg><span class="tl">Échanges</span><span class="ts">Échanges</span><span id="swapBadge" class="badge" hidden></span></button>
     <button type="button" role="tab" id="tab-reglages" aria-selected="false" data-tab="reglages"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg><span class="tl">Réglages</span><span class="ts">Réglages</span></button>
+    <button type="button" role="tab" id="tab-recherche" aria-selected="false" data-tab="recherche"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg><span class="tl">Recherche</span><span class="ts">Recherche</span></button>
   </nav>
 
   <main>
@@ -808,6 +809,22 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       </div>
     </section>
 
+
+    <section id="view-recherche" aria-labelledby="tab-recherche" hidden>
+      <div class="col">
+        <div class="card">
+          <h2>Qui est posté ?</h2>
+          <p class="hint">Choisissez un jour et un poste, ou une personne.</p>
+          <div class="weekbar"><button type="button" id="rcPrev" aria-label="Jour précédent">‹</button><h2 id="rcLabel"></h2><button type="button" id="rcNext" aria-label="Jour suivant">›</button><button type="button" id="rcToday" class="ghost">Aujourd’hui</button></div>
+          <div class="f"><label for="rcDate">Date</label><input type="date" id="rcDate"></div>
+          <div class="row2">
+            <div class="f"><label for="rcPoste">Poste</label><select id="rcPoste"></select></div>
+            <div class="f"><label for="rcWho">Personne</label><select id="rcWho"></select></div>
+          </div>
+          <div id="rcOut" class="rcout"></div>
+        </div>
+      </div>
+    </section>
 
     <section id="view-reglages" aria-labelledby="tab-reglages" hidden>
       <div class="col">
@@ -2657,9 +2674,40 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     renderAll(); remLoaded = ''; renderRem();
   });
 
+  /* ---------- recherche : qui est posté ? ---------- */
+  let rcDay = new Date(); const rcCap = s=>s.charAt(0).toUpperCase()+s.slice(1);
+  function rcRender(fill){
+    const poste = $('#rcPoste'), who = $('#rcWho'), out = $('#rcOut'); if (!poste || !out) return;
+    if (fill || !poste.options.length) {
+      const pv = poste.value, wv = who.value;
+      poste.innerHTML = '<option value="">Tous les postes</option>'+(trame ? trame.postes.filter(p=>!p.info).map(p=>'<option value="'+esc(p.id)+'">'+esc(p.label)+'</option>').join('') : '');
+      who.innerHTML = '<option value="">Tout le monde</option>'+sortedDocs().map(d=>'<option value="'+esc(d.id)+'">'+esc(dLabel(d.id))+'</option>').join('');
+      poste.value = pv; who.value = wv;
+    }
+    const kk = key(rcDay); $('#rcDate').value = kk;
+    $('#rcLabel').textContent = rcCap(new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long'}).format(rcDay));
+    if (!trame) { out.innerHTML = '<p class="empty">Chargement du planning…</p>'; return; }
+    const parts = [['M','Matin'],['AM','Après-midi']];
+    if (who.value) {
+      const id = who.value, rows = parts.map(([pt, lb])=>{
+        const vs = dayVacs(id, kk).filter(v=>v.part === pt && (!poste.value || v.poste === poste.value)), r1 = reasonFor(id, kk, pt);
+        return '<div class="rcrow"><i>'+lb+'</i><span>'+(vs.length ? vs.map(v=>'<b>'+esc(postName(v.poste, kk))+'</b>').join(', ') : r1 ? '<em>'+esc(r1)+'</em>' : '<span class="muted">Aucune vacation</span>')+'</span></div>'; }).join('');
+      out.innerHTML = '<h3>'+esc(dLabel(id))+'</h3>'+rows; return;
+    }
+    const wk = (rcDay.getDay()+6)%7;
+    const list = trame.postes.filter(p=>!p.info && (!poste.value || p.id === poste.value)), h = list.map(p=>{
+      const cells = parts.map(([pt, lb])=>{
+        if (p.journee && pt !== 'M') return '';
+        const v = vacWho(p.id, kk, pt); if (!v) return '';
+        const names = v.who.map(dLabel).join(', ');
+        return '<div class="rcrow"><i>'+(p.journee ? 'Journée' : lb)+'</i><span>'+(names ? '<b>'+esc(names)+'</b>' : v.texte ? '<em>'+esc(v.texte)+'</em>' : '<span class="muted">Personne pour le moment</span>')+'</span></div>'; }).join('');
+      return cells ? '<section class="rcp"><h3>'+esc(postName(p.id, kk))+'</h3>'+cells+'</section>' : '';
+    }).join('');
+    out.innerHTML = h || '<p class="empty">Rien de prévu ce jour-là'+(wk > 4 ? ' (week-end)' : '')+'.</p>';
+  }
   function showTab(t){
     document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected', String(x.dataset.tab === t)));
-    ['auj','moi','general','plan','creer','indispos','echanges','reglages'].forEach(v=>{ $('#view-'+v).hidden = v !== t; });
+    ['auj','moi','general','plan','creer','indispos','echanges','reglages','recherche'].forEach(v=>{ $('#view-'+v).hidden = v !== t; });
     const hl = t === 'creer' ? 'reglages' : t === 'moi' ? 'auj' : t;
     document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected', String(x.dataset.tab === hl)));
     window.scrollTo(0,0);
@@ -2669,6 +2717,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $(slot).appendChild($('#cwImport'));
     plGrp = '';
     if (t === 'plan') { plStage = ''; astOn = false; renderCompose(); }
+    if (t === 'recherche') rcRender(true);
     if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); renderRem(); }
   }
 
@@ -2778,6 +2827,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   });
   ['#remVeille','#remA7','#remA1','#remHour'].forEach(id=>$(id).addEventListener('change', async ()=>{ if (!rem.on || !me) return; try { await remSave(); notify('Rappels mis à jour.'); } catch(e) { handleErr(e); } }));
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+  $('#rcPrev').addEventListener('click', ()=>{ rcDay = addDays(rcDay,-1); rcRender(); });
+  $('#rcNext').addEventListener('click', ()=>{ rcDay = addDays(rcDay,1); rcRender(); });
+  $('#rcToday').addEventListener('click', ()=>{ rcDay = new Date(); rcRender(); });
+  $('#rcDate').addEventListener('change', e=>{ if (e.target.value) { rcDay = parse(e.target.value); rcRender(); } });
+  $('#rcPoste').addEventListener('change', ()=>{ $('#rcWho').value = ''; rcRender(); });
+  $('#rcWho').addEventListener('change', ()=>{ if ($('#rcWho').value) $('#rcPoste').value = ''; rcRender(); });
   $('#auBody').addEventListener('click', async e=>{
     const av = e.target.closest('[data-auv]'); if (av) { try { localStorage.setItem('planning-auv', av.dataset.auv); } catch(err) {} renderToday(); return; }
     const co = e.target.closest('[data-cfo]'); if (co) return openConf(co.dataset.cfo);
