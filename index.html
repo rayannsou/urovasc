@@ -480,7 +480,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .confbtn.on{border:1.5px solid #1E7B4B;background:#E4F4EA;color:#1E7B4B}
 :root[data-theme=dark] .confbtn.on{background:#173325;color:#7FD6A3;border-color:#3E8F63}
 .astmax{min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card,var(--bg));color:inherit;padding:0 8px;font:inherit;font-size:13px}.pals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.pals button{min-height:56px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}.pals button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.pals i{display:flex;gap:3px}.pals i b{width:16px;height:16px;border-radius:50%;display:block}
-html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>summary{min-height:48px;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface)}.teamfold[open]>summary{margin-bottom:10px}.cardfold>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font:600 1.05rem var(--font-display);color:var(--accent);list-style:none}.cardfold>summary::-webkit-details-marker{display:none}.cardfold>summary::after{content:'▾';font-size:16px;color:var(--muted)}.cardfold[open]>summary::after{content:'▴'}.cardfold[open]>summary{margin-bottom:8px}.addset .f:not(.grow){flex:0 0 auto}.addset select{min-width:112px}</style>
+html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>summary{min-height:48px;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface)}.teamfold[open]>summary{margin-bottom:10px}.cardfold>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font:600 1.05rem var(--font-display);color:var(--accent);list-style:none}.cardfold>summary::-webkit-details-marker{display:none}.cardfold>summary::after{content:'▾';font-size:16px;color:var(--muted)}.cardfold[open]>summary::after{content:'▴'}.cardfold[open]>summary{margin-bottom:8px}.addset .f:not(.grow){flex:0 0 auto}.addset select{min-width:112px}.exfmt{display:flex;gap:8px}.exfmt button{flex:1;min-height:44px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600}.exfmt button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}</style>
 
 <div class="wrap">
   <header class="top">
@@ -604,10 +604,11 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
         </div>
         <div id="impSlotC"></div>
         <div class="card" id="cwImport">
-          <h2>Importer le planning Excel</h2>
+          <h2>Importer un planning</h2>
           <button type="button" class="ghost" id="forceOct12" data-edit>Réimporter le 1er et 2 octobre</button>
           <p class="hint">Importez le fichier du service (une feuille par semaine : postes, congés, absences, astreintes, notes). Toutes les semaines du fichier sont créées d’un coup et les médecins inconnus sont ajoutés à la liste. Un tableau simple (postes en lignes, jours en colonnes) est aussi accepté.</p>
           <fieldset data-edit id="xlSet">
+            <button type="button" class="ghost srcx" id="goImpOther">📄 PDF, 📷 photo ou 🔗 Google Sheet…</button>
             <label class="filebtn primary srcx" for="xlFile">Choisir un fichier Excel…</label>
             <input type="file" id="xlFile" accept=".xlsx,.xls,.csv" class="visually-hidden">
             <button type="button" class="ghost srcx" id="xlModel">Télécharger le modèle (semaine affichée)</button>
@@ -688,8 +689,8 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
             </fieldset>
           </form>
           <div class="card">
-            <h2>Exporter en Excel</h2>
-            <p class="hint">Un fichier avec les indisponibilités, gardes et Off de toute l'équipe pour le mois affiché.</p>
+            <h2>Exporter</h2>
+            <p class="hint">Dans le format choisi dans Réglages (Excel par défaut) : un fichier avec les indisponibilités, gardes et Off de toute l'équipe pour le mois affiché.</p>
             <button type="button" class="primary" id="exIndispQuick">Exporter les indisponibilités</button>
           </div>
         </div>
@@ -850,8 +851,9 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
         <div id="impSlotR"></div>
         <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (rappels v29, rattrapage 1-2 oct)</p>
         <div class="card" id="exportCard">
-          <h2>Exporter en Excel</h2>
-          <p class="hint">Choisissez un mois, puis le fichier à télécharger.</p>
+          <h2>Exporter</h2>
+          <p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p>
+          <div class="f"><label id="exFmtL">Format</label><div class="exfmt" role="group" aria-labelledby="exFmtL"><button type="button" data-exfmt="xlsx">Excel</button><button type="button" data-exfmt="pdf">PDF</button><button type="button" data-exfmt="csv">CSV</button></div></div>
           <div class="f"><label for="exMonth">Mois</label><select id="exMonth"></select></div>
           <button type="button" class="primary" id="exIndisp">Indisponibilités, gardes et Off</button>
           <button type="button" class="ghost" id="exPlan">Planning des vacations</button>
@@ -1861,13 +1863,14 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
     const months = astMonths(), miss = astMissing(months), allOk = !miss.length, dis = canWrite ? '' : ' disabled';
     box.hidden = false;
     const stat = allOk ? 'Tout le monde a renseigné ses indisponibilités' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
-    const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' || plStage === 'impm' ? '' : plStage === 'astm' ? 'how' : plStage === 'auto' && ast && astOn ? 'astm' : plStage === 'imp' ? 'impm' : (plStage === 'impx' || plStage === 'impg' || plStage === 'shot') ? 'imp' : 'how')+'">‹ Retour</button>';
+    const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' || plStage === 'impm' ? '' : plStage === 'astm' ? 'how' : plStage === 'auto' && ast && astOn ? 'astm' : plStage === 'imp' ? 'impm' : (plStage === 'impx' || plStage === 'impg' || plStage === 'shot' || plStage === 'pdf') ? 'imp' : 'how')+'">‹ Retour</button>';
     if (!plGrp) box.innerHTML = '<p class="aststat"><b>Pour qui créer le planning ?</b></p><p class="hint">Les médecins et les internes se créent séparément : l’un ne modifie pas l’autre.</p><div class="astpair"><button type="button" class="astbtn big" data-plgrp="medecin">🩺 Médecins</button><button type="button" class="astbtn big" data-plgrp="interne">🎓 Internes</button></div>';
     else if (!plStage) box.innerHTML = '<p class="aststat">Planning des <b>'+(plGrp === 'interne' ? 'internes' : 'médecins')+'</b> <button type="button" class="ghost" data-plgrp="" style="margin-left:8px">Changer</button></p><div class="astcol"><button type="button" class="astbtn big" data-plpick="imp">📥 Importer un planning</button><button type="button" class="astbtn big" data-plpick="week">📅 Créer un planning de semaine</button><button type="button" class="astbtn big" data-plpick="ast">🔔 Créer un planning d’astreinte</button></div>';
     else if (plStage === 'impm') box.innerHTML = back + '<p class="aststat">Importer un planning…</p><div class="astpair"><button type="button" class="astbtn big" data-implmode="week">📅 de semaine</button><button type="button" class="astbtn big" data-implmode="ast">🔔 d’astreinte</button></div>';
     else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Planning d’astreinte' : 'Planning de semaine')+'</b> · comment la créer ?</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="auto">⚡ Création automatique</button><button type="button" class="astbtn big" data-plstage="man">✋ Création manuelle</button></div>';
-    else if (plStage === 'imp') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis…</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="impx">📗 Fichier Excel</button><button type="button" class="astbtn big" data-plstage="impg">🔗 Google Sheet</button></div><button type="button" class="astbtn" data-plstage="shot">📷 Capture d’écran</button>';
+    else if (plStage === 'imp') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis…</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="impx">📗 Fichier Excel</button><button type="button" class="astbtn big" data-plstage="impg">🔗 Google Sheet</button></div><div class="astpair"><button type="button" class="astbtn big" data-plstage="pdf">📄 PDF</button><button type="button" class="astbtn big" data-plstage="shot">📷 Photo ou capture</button></div>';
     else if (plStage === 'impx' || plStage === 'impg') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · '+(plStage === 'impx' ? 'fichier Excel' : 'Google Sheet')+'. '+(ast ? 'Seules les astreintes (samedis) du fichier seront importées.' : 'Seules les vacations de la semaine (lundi à vendredi) seront importées.')+'</p>';
+    else if (plStage === 'pdf') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis un PDF</p><div class="f" style="max-width:140px;margin-bottom:8px"><label for="pdfPage">Page à lire</label><input type="number" id="pdfPage" min="1" value="1" inputmode="numeric"></div><label class="astbtn go filebtn" for="pdfFile" style="cursor:pointer">📄 Choisir le PDF</label><input type="file" id="pdfFile" accept="application/pdf,.pdf" class="visually-hidden"><p class="aststat" id="shotStat" role="status">'+(shotMsg ? esc(shotMsg) : 'Un PDF du planning (jours en colonnes, postes en lignes). Choisissez la page à lire ; vous relirez tout avant d’enregistrer.')+'</p>';
     else if (plStage === 'shot') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis une capture d’écran</p><label class="astbtn go filebtn" for="shotFile" style="cursor:pointer">📷 Choisir la capture</label><input type="file" id="shotFile" accept="image/*" class="visually-hidden"><p class="aststat" id="shotStat" role="status">'+(shotMsg ? esc(shotMsg) : 'Une capture nette du tableau (jours en colonnes, postes en lignes) donne le meilleur résultat. Le texte est lu sur votre téléphone ; vous relirez tout avant d’enregistrer.')+'</p>';
     else if (plStage === 'astm') box.innerHTML = back + '<p class="aststat"><b>Planning d’astreinte</b> · quels mois voulez-vous faire ?</p>'
       + astMonthList().map(m=>{ const n = astMissing([m]).length; return '<label class="astrow" style="cursor:pointer"><span><input type="checkbox" data-astm="'+m+'"'+(astSel.includes(m) ? ' checked' : '')+' style="margin-right:8px"><b>'+esc(monthLbl(m))+'</b></span><small class="aststat '+(n ? 'ko' : 'ok')+'">'+(n ? n+' personne'+(n > 1 ? 's n’ont' : ' n’a')+' pas renseigné' : '✓ tout le monde a renseigné')+'</small></label>'; }).join('')
@@ -1901,7 +1904,7 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
     $('#astShL').innerHTML = h;
     $('#astShF').innerHTML = missForce && miss.length ? '<button type="button" class="primary astforce" data-astforce="1">Créer quand même</button>' : '';
   }
-  $('#astBarBox').addEventListener('change', e=>{ const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
+  $('#astBarBox').addEventListener('change', e=>{ const pf = e.target.closest && e.target.closest('#pdfFile'); if (pf && pf.files && pf.files[0]) { const file = pf.files[0], pn = Math.max(1, +(($('#pdfPage') || {}).value) || 1); pf.value = ''; pdfRun(file, pn); return; } const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
   $('#astBarBox').addEventListener('click', e=>{ const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
     const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; intNon[a[0]] = a[1] === '2'; return renderCompose(); }
     const nb = e.target.closest('[data-intn]'); if (nb) { const a = nb.dataset.intn.split('|'), cur = intNeed[a[0]] != null ? intNeed[a[0]] : (INT_RULES.need[a[0]] != null ? INT_RULES.need[a[0]] : INT_RULES.defaut); intNeed[a[0]] = Math.max(0, Math.min(4, cur + Number(a[1]))); Object.keys(intNeedHP).forEach(k=>{ if (k.startsWith(a[0]+'|')) delete intNeedHP[k]; }); return renderCompose(); }
@@ -2452,6 +2455,27 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
       genOpen(plMode === 'ast' ? 'Astreintes lues sur la capture' : 'Semaine lue sur la capture', out.writes, out.unknown.length ? 'Noms non reconnus (ignorés) : '+out.unknown.join(', ') : '', {pastAsk: true});
     } catch(e) { shotBusy = false; shotMsg = ''; renderAstBar(); notify('Lecture de l’image impossible (connexion ?). Réessayez.', true); }
   }
+  /* import d'un PDF : la page choisie est dessinée (pdf.js) puis lue comme une capture */
+  function loadPdfJs(){
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    return new Promise((ok, ko)=>{ const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = ()=>{ if (!window.pdfjsLib) return ko(new Error('x')); window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; ok(window.pdfjsLib); }; sc.onerror = ()=>ko(new Error('x')); document.head.appendChild(sc); });
+  }
+  async function pdfRun(file, pageNo){
+    if (shotBusy || !file) return;
+    if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
+    shotMsg = 'Ouverture du PDF…'; renderAstBar();
+    try {
+      const lib = await loadPdfJs(), doc = await lib.getDocument({data: await file.arrayBuffer()}).promise;
+      const n = doc.numPages, pn = Math.min(Math.max(1, pageNo || 1), n), page = await doc.getPage(pn);
+      const v0 = page.getViewport({scale: 1}), sc = Math.min(3, 2400 / v0.width), vp = page.getViewport({scale: sc});
+      const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+      const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+      await page.render({canvasContext: cx, viewport: vp}).promise;
+      const blob = await new Promise(r=>cv.toBlob(r, 'image/png'));
+      if (n > 1) notify('PDF de '+n+' pages : lecture de la page '+pn+'.');
+      shotMsg = ''; await shotRun(new File([blob], 'page-'+pn+'.png', {type: 'image/png'}));
+    } catch(e) { shotMsg = ''; renderAstBar(); notify('Lecture du PDF impossible (connexion ?). Réessayez.', true); }
+  }
   async function plToggleUn(spec){
     const a = spec.split('|'), id = a[a.length-1], doc = doctors[id]; if (!doc) return;
     let patch = {}, on;
@@ -2813,23 +2837,60 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
     }
     return c;
   }
-  function pdfFromCanvas(c){
-    const bin = atob(c.toDataURL('image/jpeg', 0.92).split(',')[1]), img = new Uint8Array(bin.length);
-    for (let i=0; i<bin.length; i++) img[i] = bin.charCodeAt(i);
+  function pdfFromCanvases(cs){
     const asc = s=>{ const a = new Uint8Array(s.length); for (let i=0; i<s.length; i++) a[i] = s.charCodeAt(i) & 255; return a; };
     const parts = [], offs = []; let len = 0;
     const put = b=>{ const u = typeof b === 'string' ? asc(b) : b; parts.push(u); len += u.length; };
     const obj = (n, body)=>{ offs[n] = len; put(n+' 0 obj\n'+body+'\nendobj\n'); };
+    const n = cs.length;
     put('%PDF-1.4\n');
     obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
-    obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-    obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>');
-    const cs = 'q 842 0 0 595 0 0 cm /Im0 Do Q';
-    obj(4, '<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream');
-    offs[5] = len; put('5 0 obj\n<< /Type /XObject /Subtype /Image /Width '+c.width+' /Height '+c.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>\nstream\n'); put(img); put('\nendstream\nendobj\n');
-    const xr = len; let x = 'xref\n0 6\n0000000000 65535 f \n'; for (let n=1; n<=5; n++) x += String(offs[n]).padStart(10, '0')+' 00000 n \n';
-    put(x+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF');
+    obj(2, '<< /Type /Pages /Kids ['+cs.map((_,k)=>(3+3*k)+' 0 R').join(' ')+'] /Count '+n+' >>');
+    cs.forEach((c, k)=>{
+      const bin = atob(c.toDataURL('image/jpeg', 0.92).split(',')[1]), img = new Uint8Array(bin.length);
+      for (let i=0; i<bin.length; i++) img[i] = bin.charCodeAt(i);
+      const pn = 3+3*k, cn = 4+3*k, im = 5+3*k, cs_ = 'q 842 0 0 595 0 0 cm /Im0 Do Q';
+      obj(pn, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /XObject << /Im0 '+im+' 0 R >> >> /Contents '+cn+' 0 R >>');
+      obj(cn, '<< /Length '+cs_.length+' >>\nstream\n'+cs_+'\nendstream');
+      offs[im] = len; put(im+' 0 obj\n<< /Type /XObject /Subtype /Image /Width '+c.width+' /Height '+c.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>\nstream\n'); put(img); put('\nendstream\nendobj\n');
+    });
+    const tot = 3+3*n, xr = len; let x = 'xref\n0 '+tot+'\n0000000000 65535 f \n'; for (let k=1; k<tot; k++) x += String(offs[k]).padStart(10, '0')+' 00000 n \n';
+    put(x+'trailer\n<< /Size '+tot+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF');
     return new Blob(parts, {type: 'application/pdf'});
+  }
+  const pdfFromCanvas = c => pdfFromCanvases([c]);
+  /* tableau (lignes de texte) -> pages A4 paysage, en-tête répétée */
+  function tableCanvases(title, aoa, merges){
+    const W = 1684, H = 1190, M = 44, TOP = 96, RH = 40, FS = 22, ff = 'system-ui,-apple-system,Segoe UI,sans-serif';
+    const meas = document.createElement('canvas').getContext('2d'); meas.font = '500 '+FS+'px '+ff;
+    const nc = Math.max(...aoa.map(r=>r.length)), mg = {}, cov = new Set();
+    (merges || []).forEach(m=>{ if (m.s.r !== m.e.r) return; mg[m.s.r+','+m.s.c] = m.e.c - m.s.c + 1; for (let c = m.s.c+1; c <= m.e.c; c++) cov.add(m.s.r+','+c); });
+    const w = Array(nc).fill(60);
+    aoa.forEach((r, ri)=>r.forEach((v, c)=>{ if (mg[ri+','+c] > 1) return; w[c] = Math.max(w[c], Math.min(460, Math.ceil(meas.measureText(String(v == null ? '' : v)).width) + 44)); }));
+    const tot = w.reduce((a,b)=>a+b, 0), k = Math.min(1, (W - 2*M) / tot), fs = Math.max(12, Math.round(FS*k)), rh = Math.round(RH*Math.max(k, .6)), xs = w.map(x=>x*k);
+    const hdr = aoa.slice(0, title.hdr || 1), body = aoa.slice(title.hdr || 1), per = Math.max(1, Math.floor((H - TOP - 60 - hdr.length*rh) / rh)), out = [];
+    const pages = Math.max(1, Math.ceil(body.length / per));
+    for (let pg = 0; pg < pages; pg++) {
+      const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#10201a'; g.font = '700 34px '+ff; g.textBaseline = 'alphabetic'; g.fillText(title.t, M, 62);
+      g.font = '500 18px '+ff; g.fillStyle = '#5b6b64'; g.fillText('Planning Imagerie · page '+(pg+1)+' / '+pages, W - M - 230, 62);
+      const rows = hdr.concat(body.slice(pg*per, (pg+1)*per));
+      rows.forEach((r, ri)=>{
+        const y = TOP + ri*rh, isH = ri < hdr.length; let x = M;
+        for (let cI = 0; cI < nc; cI++) {
+          if (cov.has((ri < hdr.length ? ri : -1)+','+cI) && isH) { x += xs[cI]; continue; }
+          const span = isH ? (mg[ri+','+cI] || 1) : 1; let cw = 0; for (let q = 0; q < span; q++) cw += xs[cI+q] || 0;
+          g.fillStyle = isH ? '#1f5a43' : (ri % 2 ? '#f1f6f3' : '#ffffff'); g.fillRect(x, y, cw, rh);
+          g.strokeStyle = '#cfdad4'; g.lineWidth = 1; g.strokeRect(x + .5, y + .5, cw, rh);
+          let t = String(r[cI] == null ? '' : r[cI]); g.font = (isH || cI === 0 ? '700 ' : '500 ')+fs+'px '+ff; g.fillStyle = isH ? '#fff' : '#10201a';
+          while (t.length > 1 && g.measureText(t).width > cw - 12) t = t.slice(0, -2) + '…';
+          g.textAlign = isH && span > 1 ? 'center' : 'left'; g.fillText(t, isH && span > 1 ? x + cw/2 : x + 8, y + rh/2 + fs*.35); g.textAlign = 'left';
+          x += xs[cI];
+        }
+      });
+      out.push(c);
+    }
+    return out;
   }
   function pdfDownload(mon){
     if (!trame || !trame.postes.length) return notify('Le planning n’est pas encore chargé.', true);
@@ -4354,14 +4415,45 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
     sel.innerHTML = o; sel.value = n.getFullYear()+'-'+pad(n.getMonth()+1);
   }
   fillExMonth();
-  async function saveXlsx(wb, name){
-    const X = window.XLSX;
-    const out = X.write(wb, {type:'array', bookType:'xlsx'});
+  async function saveBlob(blob, name){
     let dl = null;
     try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch(e) {}
-    if (!dl) return notify("L'enregistrement de fichiers n'est pas disponible dans cette vue.", true);
-    try { await dl.save({filename: name, data: new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}); notify('Fichier enregistré.'); }
-    catch(e) { if (!e || e.code !== 'declined') notify("Impossible d'enregistrer le fichier ici.", true); }
+    if (dl) {
+      try { await dl.save({filename: name, data: blob}); notify('Fichier enregistré.'); }
+      catch(e) { if (!e || e.code !== 'declined') notify("Impossible d'enregistrer le fichier ici.", true); }
+      return;
+    }
+    try { const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 60000); notify('Fichier prêt : '+name); }
+    catch(e) { notify("Impossible d'enregistrer le fichier ici.", true); }
+  }
+  async function saveXlsx(wb, name){
+    const X = window.XLSX;
+    await saveBlob(new Blob([X.write(wb, {type:'array', bookType:'xlsx'})], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), name);
+  }
+  /* format d'export au choix : Excel, PDF ou CSV */
+  let exFmt = 'xlsx'; try { exFmt = localStorage.getItem('planning-exfmt') || 'xlsx'; } catch(e) {}
+  const exFmtSync = () => document.querySelectorAll('[data-exfmt]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.exfmt === exFmt)));
+  exFmtSync();
+  document.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-exfmt]'); if (!b) return; exFmt = b.dataset.exfmt; try { localStorage.setItem('planning-exfmt', exFmt); } catch(err) {} exFmtSync(); });
+  /* sheets : [{name, aoa, cols, merges, title, hdr, pdf}] */
+  async function deliverSheets(sheets, base){
+    const fmt = exFmt;
+    if (fmt === 'xlsx') {
+      const X = window.XLSX; if (!X) return notify("Les fichiers Excel ne sont pas disponibles dans cette vue.", true);
+      const wb = X.utils.book_new();
+      sheets.forEach(sh=>{ const ws = X.utils.aoa_to_sheet(sh.aoa); if (sh.cols) ws['!cols'] = sh.cols; if (sh.merges) ws['!merges'] = sh.merges; X.utils.book_append_sheet(wb, ws, sh.name.slice(0,31)); });
+      return saveXlsx(wb, base+'.xlsx');
+    }
+    if (fmt === 'csv') {
+      const q = v => { const t = String(v == null ? '' : v); return /[";\n]/.test(t) ? '"'+t.replace(/"/g, '""')+'"' : t; };
+      const txt = sheets.map(sh=>(sheets.length > 1 ? q(sh.title || sh.name)+'\n' : '')+sh.aoa.map(r=>r.map(q).join(';')).join('\n')).join('\n\n');
+      return saveBlob(new Blob(['﻿'+txt], {type: 'text/csv;charset=utf-8'}), base+'.csv');
+    }
+    try {
+      const pages = []; sheets.filter(sh=>sh.pdf !== false).forEach(sh=>tableCanvases({t: sh.title || sh.name, hdr: sh.hdr || 1}, sh.aoa, sh.merges).forEach(c=>pages.push(c)));
+      if (!pages.length) return notify('Rien à exporter.', true);
+      await saveBlob(pdfFromCanvases(pages), base+'.pdf');
+    } catch(e) { notify('Impossible de créer le PDF : '+(e && e.message || e), true); }
   }
   const DOWFR = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
   const dmy = d => pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();
@@ -4373,7 +4465,6 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
     return null;
   }
   async function exportIndispos(ym){
-    const X = window.XLSX; if (!X) return notify("Les fichiers Excel ne sont pas disponibles dans cette vue.", true);
     const list = sortedDocs(); if (!list.length) return notify("Aucune personne dans la liste.", true);
     const [y,m] = ym.split('-').map(Number), n = new Date(y, m, 0).getDate();
     const days = []; for (let i=1;i<=n;i++) days.push(new Date(y, m-1, i));
@@ -4395,17 +4486,15 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
       });
       grid.push(row.concat([ind, gar]));
     });
-    const ws1 = X.utils.aoa_to_sheet(grid), ws2 = X.utils.aoa_to_sheet(det);
-    ws1['!cols'] = [{wch:16},{wch:10}].concat(shown.map(()=>({wch:12})), [{wch:12},{wch:8}]);
-    ws2['!cols'] = [{wch:16},{wch:10},{wch:12},{wch:10},{wch:22},{wch:12}];
-    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws1, 'Mois'); X.utils.book_append_sheet(wb, ws2, 'Détail');
-    await saveXlsx(wb, 'indisponibilites-'+ym+'.xlsx');
+    const ttl = 'Indisponibilités, gardes et Off · '+MOIS_FR[m-1]+' '+y;
+    await deliverSheets([
+      {name: 'Mois', title: ttl+' (par jour)', aoa: grid, cols: [{wch:16},{wch:10}].concat(shown.map(()=>({wch:12})), [{wch:12},{wch:8}]), pdf: false},
+      {name: 'Détail', title: ttl, aoa: det, cols: [{wch:16},{wch:10},{wch:12},{wch:10},{wch:22},{wch:12}]}], 'indisponibilites-'+ym);
   }
   async function exportPlanning(ym){
-    const X = window.XLSX; if (!X) return notify("Les fichiers Excel ne sont pas disponibles dans cette vue.", true);
     if (!trame || !trame.postes.length) return notify('Les postes du service doivent être chargés.', true);
     const [y,m] = ym.split('-').map(Number), first = new Date(y, m-1, 1), last = new Date(y, m, 0);
-    const wb = X.utils.book_new(); let nb = 0;
+    const sheets = []; let nb = 0;
     for (let mon = mondayOf(first); mon <= last; mon = addDays(mon,7)) {
       const days = [...Array(6)].map((_,i)=>addDays(mon,i));
       const h1 = ['Poste'], h2 = [''];
@@ -4423,14 +4512,13 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
         });
         aoa.push(row);
       });
-      const ws = X.utils.aoa_to_sheet(aoa);
-      ws['!merges'] = [0,1,2,3,4].map(i=>({s:{r:0,c:1+2*i}, e:{r:0,c:2+2*i}}));
-      ws['!cols'] = [{wch:28}].concat(Array(11).fill({wch:16}));
-      X.utils.book_append_sheet(wb, ws, ('Sem. '+mon.getDate()+' '+MOIS_FR[mon.getMonth()].slice(0,4)).slice(0,31)); nb++;
+      sheets.push({name: ('Sem. '+mon.getDate()+' '+MOIS_FR[mon.getMonth()].slice(0,4)), title: 'Planning · semaine du '+mon.getDate()+' '+MOIS_FR[mon.getMonth()]+' '+mon.getFullYear(), aoa, hdr: 2,
+        merges: [0,1,2,3,4].map(i=>({s:{r:0,c:1+2*i}, e:{r:0,c:2+2*i}})), cols: [{wch:28}].concat(Array(11).fill({wch:16}))}); nb++;
     }
     if (!nb) return notify('Rien à exporter.', true);
-    await saveXlsx(wb, 'planning-'+ym+'.xlsx');
+    await deliverSheets(sheets, 'planning-'+ym);
   }
+  $('#goImpOther').addEventListener('click', ()=>{ const t = document.querySelector('[data-tab=plan]'); if (t) t.click(); plMode = 'week'; plStage = plGrp ? 'imp' : ''; astOn = false; renderCompose(); });
   $('#exIndisp').addEventListener('click', ()=>exportIndispos($('#exMonth').value));
   $('#exPlan').addEventListener('click', ()=>exportPlanning($('#exMonth').value));
   $('#exIndispQuick').addEventListener('click', ()=>{ const d = addDays(myWeek,2); exportIndispos(d.getFullYear()+'-'+pad(d.getMonth()+1)); });
