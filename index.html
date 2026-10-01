@@ -2211,7 +2211,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     genOpen('Semaine des internes proposée', writes, notes);
   }
   /* ---------- page de confirmation avant d'enregistrer une génération automatique ---------- */
-  let genPending = null, genRows = [], genStep = -1, genWarn = '', genPastAsk = false, genScope = 'from';
+  let genImp = null, genPending = null, genRows = [], genStep = -1, genWarn = '', genPastAsk = false, genScope = 'from';
   const genTodayK = () => key(new Date());
   const genNm = a => a.length ? a.map(dLabel).join(', ') : '—';
   function genWarnHtml(w){
@@ -2277,6 +2277,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     $('#genShF').innerHTML = genCount();
   }
   function genClose(){ $('#genSheet').hidden = true; genPending = null; }
+  $('#genSheet').addEventListener('click', e=>{ if (e.target.closest('[data-genx]')) genImp = null; }, true);
   $('#genSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-genx]')) return genClose();
     const gr = e.target.closest('[data-genrow]');
@@ -2294,11 +2295,13 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const gn = e.target.closest('[data-gennext]');
     if (gn && genStep >= 0) { const r = genRows[genStep]; const on = gn.dataset.gennext === '1' && genPending[r.idx[0]].after.length > 0; r.idx.forEach(i=>{ genPending[i].on = on; }); genStep++; if (genSolo || genStep >= genRows.length) { genStep = -1; genSolo = false; } genRender(); return; }
     if (!e.target.closest('[data-genok]') || !genPending) return;
-    const ws = genPending.filter(w=>w.on); genClose();
+    const ws = genPending.filter(w=>w.on), imp = genImp; genImp = null; genClose();
     let ok = true;
-    for (const w of ws) { w.val.t = Date.now(); ok = (await setOverride(w.k, w.kk, w.val)) && ok; if (!ok) break; }
+    if (imp) ok = await applyWeeks(imp, {extrasOnly: true});     /* nouvelles personnes, absences */
+    for (const w of ws) { if (!ok) break; w.val.t = Date.now(); ok = (await setOverride(w.k, w.kk, w.val)) && ok; if (!ok) break; }
     if (ok && plMode !== 'ast') plPdfNew = true;
     plStage = 'man'; renderCompose();
+    if (ok && imp) { importFinish(imp); notify(ws.length+' ajout'+(ws.length > 1 ? 's enregistrés' : ' enregistré')+'. Les personnes déjà sur le planning n’ont pas été touchées.'); return; }
     if (ok) notify(ws.length+' modification'+(ws.length > 1 ? 's enregistrées' : ' enregistrée')+'. Vous pouvez encore les corriger à la main.');
   });
   /* ---------- import d'un planning depuis une capture d'écran (lecture de texte, OCR) ---------- */
@@ -2347,11 +2350,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const idOf = label => { const n = normS(label); if (known[n]) return known[n]; const c = Object.keys(known).filter(k=>k.length >= 3 && n.length >= 3 && lev(k,n) <= 1); return c.length === 1 ? known[c[0]] : null; };
     const unknown = new Set(), writes = [], seen = new Set();
     const push = (date, poste, part, ids) => {
-      ids = ids.filter(inGrp);   /* seuls les noms du groupe choisi sont importés */
-      const cur = (vacWho(poste, date, part) || {who: []}).who.filter(inGrp);
-      if (!ids.length) return;
-      if (cur.length === ids.length && cur.every(x=>ids.includes(x))) return;
-      slotParts(poste, part).forEach(pt=>{ const sg = date+'|'+poste+'|'+pt; if (seen.has(sg)) return; seen.add(sg); writes.push({k: date, kk: poste+'_'+pt, val: {w: ids, t: 0}, poste, part: pt, before: cur.slice(), after: ids.slice()}); });
+      const v0 = vacWho(poste, date, part); if (v0 && v0.ou) return;
+      const cur = (v0 ? v0.who : []).filter(inGrp); if (isSam(findPost(poste)) && cur.length) return;
+      const add = ids.filter(inGrp).filter(id=>!cur.includes(id));   /* seules les personnes absentes du planning sont ajoutées */
+      if (!add.length) return;
+      const after = cur.concat(add);
+      slotParts(poste, part).forEach(pt=>{ const sg = date+'|'+poste+'|'+pt; if (seen.has(sg)) return; seen.add(sg); writes.push({k: date, kk: poste+'_'+pt, val: {w: after.slice(), t: 0}, poste, part: pt, before: cur.slice(), after: after.slice()}); });
     };
     let weeks = null;
     if (res.aoa) { try { weeks = PP.parseMonthGrid(res.aoa, {ref: addDays(plStart, 3)}); } catch(e) {} }
@@ -3633,7 +3637,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     } catch(e) { xlPlan = null; renderPlan(); notify('Fichier illisible. Utilisez un .xlsx ou .csv.', true); }
   }
   /* écrit les semaines d'un plan : médecins, vacations, absences, notes */
-  async function applyWeeks(plan){
+  async function applyWeeks(plan, opt){
+    const extrasOnly = !!(opt && opt.extrasOnly);
     if (!db || !canWrite || !trame) return false;
     const postIds = new Set(trame.postes.map(p=>p.id));
     const mp = plan.pick || {}, rid = id => mp[id] || id;
@@ -3647,7 +3652,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const abs = {}, cats = {};
       for (const w of plan.weeks) {
         const byDate = {}; w.dates.forEach(d=>{ byDate[d] = {}; });
-        w.cells.forEach(c=>{
+        if (!extrasOnly) w.cells.forEach(c=>{
           if (!postIds.has(c.poste) || !byDate[c.date]) return;
           const ids = c.people.map(p=>rid(p.id)).filter(Boolean);
           if (!ids.length && !c.x) return;
@@ -3657,7 +3662,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           if (st.length || keepS.length) val.s = st.concat(keepS); if (c.x) val.x = c.x;
           byDate[c.date][c.poste+'_'+c.part] = val;
         });
-        for (const d of w.dates.filter(d=>{ const im = impMode(); if (!im) return true; const sat = parse(d).getDay() === 6; return im === 'ast' ? sat : !sat; })) {
+        for (const d of (extrasOnly ? [] : w.dates).filter(d=>{ const im = impMode(); if (!im) return true; const sat = parse(d).getDay() === 6; return im === 'ast' ? sat : !sat; })) {
           const ref = db.doc('ajustements/'+d);
           /* le reste de la journée : on retire seulement les personnes de son groupe */
           Object.keys(overrides[d] || {}).forEach(kk=>{ if (byDate[d][kk]) return; const o = overrides[d][kk], keepW = (o.w || []).filter(id=>!inGrp(id)); if (keepW.length || o.x) byDate[d][kk] = Object.assign({}, o, {w: keepW, s: (o.s || []).filter(id=>keepW.includes(id))}); });
@@ -3681,20 +3686,46 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       return true;
     } catch(e) { handleErr(e); return false; }
   }
-  async function applyPlan(from){
-    const pl0 = xlPlan; if (!pl0) return;
-    const pl = from ? planSince(pl0, key(new Date())) : pl0;
-    if (!pl.weeks.length) return notify('Rien à importer à partir d’aujourd’hui.', true);
-    ['#xlApply', '#xlApplyFrom'].forEach(id=>{ const b = $(id); if (b) b.disabled = true; });
-    const ok = await applyWeeks(pl);
-    if (!ok) { renderPlan(); return; }
+  /* import prudent : on n'ajoute que les personnes absentes du planning déjà en place (rien n'est retiré ni remplacé) */
+  function importAdds(pl){
+    const mp = pl.pick || {}, rid = id=>mp[id] || id, writes = [], seen = new Set(); let present = 0;
+    pl.weeks.forEach(w=>w.cells.forEach(c=>{
+      const p = findPost(c.poste); if (!p || (p.journee && c.part === 'AM')) return;
+      const v = vacWho(c.poste, c.date, c.part); if (v && v.ou) return;
+      const ids = c.people.map(x=>rid(x.id)).filter(Boolean).filter(inGrp).filter((id,i,a)=>a.indexOf(id) === i);
+      const cur = v ? v.who.filter(inGrp) : [], add = ids.filter(id=>!cur.includes(id));
+      present += ids.length - add.length;
+      if (!add.length) return;
+      const after = cur.concat(add), stars = c.people.filter(x=>x.star && add.includes(rid(x.id))).map(x=>rid(x.id));
+      slotParts(c.poste, c.part).forEach(pt=>{
+        const sg = c.date+'|'+c.poste+'|'+pt; if (seen.has(sg)) return; seen.add(sg);
+        const val = {w: after.slice(), t: 0}; if (stars.length) val.s = stars;
+        writes.push({k: c.date, kk: c.poste+'_'+pt, val, poste: c.poste, part: pt, before: cur.slice(), after: after.slice()});
+      });
+    }));
+    return {writes, present};
+  }
+  function importFinish(pl){
     if (pl.weeks.length) {
       const t0 = Date.now(); let bw = pl.weeks[0], bd = 1e18;
       pl.weeks.forEach(w=>{ const df = Math.abs(parse(w.monday).getTime() + 2*864e5 - t0); if (df < bd) { bd = df; bw = w; } });
       cwStart = parse(bw.monday); weekStart = cwStart; plStart = cwStart; gDay = -1; renderGLabel(); renderTeam(); renderTrame();
     }
     xlPlan = null; renderPlan(); renderCreate();
-    notify(pl.weeks.length+' semaine'+(pl.weeks.length > 1 ? 's' : '')+' importée'+(pl.weeks.length > 1 ? 's' : '')+'.');
+  }
+  async function applyPlan(from){
+    const pl0 = xlPlan; if (!pl0) return;
+    const pl = from ? planSince(pl0, key(new Date())) : pl0;
+    if (!pl.weeks.length) return notify('Rien à importer à partir d’aujourd’hui.', true);
+    const ad = importAdds(pl), nAbs = pl.weeks.reduce((n,w)=>n + w.absences.length, 0);
+    if (!ad.writes.length) {
+      if (nAbs) { const ok = await applyWeeks(pl, {extrasOnly: true}); if (!ok) { renderPlan(); return; } importFinish(pl); return notify('Aucune personne à ajouter ('+ad.present+' déjà sur le planning). Absences du fichier enregistrées.'); }
+      xlPlan = null; renderPlan(); return notify('Rien à ajouter : toutes les personnes du fichier sont déjà sur le planning.');
+    }
+    genImp = pl;
+    const info = [ad.present+' personne'+(ad.present > 1 ? 's' : '')+' du fichier '+(ad.present > 1 ? 'sont déjà' : 'est déjà')+' sur le planning : '+(ad.present > 1 ? 'elles sont ignorées' : 'elle est ignorée')];
+    if (nAbs) info.push(nAbs+' absence'+(nAbs > 1 ? 's' : '')+' du fichier seront aussi enregistrée'+(nAbs > 1 ? 's' : ''));
+    genOpen('Import : personnes à ajouter', ad.writes, [{lvl: 'info', h: 'Seules les personnes absentes du planning sont ajoutées', l: info}]);
   }
   async function downloadModel(){
     const X = window.XLSX;
