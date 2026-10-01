@@ -678,7 +678,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         </div>
         <div id="impSlotC"></div>
         <div class="card" id="cwImport">
-          <h2>Importer un planning</h2>
+          <details class="cardfold" id="fImp" open><summary>Importer un planning</summary>
           <p class="hint">Importez le fichier du service (une feuille par semaine : postes, congés, absences, astreintes, notes). Toutes les semaines du fichier sont créées d’un coup et les médecins inconnus sont ajoutés à la liste. Un tableau simple (postes en lignes, jours en colonnes) est aussi accepté.</p>
           <fieldset data-edit id="xlSet">
             <button type="button" class="ghost srcx" id="goImpOther">📄 PDF, 📷 photo ou 🔗 Google Sheet…</button>
@@ -693,6 +693,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
             <p class="hint srcg" style="margin-top:6px">Le classeur doit être partagé en « Toute personne disposant du lien ». Indiquez le nom de l’onglet (le mois, ex. « oct 26 ») ; plusieurs onglets : séparez par une virgule. Sans nom d’onglet, l’appli tente de lire tout le classeur.</p>
           </fieldset>
           <div id="xlPreview" hidden></div>
+          </details>
         </div>
         <div id="cwAlert" class="alert" role="alert" hidden></div>
         <div id="cwPostes" class="col"></div>
@@ -895,7 +896,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div class="card mp">
-          <h2>Mon profil</h2>
+          <details class="cardfold" id="fMp"><summary>Mon profil</summary>
           <p class="hint">Choisissez votre nom : l’accueil vous dira « Bonjour » avec votre nom et affichera votre semaine.</p>
     <div class="who-box mpbox">
       <label for="who">Je suis</label>
@@ -907,6 +908,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
       <form id="renForm" class="renform" hidden><input type="text" id="renInput" maxlength="24" autocomplete="off" aria-label="Votre prénom"><button type="submit" class="primary">Enregistrer</button><button type="button" id="renCancel" class="ghost">Annuler</button></form>
     </div>
+          </details>
         </div>
         <div class="card">
           <h2>Écran d’accueil</h2>
@@ -934,29 +936,32 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <div id="msgHist" class="hint"></div>
         </div>
         <div class="card">
-          <h2>Apparence</h2>
+          <details class="cardfold" id="fApp"><summary>Apparence</summary>
           <p class="hint">Choisissez le mode clair ou sombre, ou laissez l’appareil décider.</p>
           <div class="thm" role="group" aria-label="Mode d’affichage"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Clair</button><button type="button" data-theme-set="dark">Sombre</button></div>
           <p class="hint" style="margin-top:12px">Palette de couleurs (propre à cet appareil).</p>
           <div class="pals" id="palBox" role="group" aria-label="Palette de couleurs"></div>
+          </details>
         </div>
         <div class="card" id="creerCard">
-          <h2>Planning du mois</h2>
+          <details class="cardfold" id="fCre"><summary>Planning du mois</summary>
           <p class="hint">Créer une semaine, importer un fichier Excel ou ajouter une vacation exceptionnelle.</p>
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
+          </details>
         </div>
         <div id="impSlotR"></div>
         <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (rappels v29, rattrapage 1-2 oct)</p>
         <div class="card" id="exportCard">
-          <h2>Exporter</h2>
+          <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p>
           <div class="f"><label id="exFmtL">Format</label><div class="exfmt" role="group" aria-labelledby="exFmtL"><button type="button" data-exfmt="xlsx">Excel</button><button type="button" data-exfmt="pdf">PDF</button><button type="button" data-exfmt="csv">CSV</button></div></div>
           <div class="f"><label for="exMonth">Mois</label><select id="exMonth"></select></div>
           <button type="button" class="primary" id="exIndisp">Indisponibilités, gardes et Off</button>
           <button type="button" class="ghost" id="exPlan">Planning des vacations</button>
+          </details>
         </div>
         <div class="card" id="teamCard">
-          <h2>Équipe</h2>
+          <details class="cardfold" id="fTeam"><summary>Équipe</summary>
           <p class="hint">Ajoutez un médecin, un interne ou toute autre personne. Pour renommer, modifiez le nom puis validez (Entrée). Les vacations et indisponibilités sont conservées.</p>
           <details class="teamfold" id="teamFold"><summary>👥 Liste de l’équipe <b class="acn" id="teamN"></b></summary><ul id="people" class="people team-list"></ul></details>
           <form id="addForm" class="addrow wrapf">
@@ -966,6 +971,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
               <button type="submit" class="primary">Ajouter</button>
             </fieldset>
           </form>
+          </details>
         </div>
         <div class="card" id="postCard">
           <details class="cardfold" id="postFold"><summary>Postes du service</summary>
@@ -980,7 +986,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div class="card">
-          <h2>Mon calendrier</h2>
+          <details class="cardfold" id="fCal"><summary>Mon calendrier</summary>
           <p class="hint">Vos vacations, gardes et repos de garde des 12 prochaines semaines, dans un fichier calendrier (.ics) pour l'iPhone, Google Agenda ou Outlook.</p>
           <button type="button" class="primary" id="icsBtn">Importer mon emploi du temps sur le calendrier</button>
           <p class="hint">Sur iPhone : ouvrez le fichier reçu puis touchez « Ajouter tout ». Réimporter met le calendrier à jour sans doublon.</p>
@@ -991,6 +997,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
               <div class="f"><label for="hA1">Après-midi début</label><input type="time" id="hA1"></div>
               <div class="f"><label for="hA2">Après-midi fin</label><input type="time" id="hA2"></div>
             </div>
+          </details>
           </details>
         </div>
       </div>
@@ -1794,7 +1801,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
 
   function renderAll(){
-    renderRenMe(); renderBut(); renderHello(); renderPostes(); renderPicker(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderBut(); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
 
@@ -2889,6 +2896,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (t === 'auj') renderToday();
     const slot = t === 'general' ? '#impSlotP' : t === 'reglages' ? '#impSlotR' : t === 'plan' ? '#impSlotP' : '#impSlotC';
     $(slot).appendChild($('#cwImport'));
+    { const fi = $('#fImp'); if (fi) fi.open = t !== 'reglages'; }
     plGrp = '';
     if (t === 'plan') { plStage = ''; astOn = false; redoOk = ''; qAns = ''; renderCompose(); }
     if (t === 'recherche') { rcMode = ''; rcRender(true); }
