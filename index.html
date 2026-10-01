@@ -437,7 +437,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .gsel label{margin-top:2px}
 .goff{font-size:13px;color:var(--ast-ink)}
 .goff b{background:var(--rdg);color:var(--rdg-ink);border-radius:6px;padding:1px 7px}
-.team-list li{padding:2px 2px 2px 8px}
+.team-list li{padding:2px 2px 2px 8px;flex:1 1 100%;flex-wrap:wrap;min-width:0;max-width:100%;box-sizing:border-box}
 .team-list li input[type=text]{width:130px}
 .team-list li select{min-height:36px;width:auto;font-size:12px;padding:2px 8px;border-radius:6px}
 .addset{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;width:100%}
@@ -480,7 +480,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .confbtn.on{border:1.5px solid #1E7B4B;background:#E4F4EA;color:#1E7B4B}
 :root[data-theme=dark] .confbtn.on{background:#173325;color:#7FD6A3;border-color:#3E8F63}
 .astmax{min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card,var(--bg));color:inherit;padding:0 8px;font:inherit;font-size:13px}.pals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.pals button{min-height:56px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}.pals button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.pals i{display:flex;gap:3px}.pals i b{width:16px;height:16px;border-radius:50%;display:block}
-</style>
+html,body{max-width:100%;overflow-x:clip}</style>
 
 <div class="wrap">
   <header class="top">
