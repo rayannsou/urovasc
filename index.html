@@ -493,6 +493,25 @@ html,body{max-width:100%;overflow-x:clip}.qcard{margin:14px 0 12px;padding:16px;
 .mrem{border-color:var(--accent);color:var(--accent);font-weight:600}.mrem.sent{border-color:var(--line);color:var(--muted)}
 .sheet-l{gap:8px;scroll-behavior:smooth}.sheet-p{box-shadow:0 -10px 40px rgba(0,0,0,.18)}
 button{transition:transform .08s ease,background-color .15s,border-color .15s}button:active:not(:disabled){transform:scale(.98)}
+
+/* Écran « Créer » : statuts en pastilles, boutons en lignes avec icône */
+.astbar{padding:14px;gap:12px}
+.plstat{gap:8px;margin-bottom:2px}
+.plrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);line-height:1.35;font-size:14px}
+.plrow.ok{background:var(--grn-soft);border-color:var(--grn-line)}
+.plrow.ko{background:var(--red-soft);border-color:var(--red-line)}
+.plrow.mid{background:var(--ind);border-color:var(--ind-2)}
+.plrow small{display:block;margin-top:1px}
+.plrow .pt{flex:1;min-width:0}
+.plrow.plrem button{flex:none;min-height:36px;padding:0 12px;border-radius:10px;border-color:var(--red-line);background:var(--surface);color:var(--red);font-weight:600;white-space:nowrap}
+.asthead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 2px 0;font-size:14px;color:var(--muted)}
+.asthead b{color:var(--ink)}
+.asthead .ghost{min-height:34px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--accent)}
+.astbtn.big.lrow{flex-direction:row;justify-content:flex-start;gap:12px;min-height:60px;padding:0 14px;background:var(--surface);text-align:left;font-size:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.astbtn.big.lrow .ai{flex:none;width:40px;height:40px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center;font-size:20px}
+.astbtn.big.lrow .at{flex:1}
+.astbtn.big.lrow .ac{flex:none;color:var(--muted);font-size:24px;line-height:1}
+.astbtn.big.lrow:active{background:var(--accent-soft)}
 </style>
 
 <div class="wrap">
@@ -1874,14 +1893,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   function planStatus(){
     if (!trame) return '';
     const ds = [...Array(5)].map((_,i)=>addDays(plStart,i)).map((d,i)=>dayFill(d,i)), f = ds.reduce((a,x)=>a+x.f,0), n = ds.reduce((a,x)=>a+x.n,0);
-    const row = (ok, txt)=>'<div class="'+(ok === 1 ? 'ok' : ok === 0 ? 'ko' : 'mid')+'">'+(ok === 1 ? '✅ ' : ok === 0 ? '⛔ ' : '🟠 ')+txt+'</div>';
+    const row = (ok, txt)=>'<div class="plrow '+(ok === 1 ? 'ok' : ok === 0 ? 'ko' : 'mid')+'"><span class="pt">'+(ok === 1 ? '✅ ' : ok === 0 ? '⛔ ' : '🟠 ')+txt+'</span></div>';
     let h = '<div class="plstat">' + (!plStage || plMode === 'ast' ? '' : row(!n ? 0 : f === n ? 1 : f ? 2 : 0, 'Semaine du '+esc(fmtDM.format(plStart))+' : '+(!n ? 'aucune vacation' : f === n ? 'planning fait' : f ? 'à compléter' : 'pas encore fait')+' <small>('+f+' pourvues sur '+n+' à pourvoir)</small>'));
     const ap = trame.postes.find(isSam);
     if (ap) { const sats = astSatsOf(astMonthList().slice(0,1).concat(astMonthList().slice(1,2))).filter(d=>d >= addDays(new Date(), -6)).slice(0,6), fs_ = sats.filter(d=>{ const v = vacWho(ap.id, key(d), 'M'); return v && v.who.filter(inGrp).length; }).length; if (sats.length) h += row(fs_ === sats.length ? 1 : fs_ ? 2 : 0, 'Astreintes des '+sats.length+' prochains samedis : '+(fs_ === sats.length ? 'faites' : fs_ ? 'à compléter' : 'pas encore faites')+' <small>('+fs_+' / '+sats.length+')</small>'); }
     /* 3e ligne : qui n'a pas renseigné ses indispos, avec un bouton de rappel (notification) */
     if (plGrp) { const mm = astMissing(astMonths()), lbl = plGrp === 'interne' ? 'interne' : 'médecin';
-      h += '<div class="'+(mm.length ? 'ko' : 'ok')+' plrem">'+(mm.length ? '⛔ '+mm.length+' '+lbl+(mm.length > 1 ? 's n’ont pas renseigné leurs' : ' n’a pas renseigné ses')+' indispos' : '✅ Tous les '+lbl+'s ont renseigné leurs indispos')
-        + (mm.length && canSeeMiss() ? ' <button type="button" class="ghost" data-remind="1"'+(canWrite ? '' : ' disabled')+'>🔔 Rappel</button>' : '')+'</div>'; }
+      h += '<div class="plrow '+(mm.length ? 'ko' : 'ok')+' plrem"><span class="pt">'+(mm.length ? '⛔ '+mm.length+' '+lbl+(mm.length > 1 ? 's n’ont pas renseigné leurs' : ' n’a pas renseigné ses')+' indispos' : '✅ Tous les '+lbl+'s ont renseigné leurs indispos')+'</span>'
+        + (mm.length && canSeeMiss() ? '<button type="button" class="ghost" data-remind="1"'+(canWrite ? '' : ' disabled')+'>🔔 Rappel</button>' : '')+'</div>'; }
     return h + '</div>';
   }
   const remSent = new Set();   /* personnes déjà relancées pendant cette session */
@@ -1916,7 +1935,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const stat = allOk ? 'Tout le monde a renseigné ses indisponibilités' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
     const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' || plStage === 'impm' ? '' : plStage === 'astm' ? 'how' : plStage === 'auto' && ast && astOn ? 'astm' : plStage === 'imp' ? 'impm' : (plStage === 'impx' || plStage === 'impg' || plStage === 'shot' || plStage === 'pdf') ? 'imp' : 'how')+'">‹ Retour</button>';
     if (!plGrp) box.innerHTML = '<p class="aststat"><b>Pour qui créer le planning ?</b></p><p class="hint">Les médecins et les internes se créent séparément : l’un ne modifie pas l’autre.</p><div class="astpair"><button type="button" class="astbtn big" data-plgrp="medecin">🩺 Médecins</button><button type="button" class="astbtn big" data-plgrp="interne">🎓 Internes</button></div>';
-    else if (!plStage) box.innerHTML = '<p class="aststat">Planning des <b>'+(plGrp === 'interne' ? 'internes' : 'médecins')+'</b> <button type="button" class="ghost" data-plgrp="" style="margin-left:8px">Changer</button></p><div class="astcol"><button type="button" class="astbtn big" data-plpick="imp">📥 Importer un planning</button><button type="button" class="astbtn big" data-plpick="week">📅 Créer un planning de semaine</button><button type="button" class="astbtn big" data-plpick="ast">🔔 Créer un planning d’astreinte</button></div>';
+    else if (!plStage) { const bt = (k, ic, t)=>'<button type="button" class="astbtn big lrow" data-plpick="'+k+'"><span class="ai">'+ic+'</span><span class="at">'+t+'</span><span class="ac">›</span></button>'; box.innerHTML = '<div class="asthead"><span>Planning des <b>'+(plGrp === 'interne' ? 'internes' : 'médecins')+'</b></span><button type="button" class="ghost" data-plgrp="">Changer</button></div><div class="astcol">'+bt('imp','📥','Importer un planning')+bt('week','📅','Créer un planning de semaine')+bt('ast','🔔','Créer un planning d’astreinte')+'</div>'; }
     else if (plStage === 'impm') box.innerHTML = back + '<p class="aststat">Importer un planning…</p><div class="astpair"><button type="button" class="astbtn big" data-implmode="week">📅 de semaine</button><button type="button" class="astbtn big" data-implmode="ast">🔔 d’astreinte</button></div>';
     else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Planning d’astreinte' : 'Planning de semaine')+'</b> · comment la créer ?</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="auto">⚡ Création automatique</button><button type="button" class="astbtn big" data-plstage="man">✋ Création manuelle</button></div>';
     else if (plStage === 'imp') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis…</p><div class="astpair"><button type="button" class="astbtn big" data-plstage="impx">📗 Fichier Excel</button><button type="button" class="astbtn big" data-plstage="impg">🔗 Google Sheet</button></div><div class="astpair"><button type="button" class="astbtn big" data-plstage="pdf">📄 PDF</button><button type="button" class="astbtn big" data-plstage="shot">📷 Photo ou capture</button></div>';
