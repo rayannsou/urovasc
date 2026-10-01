@@ -1589,7 +1589,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const d = addDays(startD,i), kk = key(d), wd = (d.getDay()+6)%7, inf = dayInfo(doc,kk), vs = dayVacs(me,kk), nt = dayNotes(kk);
       if (wkOff === 0 && kk < k) continue;
       const weekend = wd > 4, isToday = kk === k;
-      if (weekend && !inf.kind && !vs.length && !isToday) continue;
+      if (weekend && !(wd === 5 && astP) && !inf.kind && !vs.length && !isToday) continue;
       const title = isToday ? 'Aujourd’hui' : kk === tomorrowK ? 'Demain' : cap(new Intl.DateTimeFormat('fr-FR',{weekday:'long'}).format(d));
       let badge = '';
       if (inf.kind === 'G') badge = '<span class="st st-g">Garde</span>'; else if (inf.kind === 'R') badge = '<span class="st st-r">Off · repos de garde</span>'; else if (inf.kind === 'A') badge = '<span class="st st-a">Astreinte</span>';
@@ -1598,11 +1598,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         if (inf.kind === 'A') h += slot(kk,'M',isToday);
         else if (inf.kind === 'G') h += '<p class="muted">Vous êtes de garde ce jour-là.</p>';
         else if (inf.kind === 'R') h += '<p class="muted">Repos après votre garde.</p>';
+        else if (wd === 5 && astP) h += astLine();
         else h += '<p class="muted">C’est le week-end : pas de vacation prévue.</p>';
       } else if (weekend) h += ['M','AM'].filter(pp=>vs.some(v=>v.part === pp) || inf[pp]).map(pp=>slot(kk,pp,isToday)).join('');
       else h += slot(kk,'M',isToday)+slot(kk,'AM',isToday);
+      if (wd === 5 && astP && inf.kind !== 'A' && (vs.length || inf.kind)) h += astLine();
       if (nt.length) h += '<ul class="notelist">'+nt.map(t=>'<li class="dnote">'+esc(t)+'</li>').join('')+'</ul>';
-      if (wd === 4) h += astLine();
       h += '</section>';
       shown++;
     }
