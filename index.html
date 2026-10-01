@@ -1694,7 +1694,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         const cn = id => isSam(p) ? '<b class="acn" aria-label="'+(AC[id]||0)+' astreinte'+((AC[id]||0) > 1 ? 's' : '')+'">'+(AC[id]||0)+'</b>' : '';
         const chips = who.map(id=>{ const r = v && v.ou ? '' : reasonFor(id,k,part); if (r) bad++; return '<span class="pch'+(r ? ' bad' : '')+'">'+esc(dLabel(id))+cn(id)+'<button type="button" data-plx="'+esc(slot+'|'+id)+'" aria-label="Retirer '+esc(dLabel(id))+'"'+dis+'>×</button></span>'; }).join('');
         const why = who.filter(id=>!(v && v.ou) && reasonFor(id,k,part)).map(id=>esc(dLabel(id))+' : '+esc(reasonFor(id,k,part))).join(' · ');
-        const tag = ov ? (ov.a ? '<em class="auto">⚡ automatique</em>' : '<em class="man">✋ manuel</em>') : (who.length ? '<em>toujours</em>' : '');
+        const tag = ov ? (ov.a ? '<em class="auto">⚡ automatiquement selon les postes habituels</em>' : '<em class="man">✋ manuel</em>') : (who.length ? '<em>toujours</em>' : '');
         const top = isSam(p) ? [] : plSuggest(p.id, part, who, k), sug = top.concat(docs.map(d=>d.id).filter(id=>!who.includes(id) && !top.includes(id)));
         if (isSam(p)) sug.sort((a,b)=>(AC[a]||0)-(AC[b]||0));
         const closed = !!v && !who.length && /^ferm/i.test(v.texte || '');
@@ -1935,7 +1935,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     if (miss.length && !force) return openMiss(true);
     const posts = trame.postes.filter(p=>!p.info && !isSam(p)), docs = grpDocs();
     const load = {};
-    let done = 0, holes = 0, ous = 0; const writes = [];
+    let done = 0, holes = 0, ous = 0; const writes = [], holeL = [], by = {};
     for (let i = 0; i < 5; i++) {
       const k = key(addDays(plStart, i));
       for (const part of PARTS) {
@@ -1950,12 +1950,14 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         slots.forEach(sl=>{ if (!sl.v.ou) sl.v.who.forEach(id=>{ if (!reasonFor(id, k, part)) taken.add(id); }); });
         for (const sl of slots) {
           const p = sl.p, v = sl.v, ov = overrides[k] && overrides[k][p.id+'_'+part];
-          if (ov && ov.w && ov.w.filter(inGrp).length && !ov.a) continue;
+          const rec = by[p.label] = by[p.label] || {n: 0, ok: 0};
+          if (ov && ov.w && ov.w.filter(inGrp).length && !ov.a) { rec.n++; rec.ok++; continue; }
           if (v.ou && !v.who.length) continue;
           const need = v.ou ? 1 : v.who.length; if (!need) continue;
+          rec.n++;
           let keep = v.ou ? [] : v.who.filter(id=>!reasonFor(id, k, part));
           if (v.ou) { ous++; }
-          if (!v.ou && keep.length === v.who.length) continue;
+          if (!v.ou && keep.length === v.who.length) { rec.ok++; continue; }
           /* 2) remplaçants : ceux qui font le plus souvent ce poste (fréquence), sinon les moins chargés */
           const freq = {};
           Object.keys(overrides).forEach(d=>{ const o = overrides[d][p.id+'_'+part]; if (o) o.w.forEach(id=>{ freq[id] = (freq[id]||0) + 1; }); });
@@ -1966,15 +1968,19 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           const eligible = pool.filter(id=>freq[id]);
           const res = keep.slice();
           while (res.length < need && eligible.length) { const id = eligible.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; }
-          if (res.length < need) holes++;
-          if (v.ou && !res.length) continue;
-          for (const pt of slotParts(p.id, part)) writes.push({k, kk: p.id+'_'+pt, val: {w: res, t: 0, a: 1}, poste: p.id, part: pt, before: v.who.slice(), after: res.slice(), ou: !!v.ou});
+          if (res.length < need) { holes++; holeL.push({t: p.label+' '+fmtShort.format(parse(k))+' '+PART_TXT[part]+' : '+(res.length ? res.length+' médecin'+(res.length > 1 ? 's' : '')+' au lieu de '+need : 'personne de disponible'), wi: writes.length, nt: !res.length}); }
+          else rec.ok++;
+          const phw = v.ou && !res.length;   /* « à confirmer » sans remplaçant : écriture masquée, activée seulement si on force quelqu'un */
+          for (const pt of slotParts(p.id, part)) writes.push({k, kk: p.id+'_'+pt, val: {w: res, t: 0, a: 1}, poste: p.id, part: pt, before: v.who.slice(), after: res.slice(), ou: !!v.ou, ph: phw});
           done++;
         }
       }
     }
     if (!writes.length) { plStage = 'man'; renderCompose(); return notify(holes ? 'Certaines places n’ont pas de remplaçant disponible.' : 'La trame convient déjà : personne d’indisponible cette semaine.', !!holes); }
-    genOpen('Semaine proposée', writes, holes ? holes+' place'+(holes > 1 ? 's' : '')+' sans remplaçant disponible' : '');
+    /* même présentation que pour les internes : liste repliée avec bouton Forcer, récapitulatif par poste */
+    const notes = [holeL.length ? {lvl: 'bad', h: 'Vacations obligatoires sans médecin', l: holeL.map(h=>({t: h.t, wi: h.wi})), fold: true, force: true} : {lvl: 'ok', h: 'Vacations obligatoires sans médecin', l: [], zero: true}];
+    const rc = Object.keys(by).filter(l=>by[l].n).map(l=>l+' : '+by[l].ok+' / '+by[l].n+' vacation'+(by[l].n > 1 ? 's' : '')); if (rc.length) notes.push({lvl: 'info', h: 'Vacations pourvues par poste', l: rc, fold: true});
+    genOpen('Semaine proposée', writes, notes);
   }
 
   /* ---------- règles du planning des internes (à compléter au fil du temps) ---------- */
