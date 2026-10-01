@@ -605,7 +605,6 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
         <div id="impSlotC"></div>
         <div class="card" id="cwImport">
           <h2>Importer un planning</h2>
-          <button type="button" class="ghost" id="forceOct12" data-edit>Réimporter le 1er et 2 octobre</button>
           <p class="hint">Importez le fichier du service (une feuille par semaine : postes, congés, absences, astreintes, notes). Toutes les semaines du fichier sont créées d’un coup et les médecins inconnus sont ajoutés à la liste. Un tableau simple (postes en lignes, jours en colonnes) est aussi accepté.</p>
           <fieldset data-edit id="xlSet">
             <button type="button" class="ghost srcx" id="goImpOther">📄 PDF, 📷 photo ou 🔗 Google Sheet…</button>
@@ -2738,7 +2737,6 @@ html,body{max-width:100%;overflow-x:clip}.teamfold{margin:6px 0 12px}.teamfold>s
       $('#msgTxt').value = ''; msgSel.clear(); renderMsg(); notify('Message en file d’envoi : il partira dans les 10 à 15 minutes.');
     } catch(e) { handleErr(e); }
   });
-  $('#forceOct12').addEventListener('click', forcePatch);
   ['#remVeille','#remA7','#remA1','#remHour'].forEach(id=>$(id).addEventListener('change', async ()=>{ if (!rem.on || !me) return; try { await remSave(); notify('Rappels mis à jour.'); } catch(e) { handleErr(e); } }));
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
   $('#auBody').addEventListener('click', async e=>{
