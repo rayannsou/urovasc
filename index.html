@@ -1611,7 +1611,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       return rowWrap(d,i,k,head,body);
     }).join('');
     const cms = [...new Set(inList.map(x=>key(x[0]).slice(0,7)))];
-    $('#confBox').innerHTML = cms.map(m=>{ const on = !!(doc.conf && doc.conf[m]); const dl = butoir.m[m], lk = butLocked(me, m+'-01'), dlh = dl ? '<em class="butdl'+(lk ? ' lock' : '')+'">'+(lk ? '🔒 Verrouillé depuis le ' : '⏳ Date butoir : ')+esc(butFmt(dl))+'</em>' : '';
+    $('#confBox').innerHTML = cms.map(m=>{ const on = !!(doc.conf && doc.conf[m]); const dl = butoir.m[m], lk = butLocked(me, m+'-01'), dlh = dl ? '<em class="butdl'+(lk ? ' lock' : '')+'">'+(lk ? '🔒 Verrouillé depuis le ' : '⏳ Date butoir : ')+esc(butFmt(dl))+'</em>' : isButAdmin() ? '<em class="butdl">⏳ Date butoir : non fixée · à régler dans Réglages › Date butoir indispo</em>' : '';
       return butBanners([m]) + '<button type="button" class="confbtn'+(on ? ' on' : '')+'" data-conf="'+m+'"'+(canWrite ? '' : ' disabled')+'>'+(on ? '✓ Indisponibilités de '+esc(monthLbl(m))+' renseignées <small>Toucher pour annuler</small>' : 'J’ai renseigné mes indisponibilités de '+esc(monthLbl(m))+' <small>Toucher quand vous avez terminé (même si aucune)</small>')+dlh+'</button>'; }).join('');
   }
 
