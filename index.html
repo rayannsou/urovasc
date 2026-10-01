@@ -2164,7 +2164,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     /* même présentation que pour les internes : liste repliée avec bouton Forcer, récapitulatif par poste */
     const notes = [holeL.length ? {lvl: 'bad', h: 'Vacations obligatoires sans médecin', l: holeL.map(h=>({t: h.t, wi: h.wi})), fold: true, force: true} : {lvl: 'ok', h: 'Vacations obligatoires sans médecin', l: [], zero: true}];
     const rc = Object.keys(by).filter(l=>by[l].n).map(l=>l+' : '+by[l].ok+' / '+by[l].n+' vacation'+(by[l].n > 1 ? 's' : '')); if (rc.length) notes.push({lvl: 'info', h: 'Vacations pourvues par poste', l: rc, fold: true});
-    genOpen('Semaine proposée', writes, notes);
+    genOpen('Semaine proposée', writes, notes, {step: true});
   }
 
   /* ---------- règles du planning des internes (à compléter au fil du temps) ---------- */
@@ -2398,7 +2398,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const ofs = ints.filter(d=>off[d.id].size).map(d=>d.label+' : '+[...off[d.id]].map(x=>{ const h = HP.find(y=>y.id === x); return fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'après-midi'); }).join(', '));
     if (ofs.length) notes.push({lvl: 'info', h: 'Offs attribués', l: ofs, fold: true});
     if (!writes.length) { plStage = 'man'; renderCompose(); return notify('Le planning des internes convient déjà.', false); }
-    genOpen('Semaine des internes proposée', writes, notes);
+    genOpen('Semaine des internes proposée', writes, notes, {step: true});
   }
   /* ---------- page de confirmation avant d'enregistrer une génération automatique ---------- */
   let genImp = null, genPending = null, genRows = [], genStep = -1, genWarn = '', genPastAsk = false, genScope = 'from';
@@ -2420,6 +2420,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $('#genShT').textContent = title;
     writes.forEach(w=>{ w.on = !(genPastAsk && w.k < genTodayK()); if (w.ph && !w.after.length) w.on = false; });
     genBuild();
+    if (opts && opts.step && genRows.length) { genStep = 0; genSolo = false; }
     genRender();
     $('#genSheet').hidden = false;
   }
