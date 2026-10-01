@@ -3521,11 +3521,12 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           const cur = (pl.pick || {})[fid] || '', cs = (pl.sugg || {})[fid] || [];
           return '<div class="xfr"><div><strong>« '+esc(pl.fresh[fid])+' »</strong></div><div class="plc">'
             + cs.map(c=>'<button type="button" class="plsg'+(cur === c.id ? '' : ' alt')+'" data-xfpick="'+esc(fid+'|'+c.id)+'" aria-pressed="'+(cur === c.id)+'">'+(cur === c.id ? '✓ ' : '')+'C’est '+esc(c.label)+'</button>').join('')
-            + '<button type="button" class="plsg'+(cur ? ' alt' : '')+'" data-xfpick="'+esc(fid+'|')+'" aria-pressed="'+(!cur)+'">'+(cur ? '' : '✓ ')+'Créer « '+esc(pl.fresh[fid])+' »</button></div></div>';
+            + '<button type="button" class="plsg'+(cur ? ' alt' : '')+'" data-xfpick="'+esc(fid+'|')+'" aria-pressed="'+(!cur)+'">'+(cur ? '' : '✓ ')+'Créer « '+esc(pl.fresh[fid])+' »</button>'
+            + '<button type="button" class="plsg'+(cur === '__skip' ? '' : ' alt')+'" data-xfpick="'+esc(fid+'|__skip')+'" aria-pressed="'+(cur === '__skip')+'">'+(cur === '__skip' ? '✓ ' : '')+'Ignorer cette personne</button></div></div>';
         }).join('') : '<p>Tous les noms existent déjà dans la liste.</p>')
       + (pl.ignored.length ? '<p class="xw">Lignes ignorées (poste inconnu) : '+esc(pl.ignored.join(', '))+'</p>' : '')
       + (!filled ? '<p class="xw">Aucun médecin trouvé dans le fichier.</p>' : '')
-      + '<p class="hint" style="color:var(--ink)">Les semaines déjà présentes sont remplacées. Vos gardes ne sont pas touchées.</p>'
+      + '<p class="hint" style="color:var(--ink)">Seules les personnes absentes du planning seront ajoutées (après confirmation). Rien n’est retiré.</p>'
       + '<p><strong>Que voulez-vous importer ?</strong></p>'
       + '<div class="xa" style="flex-direction:column;align-items:stretch"><button type="button" class="primary" id="xlApplyFrom"'+(filled && nFrom && canWrite ? '' : ' disabled')+'>À partir d’aujourd’hui ('+esc(fmtDM.format(new Date()))+') · '+nFrom+' semaine'+(nFrom > 1 ? 's' : '')+'</button>'
       + '<button type="button" class="ghost" id="xlApply"'+(filled && canWrite ? '' : ' disabled')+'>Tout importer · '+nAll+' semaine'+(nAll > 1 ? 's' : '')+'</button><button type="button" class="ghost" id="xlCancel">Annuler</button></div>'
@@ -3641,7 +3642,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const extrasOnly = !!(opt && opt.extrasOnly);
     if (!db || !canWrite || !trame) return false;
     const postIds = new Set(trame.postes.map(p=>p.id));
-    const mp = plan.pick || {}, rid = id => mp[id] || id;
+    const mp = plan.pick || {}, rid = id => mp[id] === '__skip' ? '' : (mp[id] || id);
     const freshL = {}; Object.keys(plan.fresh).forEach(k=>{ if (!mp[k]) freshL[k] = plan.fresh[k]; });
     try {
       let order = Math.max(0, ...Object.values(doctors).filter(d=>d.order !== 999).map(d=>d.order));
@@ -3688,7 +3689,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   }
   /* import prudent : on n'ajoute que les personnes absentes du planning déjà en place (rien n'est retiré ni remplacé) */
   function importAdds(pl){
-    const mp = pl.pick || {}, rid = id=>mp[id] || id, writes = [], seen = new Set(); let present = 0;
+    const mp = pl.pick || {}, rid = id => mp[id] === '__skip' ? '' : (mp[id] || id), writes = [], seen = new Set(); let present = 0;
     pl.weeks.forEach(w=>w.cells.forEach(c=>{
       const p = findPost(c.poste); if (!p || (p.journee && c.part === 'AM')) return;
       const v = vacWho(c.poste, c.date, c.part); if (v && v.ou) return;
@@ -3723,7 +3724,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       xlPlan = null; renderPlan(); return notify('Rien à ajouter : toutes les personnes du fichier sont déjà sur le planning.');
     }
     genImp = pl;
-    const info = [ad.present+' personne'+(ad.present > 1 ? 's' : '')+' du fichier '+(ad.present > 1 ? 'sont déjà' : 'est déjà')+' sur le planning : '+(ad.present > 1 ? 'elles sont ignorées' : 'elle est ignorée')];
+    const info = [(ad.present ? ad.present+' personne'+(ad.present > 1 ? 's' : '')+' du fichier '+(ad.present > 1 ? 'sont déjà' : 'est déjà')+' sur le planning : '+(ad.present > 1 ? 'elles sont ignorées' : 'elle est ignorée') : 'Aucune personne du fichier n’est déjà sur le planning')];
     if (nAbs) info.push(nAbs+' absence'+(nAbs > 1 ? 's' : '')+' du fichier seront aussi enregistrée'+(nAbs > 1 ? 's' : ''));
     genOpen('Import : personnes à ajouter', ad.writes, [{lvl: 'info', h: 'Seules les personnes absentes du planning sont ajoutées', l: info}]);
   }
