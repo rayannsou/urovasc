@@ -479,16 +479,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .confbtn small{font-weight:500;color:var(--ink);font-size:12px}
 .confbtn.on{border:1.5px solid #1E7B4B;background:#E4F4EA;color:#1E7B4B}
 :root[data-theme=dark] .confbtn.on{background:#173325;color:#7FD6A3;border-color:#3E8F63}
-.astmax{min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card,var(--bg));color:inherit;padding:0 8px;font:inherit;font-size:13px}/* palettes au choix (Réglages → Apparence) : actuelle (sans attribut), vert CHU, bleu CHU */
-:root[data-pal=chu]{--bg:#EFF5F1;--line:#D2E0D8;--ink:#13231B;--muted:#566A5F;--accent:#2A7552;--accent-ink:#FFFFFF;--accent-soft:#DDEFE5;--rdg:#D3EBDF;--rdg-ink:#145236;--garde:#6E4A86;--ast:#EFE1F3;--ast-ink:#5A2F70}
-:root[data-pal=chu] .top{background:linear-gradient(160deg,#BFE0CF 0%,#E3F1E9 85%)}
-:root[data-pal=chu][data-theme=dark]{--page:#0E1713;--bg:#0A110E;--surface:#17231D;--ink:#E5F0EA;--muted:#92A89C;--line:#2A3D33;--accent:#7FD1A6;--accent-ink:#08241A;--accent-soft:#1B3A2C;--rdg:#1F4A37;--rdg-ink:#CBEFDB;--garde:#B79BD0;--garde-ink:#1D1030;--ast:#33274A;--ast-ink:#DCC6EA}
-:root[data-pal=chu][data-theme=dark] .top{background:linear-gradient(160deg,#1E5238 0%,#173D2B 90%)}
-:root[data-pal=chub]{--bg:#EEF3F8;--line:#D3DEE9;--ink:#12202F;--muted:#566879;--accent:#2C5C9D;--accent-ink:#FFFFFF;--accent-soft:#DCE9F6;--rdg:#CFE4F4;--rdg-ink:#15385F;--garde:#6E4A86;--ast:#EFE1F3;--ast-ink:#5A2F70}
-:root[data-pal=chub] .top{background:linear-gradient(160deg,#BDD6EE 0%,#E3EEF8 85%)}
-:root[data-pal=chub][data-theme=dark]{--page:#0D1620;--bg:#09111A;--surface:#16222F;--ink:#E6EEF6;--muted:#93A7BA;--line:#2A3B4D;--accent:#8FC0EB;--accent-ink:#0B1B2B;--accent-soft:#1B3249;--rdg:#1F4466;--rdg-ink:#CBE3F7;--garde:#B79BD0;--garde-ink:#1D1030;--ast:#33274A;--ast-ink:#DCC6EA}
-:root[data-pal=chub][data-theme=dark] .top{background:linear-gradient(160deg,#1B3A5E 0%,#17304A 90%)}
-.pals{display:flex;gap:8px;margin-top:10px}.pals button{flex:1;min-height:56px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}.pals button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.pals i{display:flex;gap:3px}.pals i b{width:16px;height:16px;border-radius:50%;display:block}
+.astmax{min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card,var(--bg));color:inherit;padding:0 8px;font:inherit;font-size:13px}.pals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.pals button{min-height:56px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;font-weight:600;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}.pals button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.pals i{display:flex;gap:3px}.pals i b{width:16px;height:16px;border-radius:50%;display:block}
 </style>
 
 <div class="wrap">
@@ -849,7 +840,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           <p class="hint">Choisissez le mode clair ou sombre, ou laissez l’appareil décider.</p>
           <div class="thm" role="group" aria-label="Mode d’affichage"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Clair</button><button type="button" data-theme-set="dark">Sombre</button></div>
           <p class="hint" style="margin-top:12px">Palette de couleurs (propre à cet appareil).</p>
-          <div class="pals" role="group" aria-label="Palette de couleurs"><button type="button" data-pal-set=""><i><b style="background:#123F55"></b><b style="background:#BFE2EC"></b></i>Actuelle</button><button type="button" data-pal-set="chu"><i><b style="background:#2A7552"></b><b style="background:#479D72"></b></i>Vert CHU</button><button type="button" data-pal-set="chub"><i><b style="background:#2C5C9D"></b><b style="background:#569ECC"></b></i>Bleu CHU</button></div>
+          <div class="pals" id="palBox" role="group" aria-label="Palette de couleurs"></div>
         </div>
         <div class="card" id="creerCard">
           <h2>Planning du mois</h2>
@@ -3025,12 +3016,26 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
   const posteColor = id => { const i = trame ? trame.postes.findIndex(p=>p.id === id) : -1; return PCOL[(i < 0 ? 0 : i) % PCOL.length]; };
   const docStyle = id => { let h = 0; for (const ch of String(id)) h = (h*31 + ch.charCodeAt(0)) % 360; return document.documentElement.dataset.theme === 'dark' ? 'background:hsl('+h+' 32% 26%);color:hsl('+h+' 70% 88%)' : 'background:hsl('+h+' 70% 89%);color:hsl('+h+' 60% 20%)'; };
   const mqDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  /* palettes au choix : chaque palette est dérivée d'une couleur principale (teinte), en clair et en sombre */
+  const PALS = [{id: '', label: 'Actuelle', acc: '#123F55', h: 200}, {id: 'chu', label: 'Vert CHU', acc: '#2A7552', h: 151}, {id: 'chub', label: 'Bleu CHU', acc: '#2C5C9D', h: 214},
+    {id: 'bdx', label: 'Bordeaux', acc: '#8E2A3A', h: 351}, {id: 'violet', label: 'Violet', acc: '#6B4A9E', h: 263}, {id: 'turq', label: 'Turquoise', acc: '#0F7F86', h: 183},
+    {id: 'orange', label: 'Orange', acc: '#B8530F', h: 25}, {id: 'rose', label: 'Framboise', acc: '#B03A6F', h: 332}, {id: 'ardoise', label: 'Ardoise', acc: '#3F4B5A', h: 212}];
+  (function(){
+    const H = (h, sa, l) => 'hsl('+h+','+sa+'%,'+l+'%)';
+    const css = PALS.filter(x=>x.id).map(x=>{ const h = x.h, id = ':root[data-pal='+x.id+']';
+      return id+'{--bg:'+H(h,28,95)+';--line:'+H(h,20,85)+';--ink:'+H(h,32,10)+';--muted:'+H(h,12,38)+';--accent:'+x.acc+';--accent-ink:#FFFFFF;--accent-soft:'+H(h,45,91)+';--rdg:'+H(h,45,86)+';--rdg-ink:'+H(h,60,20)+';--garde:#6E4A86;--ast:#EFE1F3;--ast-ink:#5A2F70}'
+        + id+' .top{background:linear-gradient(160deg,'+H(h,40,82)+' 0%,'+H(h,45,93)+' 85%)}'
+        + id+'[data-theme=dark]{--page:'+H(h,26,8)+';--bg:'+H(h,26,6)+';--surface:'+H(h,20,12)+';--ink:'+H(h,25,92)+';--muted:'+H(h,12,64)+';--line:'+H(h,15,22)+';--accent:'+H(h,55,70)+';--accent-ink:'+H(h,50,10)+';--accent-soft:'+H(h,35,20)+';--rdg:'+H(h,40,24)+';--rdg-ink:'+H(h,50,88)+';--garde:#B79BD0;--garde-ink:#1D1030;--ast:#33274A;--ast-ink:#DCC6EA}'
+        + id+'[data-theme=dark] .top{background:linear-gradient(160deg,'+H(h,40,24)+' 0%,'+H(h,40,17)+' 90%)}'; }).join('\n');
+    const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+    const box = document.getElementById('palBox'); if (box) box.innerHTML = PALS.map(x=>'<button type="button" data-pal-set="'+x.id+'"><i><b style="background:'+x.acc+'"></b><b style="background:'+H(x.h,45,86)+';border:1px solid #0002"></b></i>'+x.label+'</button>').join('');
+  })();
   let palMode = ''; try { palMode = localStorage.getItem('planning-pal') || ''; } catch(e) {}
   function applyPal(pal){
-    if (pal !== 'chu' && pal !== 'chub') pal = '';
+    const def = PALS.find(x=>x.id === pal); if (!def) pal = '';
     const r = document.documentElement; if (pal) r.dataset.pal = pal; else delete r.dataset.pal;
     document.querySelectorAll('[data-pal-set]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.palSet === pal)));
-    try { const mt = document.querySelector('meta[name=theme-color]'); if (mt) { const dark = r.dataset.theme === 'dark'; mt.content = dark ? (pal === 'chu' ? '#0E1713' : pal === 'chub' ? '#0D1620' : '#0F1715') : (pal === 'chu' ? '#2A7552' : pal === 'chub' ? '#2C5C9D' : '#17465A'); } } catch(e) {}
+    try { const mt = document.querySelector('meta[name=theme-color]'); if (mt) { const dark = r.dataset.theme === 'dark', d = PALS.find(x=>x.id === pal) || PALS[0]; mt.content = dark ? (pal ? 'hsl('+d.h+',26%,8%)' : '#0F1715') : (pal ? d.acc : '#17465A'); } } catch(e) {}
   }
   document.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-pal-set]'); if (!b) return; palMode = b.dataset.palSet; try { localStorage.setItem('planning-pal', palMode); } catch(err) {} applyPal(palMode); if (typeof renderAll === 'function') renderAll(); });
   function applyTheme(mode, rerender){
