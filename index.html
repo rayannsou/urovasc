@@ -1825,7 +1825,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     return h + '</div>';
   }
   function intModified(){ return !!(Object.keys(intNeed).length || Object.keys(intNeedHP).length || Object.values(intOnlyAuto).some(Boolean) || Object.values(intNon).some(Boolean)); }
-  function intCustomBtn(){ return '<button type="button" class="astbtn" data-intcustom="1" aria-expanded="'+intCustom+'">⚙ Personnalisé'+(intModified() ? ' · modifié' : '')+' <small>'+(intCustom ? '▲' : '▼')+'</small></button>'+(intCustom ? '' : '<p class="hint" style="margin:6px 0 10px">Par défaut : 2 internes à l’écho et au scanner des urgences (1 autonome minimum), 1 ailleurs. Touchez « Personnalisé » pour choisir les effectifs et l’autonomie.</p>'); }
+  function intCustomBtn(){ return '<button type="button" class="astbtn" data-intcustom="1" aria-expanded="'+intCustom+'">⚙ Personnalisé'+(intModified() ? ' · modifié' : '')+' <small>'+(intCustom ? '▲' : '▼')+'</small></button>'+(intCustom ? '' : '<p class="hint" style="margin:6px 0 10px">Par défaut : 2 internes à l’écho et au scanner des urgences, 1 sur chaque autre vacation de la trame. Touchez « Personnalisé » pour choisir les effectifs par poste.</p>'); }
   function intNeedUI(){
     const posts = intPosts(); if (!posts.length) return '';
     const dn = ['Lun','Mar','Mer','Jeu','Ven'];
@@ -1833,7 +1833,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       const d = intNeed[p.id] != null ? intNeed[p.id] : (INT_RULES.need[p.id] != null ? INT_RULES.need[p.id] : INT_RULES.defaut), open = intOpen === p.id, ov = Object.keys(intNeedHP).some(k=>k.startsWith(p.id+'|'));
       let g = '';
       if (open) g = '<div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+dn[i]+'</small>'+['M','AM'].map(part=>okDay(p, i) ? '<button type="button" data-inthp="'+esc(p.id+'|'+i+'|'+part)+'" class="'+(intNeedHP[p.id+'|'+i+part] != null ? 'ov' : '')+'" aria-label="'+dn[i]+' '+(part === 'M' ? 'matin' : 'après-midi')+' : '+intNeedOf(p.id, i, part)+'">'+intNeedOf(p.id, i, part)+'</button>' : '<span class="intna">–</span>').join('')+'</div>').join('')+'</div><p class="hint" style="margin:2px 0 0">Ligne du haut : matin · bas : après-midi. Touchez un chiffre pour le changer (0 à 3).</p>';
-      return '<div class="intnr"><div class="intnh"><span><b>'+esc(p.label)+'</b>'+(p.id === 'bloc' ? ' <small>(facultatif)</small>' : '')+'</span><span class="intst"><button type="button" data-intn="'+esc(p.id)+'|-1" aria-label="Moins">−</button><output>'+d+'</output><button type="button" data-intn="'+esc(p.id)+'|1" aria-label="Plus">+</button></span></div><button type="button" class="ghost intopen" data-intopen="'+esc(p.id)+'">'+(open ? 'Masquer' : (ov ? 'Par demi-journée (modifié)' : 'Par demi-journée'))+'</button>'+g+'</div>';
+      return '<div class="intnr"><div class="intnh"><span><b>'+esc(p.label)+'</b>'+(INT_RULES.facultatif.includes(p.id) ? ' <small>(facultatif)</small>' : '')+'</span><span class="intst"><button type="button" data-intn="'+esc(p.id)+'|-1" aria-label="Moins">−</button><output>'+d+'</output><button type="button" data-intn="'+esc(p.id)+'|1" aria-label="Plus">+</button></span></div><button type="button" class="ghost intopen" data-intopen="'+esc(p.id)+'">'+(open ? 'Masquer' : (ov ? 'Par demi-journée (modifié)' : 'Par demi-journée'))+'</button>'+g+'</div>';
     }).join('');
     return '<div class="intq"><p class="aststat"><b>Combien d’internes par poste ?</b></p><p class="hint">Choisissez l’effectif souhaité par vacation. Par exemple : 2 à l’échographie et 1 au scanner RdC, puis « Par demi-journée » pour ajuster un jour précis. 0 = personne.</p>'+rows+'<button type="button" class="ghost" data-intreset="1">Remettre les valeurs par défaut</button></div>';
   }
@@ -1856,7 +1856,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       + astMonthList().map(m=>{ const n = astMissing([m]).length; return '<label class="astrow" style="cursor:pointer"><span><input type="checkbox" data-astm="'+m+'"'+(astSel.includes(m) ? ' checked' : '')+' style="margin-right:8px"><b>'+esc(monthLbl(m))+'</b></span><small class="aststat '+(n ? 'ko' : 'ok')+'">'+(n ? n+' personne'+(n > 1 ? 's n’ont' : ' n’a')+' pas renseigné' : '✓ tout le monde a renseigné')+'</small></label>'; }).join('')
       + '<button type="button" class="astbtn go" data-astmgo="1"'+(astSel.length ? '' : ' disabled')+' style="margin-top:8px">Continuer'+(astSel.length ? ' ('+astSel.length+' mois)' : '')+'</button>';
     else if (plStage === 'man') box.innerHTML = back;
-    else box.innerHTML = back + (plGrp === 'interne' && !ast ? intCustomBtn() : '') + (plGrp === 'interne' && !ast && intCustom ? '<div class="intq"><p class="aststat"><b>Échographie et scanner des urgences</b> : uniquement des internes autonomes ?</p><p class="hint">Par défaut : 1 autonome + 1 autre (autonome ou non). Il peut donc n’y avoir aucun interne « pas autonome » si les autonomes suffisent. Touchez « Que des autonomes » pour l’imposer. À l’échographie, « 2 non autonomes » est aussi possible.</p>'+[['echo','Échographie'],['scanner-urg','Scanner des urgences']].filter(q=>trame.postes.some(p=>p.id === q[0])).map(q=>'<div class="intqr"><span>'+q[1]+'</span><div class="astpair"><button type="button" class="astbtn" data-intauto="'+q[0]+'|1" aria-pressed="'+!!intOnlyAuto[q[0]]+'">Que des autonomes</button><button type="button" class="astbtn" data-intauto="'+q[0]+'|0" aria-pressed="'+(!intOnlyAuto[q[0]] && !intNon[q[0]])+'">1 autonome + 1 autre</button>'+(q[0] === 'echo' ? '<button type="button" class="astbtn" data-intauto="echo|2" aria-pressed="'+!!intNon.echo+'">2 non autonomes</button>' : '')+'</div></div>').join('')+'</div>' : '') + (plGrp === 'interne' && !ast && intCustom ? intNeedUI() : '') + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
+    else box.innerHTML = back + (plGrp === 'interne' && !ast ? '<div class="intq"><p class="aststat"><b>Échographie et scanner des urgences</b> : uniquement des internes autonomes ?</p><p class="hint">Par défaut : 1 autonome + 1 autre (autonome ou non). Il peut donc n’y avoir aucun interne « pas autonome » si les autonomes suffisent. Touchez « Que des autonomes » pour l’imposer. À l’échographie, « 2 non autonomes » est aussi possible.</p>'+[['echo','Échographie'],['scanner-urg','Scanner des urgences']].filter(q=>trame.postes.some(p=>p.id === q[0])).map(q=>'<div class="intqr"><span>'+q[1]+'</span><div class="astpair"><button type="button" class="astbtn" data-intauto="'+q[0]+'|1" aria-pressed="'+!!intOnlyAuto[q[0]]+'">Que des autonomes</button><button type="button" class="astbtn" data-intauto="'+q[0]+'|0" aria-pressed="'+(!intOnlyAuto[q[0]] && !intNon[q[0]])+'">1 autonome + 1 autre</button>'+(q[0] === 'echo' ? '<button type="button" class="astbtn" data-intauto="echo|2" aria-pressed="'+!!intNon.echo+'">2 non autonomes</button>' : '')+'</div></div>').join('')+'</div>' : '') + (plGrp === 'interne' && !ast ? intCustomBtn() : '') + (plGrp === 'interne' && !ast && intCustom ? intNeedUI() : '') + '<button type="button" class="astbtn go" data-astassign="1"'+dis+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'
       + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p><p class="aststat">Vous pourrez relire et confirmer chaque vacation avant l’enregistrement.</p>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
@@ -1989,7 +1989,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     sansInterne: [{re: /scanner[\s_-]*sa\b/i, slots: ['3M']}],   /* scanner SA le jeudi matin : personne, sauf mention contraire (interne déjà posé à la main) */
     maxRenfort: 3,                              /* au plus 3 internes à l'écho / au scanner urgences ; les autres sont off */
     seniorRequis: ['bloc'],                    /* pas d'interne sans médecin senior posté sur la vacation */
-    facultatif: ['bloc'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
+    facultatif: ['bloc','rcp'],                      /* pas obligatoire d'y mettre un interne : rempli avec ceux qui restent */
     priorite: ['scanner-urg', 'echo'],         /* si les autonomes manquent, le scanner des urgences est servi en premier */
     exclus: /consult|formation|admin|recherche|cours|\bfac\b|[eé]cho[\s_-]?sa\b|bloc[\s_-]*(des[\s_-]*)?urg/i,                        /* postes où l'on ne met jamais d'internes (testé sur l'identifiant et le nom) */
     blocJournee: true                          /* le bloc se fait de préférence toute la journée, mais peut être coupé */
@@ -2015,7 +2015,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
       if (!okDay(p, h.i) || (p.journee && h.part !== 'M') || R.exclus.test(p.id+' '+p.label)) return;
       if (R.seulement[p.id] && !R.seulement[p.id].includes(h.i+h.part)) return;
       let v = vacWho(p.id, h.k, h.part); if (!v) { if (R.toujours.includes(p.id)) v = {who: [], stars: [], ou: false, texte: '', edited: false, open: false}; else return; }
-      if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
+      if (v.texte && !v.who.length && !R.toujours.includes(p.id)) return;   /* mention seule (fermée, ostéo, gynéco…) : pas de vacation à pourvoir */
       if (v.ou) { noOu.push(p.label+' '+fmtShort.format(parse(h.k))+' '+PART_TXT[h.part]); return; }   /* « à confirmer » côté seniors : on n'y touche pas */
       const ov = overrides[h.k] && overrides[h.k][p.id+'_'+h.part], mine = ov && ov.w ? ov.w.filter(inGrp) : [];
       const nd = intNeedOf(p.id, h.i, h.part); if (nd <= 0) return;
@@ -2129,7 +2129,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
         while (guard-- > 0 && (sl.pick.length < sl.need || (nA && !sl.pick.some(isAuto)))) {
           const needAuto = nA && !sl.pick.some(isAuto), okc = id => !sl.pick.includes(id) && (!needAuto || isAuto(id)) && (!intOnlyAuto[sl.p.id] || isAuto(id));
           let src = null;
-          for (const b of here) { if (b.p.id === 'bloc' && !b.keep && b.pick) { const c = b.pick.find(okc); if (c) { src = {b, id: c}; break; } } }
+          for (const b of here) { if (R.facultatif.includes(b.p.id) && !b.keep && b.pick) { const c = b.pick.find(okc); if (c) { src = {b, id: c}; break; } } }
           if (!src) { const c = ints.map(d=>d.id).filter(id=>okc(id) && okAt(id, h) && off[id].has(h.id) && !taken[h.id].has(id)).sort((a,b)=>off[b].size - off[a].size)[0]; if (c) src = {id: c, off: true}; }
           if (!src) break;
           if (src.b) src.b.pick.splice(src.b.pick.indexOf(src.id), 1);
@@ -2197,6 +2197,8 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const notes = [];
     const allDay = []; days.forEach(k=>{ const m = slots.find(x=>x.p.id === 'echo' && x.h.k === k && x.h.part === 'M'), a = slots.find(x=>x.p.id === 'echo' && x.h.k === k && x.h.part === 'AM'); if (m && a && m.pick && a.pick) m.pick.filter(id=>a.pick.includes(id)).forEach(id=>allDay.push(dLabel(id)+' ('+fmtShort.format(parse(k))+')')); });
     notes.push(bad.length ? {lvl: 'bad', h: 'Vacations obligatoires sans interne', l: bad.map(b=>({t: b.t, wi: b.wi})), fold: true, force: true} : {lvl: 'ok', h: 'Vacations obligatoires sans interne', l: [], zero: true});
+    { const by = {}; slots.forEach(sl=>{ if (sl.noSr || R.facultatif.includes(sl.p.id)) return; const o = by[sl.p.label] = by[sl.p.label] || {n: 0, ok: 0}; o.n++; if ((sl.keep || sl.pick || []).length) o.ok++; });
+      const rc = Object.keys(by).map(l=>l+' : '+by[l].ok+' / '+by[l].n+' vacation'+(by[l].n > 1 ? 's' : '')); if (rc.length) notes.push({lvl: 'info', h: 'Vacations pourvues par poste', l: rc, fold: true}); }
     if (noOu.length) notes.push({lvl: 'info', h: 'Vacations « à confirmer » côté seniors : laissées telles quelles', l: noOu, fold: true});
     if (noSrBloc.length) notes.push({lvl: 'info', h: 'Bloc sans médecin senior posté : aucun interne (les internes seuls sont retirés)', l: noSrBloc, fold: true});
     if (allDay.length) notes.push({lvl: 'info', h: 'À l’écho toute la journée (faute d’autre interne disponible)', l: allDay});
