@@ -1499,7 +1499,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const butFmt = k => new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long', year:'numeric'}).format(parse(k));
   const butBk = (kind, m) => kind+'|'+m;
   function butLocked(id, k, kind){
-    if (id !== me || isButAdmin() || typeof k !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(k)) return false;
+    if (id !== me || typeof k !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(k)) return false;
     kind = kind || butKindNow();
     const m = k.slice(0,7), dl = butDl(id, kind, m);
     return !!dl && key(new Date()) >= dl && !(butoir.unlock[butBk(kind,m)] || []).includes(id);
@@ -1528,7 +1528,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const dl = butDl(me, kind, m); if (!dl) return '';
       const bk = butBk(kind, m);
       if ((butoir.unlock[bk] || []).includes(me) && key(new Date()) >= dl) return '<div class="butban ok">✓ '+esc(dLabel(butAdminOf(butGrpOf(me))))+' vous a autorisé(e) à modifier vos indisponibilités ('+esc(BUT_KIND[kind])+') de '+esc(monthLbl(m))+'.</div>';
-      if (butLocked(me, m+'-01', kind)) return '<div class="butban lock"><span>🔒 Indisponibilités ('+esc(BUT_KIND[kind])+') de '+esc(monthLbl(m))+' verrouillées depuis le '+esc(butFmt(dl))+'.</span>'+(butoir.req[bk] && butoir.req[bk][me] ? '<small>Demande envoyée à '+esc(dLabel(butAdminOf(butGrpOf(me))))+'</small>' : '<button type="button" class="ghost" data-butask="'+bk+'">Demander une modification</button>')+'</div>';
+      if (butLocked(me, m+'-01', kind)) return '<div class="butban lock"><span>🔒 Indisponibilités ('+esc(BUT_KIND[kind])+') de '+esc(monthLbl(m))+' verrouillées depuis le '+esc(butFmt(dl))+'.</span>'+(isButAdmin() && butGrps().includes(butGrpOf(me)) ? '<button type="button" class="ghost" data-butself="'+bk+'">Me déverrouiller</button>' : butoir.req[bk] && butoir.req[bk][me] ? '<small>Demande envoyée à '+esc(dLabel(butAdminOf(butGrpOf(me))))+'</small>' : '<button type="button" class="ghost" data-butask="'+bk+'">Demander une modification</button>')+'</div>';
       return '';
     }).join('');
   }
@@ -1632,7 +1632,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
     /* onglet Mes indisponibilités : menu déroulant par jour */
     const inList = inMode === 'sat' ? [...Array(8)].map((_,j)=>[addDays(myWeek,5+7*j),5]) : [0,1,2,3,4,5].map(j=>[days[j],j]);
-    $('#myDays').innerHTML = inList.map(([d,i])=>{
+    const lockMs = [...new Set(inList.map(x=>key(x[0]).slice(0,7)))].filter(m=>butLocked(me, m+'-01'));
+    $('#myDays').innerHTML = butBanners(lockMs) + inList.map(([d,i])=>{
       const k = key(d), inf = dayInfo(doc,k), own = doc.days[k] || '';
       let body = '';
       if (own === 'G') body += '<span class="none-txt">Repos de garde posé le '+esc(fmtShort.format(addDays(d,1)))+'</span>';
@@ -3268,6 +3269,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const t = e.target.closest && e.target; if (!t) return;
     const ak = t.closest('[data-butask]'); if (ak) return butAsk([ak.dataset.butask]);
     const gb = t.closest('[data-butgrp]'); if (gb) { butSel = gb.dataset.butgrp; return renderBut(); }
+    const sf = t.closest('[data-butself]'); if (sf) { if (!db || !me || !isButAdmin()) return; const bk = sf.dataset.butself; try { await db.doc('meta/butoir').update({unlock: {[bk]: (butoir.unlock[bk] || []).filter(x=>x !== me).concat([me])}}); notify('Vous pouvez modifier vos indisponibilités ('+butLbl(bk)+').'); } catch(err) { handleErr(err); } return; }
     const kb = t.closest('[data-butkind]'); if (kb) { butKind = kb.dataset.butkind; return renderBut(); }
     if (t.closest('[data-butgo]')) { e.preventDefault(); e.stopPropagation(); butKind = butKindNow(); showTab('reglages'); const f = $('#butFold'); if (f) { f.open = true; setTimeout(()=>{ try { f.scrollIntoView({block: 'start'}); } catch(err) {} }, 50); } return; }
     const ok = t.closest('[data-butok]'), lk = t.closest('[data-butlock]');
