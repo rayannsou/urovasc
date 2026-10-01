@@ -1839,7 +1839,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
 
   function renderAll(){
-    renderRenMe(); renderBut(); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderBut(); renderAdminTabs(); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
 
@@ -2951,7 +2951,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }).join('');
     out.innerHTML = h || '<p class="empty">Rien de prévu ce jour-là'+(wk > 4 ? ' (week-end)' : '')+'.</p>';
   }
+  function renderAdminTabs(){ const b = $('#tab-plan'); if (b) b.style.setProperty('display', isRim() ? '' : 'none', 'important'); if (!isRim() && $('#view-plan') && !$('#view-plan').hidden) showTab('auj'); }   /* « Créer un planning » : Rim et Rayann seulement */
   function showTab(t){
+    if (t === 'plan' && !isRim()) t = 'auj';
     document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected', String(x.dataset.tab === t)));
     ['auj','moi','general','plan','creer','indispos','echanges','reglages','recherche'].forEach(v=>{ $('#view-'+v).hidden = v !== t; });
     const hl = t === 'creer' ? 'reglages' : t === 'moi' ? 'auj' : t;
