@@ -3269,7 +3269,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const t = e.target.closest && e.target; if (!t) return;
     const ak = t.closest('[data-butask]'); if (ak) return butAsk([ak.dataset.butask]);
     const gb = t.closest('[data-butgrp]'); if (gb) { butSel = gb.dataset.butgrp; return renderBut(); }
-    const sf = t.closest('[data-butself]'); if (sf) { if (!db || !me || !isButAdmin()) return; const bk = sf.dataset.butself; try { await db.doc('meta/butoir').update({unlock: {[bk]: (butoir.unlock[bk] || []).filter(x=>x !== me).concat([me])}}); notify('Vous pouvez modifier vos indisponibilités ('+butLbl(bk)+').'); } catch(err) { handleErr(err); } return; }
+    const sf = t.closest('[data-butself]'); if (sf) { if (!db || !me || !isButAdmin()) return; const bk = sf.dataset.butself; const code = window.prompt('Code de déverrouillage :'); if (code === null) return; if (code.trim().toLowerCase() !== 'grenier') return notify('Code incorrect.', true); try { await db.doc('meta/butoir').update({unlock: {[bk]: (butoir.unlock[bk] || []).filter(x=>x !== me).concat([me])}}); notify('Vous pouvez modifier vos indisponibilités ('+butLbl(bk)+').'); } catch(err) { handleErr(err); } return; }
     const kb = t.closest('[data-butkind]'); if (kb) { butKind = kb.dataset.butkind; return renderBut(); }
     if (t.closest('[data-butgo]')) { e.preventDefault(); e.stopPropagation(); butKind = butKindNow(); showTab('reglages'); const f = $('#butFold'); if (f) { f.open = true; setTimeout(()=>{ try { f.scrollIntoView({block: 'start'}); } catch(err) {} }, 50); } return; }
     const ok = t.closest('[data-butok]'), lk = t.closest('[data-butlock]');
