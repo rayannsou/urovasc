@@ -2343,7 +2343,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
     const idOf = label => { const n = normS(label); if (known[n]) return known[n]; const c = Object.keys(known).filter(k=>k.length >= 3 && n.length >= 3 && lev(k,n) <= 1); return c.length === 1 ? known[c[0]] : null; };
     const unknown = new Set(), writes = [], seen = new Set();
     const push = (date, poste, part, ids) => {
-      const cur = (vacWho(poste, date, part) || {who: []}).who;
+      ids = ids.filter(inGrp);   /* seuls les noms du groupe choisi sont importés */
+      const cur = (vacWho(poste, date, part) || {who: []}).who.filter(inGrp);
+      if (!ids.length) return;
       if (cur.length === ids.length && cur.every(x=>ids.includes(x))) return;
       slotParts(poste, part).forEach(pt=>{ const sg = date+'|'+poste+'|'+pt; if (seen.has(sg)) return; seen.add(sg); writes.push({k: date, kk: poste+'_'+pt, val: {w: ids, t: 0}, poste, part: pt, before: cur.slice(), after: ids.slice()}); });
     };
@@ -3647,13 +3649,14 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
           if (!ids.length && !c.x) return;
           const val = {w: baseW(c.date, c.poste, c.part).filter(id=>!inGrp(id)).concat(ids.filter(id=>inGrp(id))), t: Date.now()}, st = c.people.filter(p=>p.star && p.id && inGrp(rid(p.id))).map(p=>rid(p.id));
           if (!ids.filter(id=>inGrp(id)).length && !c.x && !val.w.length) return;
-          if (st.length) val.s = st; if (c.x) val.x = c.x;
+          const keepS = ((vacWho(c.poste, c.date, c.part) || {}).stars || []).filter(id=>!inGrp(id) && val.w.includes(id));   /* étoiles de l'autre groupe conservées */
+          if (st.length || keepS.length) val.s = st.concat(keepS); if (c.x) val.x = c.x;
           byDate[c.date][c.poste+'_'+c.part] = val;
         });
         for (const d of w.dates.filter(d=>{ const im = impMode(); if (!im) return true; const sat = parse(d).getDay() === 6; return im === 'ast' ? sat : !sat; })) {
           const ref = db.doc('ajustements/'+d);
           /* le reste de la journée : on retire seulement les personnes de son groupe */
-          Object.keys(overrides[d] || {}).forEach(kk=>{ if (byDate[d][kk]) return; const o = overrides[d][kk], keepW = (o.w || []).filter(id=>!inGrp(id)); if (keepW.length || o.x) byDate[d][kk] = Object.assign({}, o, {w: keepW}); });
+          Object.keys(overrides[d] || {}).forEach(kk=>{ if (byDate[d][kk]) return; const o = overrides[d][kk], keepW = (o.w || []).filter(id=>!inGrp(id)); if (keepW.length || o.x) byDate[d][kk] = Object.assign({}, o, {w: keepW, s: (o.s || []).filter(id=>keepW.includes(id))}); });
           if (Object.keys(byDate[d]).length) await ref.set(byDate[d]);
           else if (overrides[d] && Object.keys(overrides[d]).length) await ref.delete();
           const items = w.notes.filter(n=>n.date === d).map(n=>n.text);
