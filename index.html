@@ -1938,10 +1938,10 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const row = (ok, txt)=>'<div class="plrow '+(ok === 1 ? 'ok' : ok === 0 ? 'ko' : 'mid')+'"><span class="pt">'+(ok === 1 ? '✅ ' : ok === 0 ? '⛔ ' : '🟠 ')+txt+'</span></div>';
     let h = '<div class="plstat">' + (!plStage || plMode === 'ast' ? '' : row(!n ? 0 : f === n ? 1 : f ? 2 : 0, 'Semaine du '+esc(fmtDM.format(plStart))+' : '+(!n ? 'aucune vacation' : f === n ? 'planning fait' : f ? 'à compléter' : 'pas encore fait')+' <small>('+f+' pourvues sur '+n+' à pourvoir)</small>'));
     const ap = trame.postes.find(isSam);
-    if (ap) { const sats = astSatsOf(astMonthList().slice(0,1).concat(astMonthList().slice(1,2))).filter(d=>d >= addDays(new Date(), -6)).slice(0,6), fs_ = sats.filter(d=>{ const v = vacWho(ap.id, key(d), 'M'); return v && v.who.filter(inGrp).length; }).length; if (sats.length) h += row(fs_ === sats.length ? 1 : fs_ ? 2 : 0, 'Astreintes des '+sats.length+' prochains samedis : '+(fs_ === sats.length ? 'faites' : fs_ ? 'à compléter' : 'pas encore faites')+' <small>('+fs_+' / '+sats.length+')</small>'); }
+    if (ap && plMode === 'ast' && plStage) { const sats = astSatsOf(astMonthList().slice(0,1).concat(astMonthList().slice(1,2))).filter(d=>d >= addDays(new Date(), -6)).slice(0,6), fs_ = sats.filter(d=>{ const v = vacWho(ap.id, key(d), 'M'); return v && v.who.filter(inGrp).length; }).length; if (sats.length) h += row(fs_ === sats.length ? 1 : fs_ ? 2 : 0, 'Astreintes des '+sats.length+' prochains samedis : '+(fs_ === sats.length ? 'faites' : fs_ ? 'à compléter' : 'pas encore faites')+' <small>('+fs_+' / '+sats.length+')</small>'); }
     /* 3e ligne : qui n'a pas renseigné ses indispos, avec un bouton de rappel (notification) */
-    if (plGrp) { const mm = astMissing(astMonths()), lbl = plGrp === 'interne' ? 'interne' : 'médecin';
-      h += '<div class="plrow '+(mm.length ? 'ko' : 'ok')+' plrem"><span class="pt"'+(mm.length && canSeeMiss() ? ' data-astmiss="1" role="button" tabindex="0"' : '')+'>'+(mm.length ? '⛔ '+mm.length+' '+lbl+(mm.length > 1 ? 's n’ont pas renseigné leurs' : ' n’a pas renseigné ses')+' indispos' : '✅ Tous les '+lbl+'s ont renseigné leurs indispos')+(mm.length && canSeeMiss() ? ' <span class="plgo">Voir qui ›</span>' : '')+'</span>'
+    if (plGrp && ['how','auto','man','astm','astask'].includes(plStage)) { const mm = astMissing(astMonths()), lbl = plGrp === 'interne' ? 'interne' : 'médecin';
+      h += '<div class="plrow '+(mm.length ? 'ko' : 'ok')+' plrem"><span class="pt"'+(mm.length && canSeeMiss() ? ' data-astmiss="1" role="button" tabindex="0"' : '')+'>'+(mm.length ? '⛔ '+mm.length+' '+lbl+(mm.length > 1 ? 's n’ont pas renseigné leurs' : ' n’a pas renseigné ses')+' indispos'+(plMode === 'ast' ? '' : ' <small>(semaine du '+esc(fmtDM.format(plStart))+')</small>') : '✅ Tous les '+lbl+'s ont renseigné leurs indispos')+(mm.length && canSeeMiss() ? ' <span class="plgo">Voir qui ›</span>' : '')+'</span>'
         + (mm.length && canSeeMiss() ? '<button type="button" class="ghost" data-remind="1"'+(canWrite ? '' : ' disabled')+'>🔔 Rappel</button>' : '')+'</div>'; }
     return h + '</div>';
   }
@@ -2039,7 +2039,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   function renderMiss(){
     const months = astMonths(), miss = astMissing(months), all = grpDocs();
     const done = all.filter(d=>!d.noAst && !miss.includes(d)), excl = all.filter(d=>d.noAst);
-    $('#astShS').textContent = 'Période : '+months.map(monthLbl).join(' et ');
+    $('#astShS').textContent = plMode === 'ast' ? 'Période : '+months.map(monthLbl).join(' et ') : 'Semaine du '+fmtDM.format(plStart)+' ('+months.map(monthLbl).join(' et ')+')';
     const mxSel = d => plMode === 'ast' ? '<select class="astmax" data-astmax="'+esc(d.id)+'" aria-label="Nombre maximum d’astreintes pour '+esc(d.label)+'"'+(canWrite ? '' : ' disabled')+'><option value="0">Max : —</option>'+[1,2,3,4,5,6].map(n=>'<option value="'+n+'"'+(d.astMax === n ? ' selected' : '')+'>Max : '+n+'</option>').join('')+'</select> ' : '';
     const row = (d, extra, btn) => '<div class="astrow"><span><b>'+esc(d.label)+'</b>'+(extra ? ' <small>'+extra+'</small>' : '')+'</span>'+btn+'</div>';
     let h = '';
