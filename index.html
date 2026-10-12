@@ -2266,7 +2266,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
     const months = astMonths(), miss = astMissing(months);
     if (miss.length && !force) return openMiss(true);
-    const posts = trame.postes.filter(p=>!p.info && !isSam(p)), docs = grpDocs();
+    const posts = trame.postes.filter(p=>!p.info && !isSam(p)), docs = grpDocs(), eqAll = eqCounts();
     const load = {};
     let done = 0, holes = 0, ous = 0; const writes = [], holeL = [], by = {};
     for (let i = 0; i < 5; i++) {
@@ -2300,11 +2300,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           Object.keys(trame.cases).forEach(c=>{ if (c.indexOf(p.id+'_') === 0 && c.slice(-part.length-1) === '_'+part) { const w = trame.cases[c].who; if (Array.isArray(w)) w.forEach(id=>{ freq[id] = (freq[id]||0) + 2; }); } });
           const pool = (v.ou ? v.who.concat(docs.map(d=>d.id).filter(id=>!v.who.includes(id) && freq[id])) : docs.map(d=>d.id))
             .filter((id, ix, ar)=>ar.indexOf(id) === ix && !keep.includes(id) && !taken.has(id) && !reasonFor(id, k, part));
-          pool.sort((a,b)=>(v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || ((freq[b]||0) - (freq[a]||0)) || ((load[a]||0) - (load[b]||0)));
+          const eqP = eqAll.post[p.id] || {};   /* équité : le moins sollicité sur ce poste d'abord, puis sur l'ensemble des postes */
+          pool.sort((a,b)=>(v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || ((eqP[a]||0) - (eqP[b]||0)) || ((eqAll.tot[a]||0) - (eqAll.tot[b]||0)) || ((load[a]||0) - (load[b]||0)));
           const eligible = pool.filter(id=>freq[id]);
           const res = keep.slice();
           while (res.length < need && eligible.length) { const id = eligible.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; }
-          if (mn && res.length < need) { const rest = pool.filter(id=>!res.includes(id) && !taken.has(id)).sort((a,b)=>(load[a]||0) - (load[b]||0)); while (res.length < need && rest.length) { const id = rest.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; } }   /* poste à effectif minimum : à défaut d'historique, les moins chargés */
+          if (mn && res.length < need) { const rest = pool.filter(id=>!res.includes(id) && !taken.has(id)).sort((a,b)=>((eqAll.tot[a]||0) - (eqAll.tot[b]||0)) || ((load[a]||0) - (load[b]||0))); while (res.length < need && rest.length) { const id = rest.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; } }   /* poste à effectif minimum : à défaut d'historique, les moins chargés */
           if (res.length < need) { holes++; holeL.push({t: p.label+' '+fmtShort.format(parse(k))+' '+PART_TXT[part]+' : '+(res.length ? res.length+' médecin'+(res.length > 1 ? 's' : '')+' au lieu de '+need : 'personne de disponible'), wi: writes.length, nt: !res.length}); }
           else rec.ok++;
           const phw = v.ou && !res.length;   /* « à confirmer » sans remplaçant : écriture masquée, activée seulement si on force quelqu'un */
@@ -2433,9 +2434,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       (best || []).forEach(h=>{ blocRes[h.id] = d.id; resN[h.id]++; if (isAuto(d.id)) resA[h.id]++; });
     });
     /* affectations, demi-journée par demi-journée */
+    const eqI = eqCounts(), eqMeanP = {}, idsI = ints.map(d=>d.id); trame.postes.forEach(p=>{ eqMeanP[p.id] = idsI.length ? idsI.reduce((a,x)=>a+((eqI.post[p.id] || {})[x] || 0), 0) / idsI.length : 0; });
+    const eqMeanT = idsI.length ? idsI.reduce((a,x)=>a+(eqI.tot[x] || 0), 0) / idsI.length : 0;
     const load = {}, prev = {}, writes = [], noAuto = [], holes = [], relaxed = []; let ouWarn = 0;
     const score = (id, sl)=>{
-      let sc = ((freq[id] && freq[id][sl.p.id]) || 0) * 3 - (load[id] || 0) * 2;
+      const ep = eqI.post[sl.p.id] || {}, dev = (ep[id] || 0) - (eqMeanP[sl.p.id] || 0), devT = (eqI.tot[id] || 0) - eqMeanT;
+      let sc = -Math.max(-10, Math.min(10, dev * 0.8)) - Math.max(-6, Math.min(6, devT * 0.15)) + Math.min(((freq[id] && freq[id][sl.p.id]) || 0), 4) * 0.3 - (load[id] || 0) * 2;   /* équité sur une longue période : moins on a fait ce poste, plus on est favorisé */
       const pv = prev[sl.h.k+'|M'];
       if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : sl.p.id === 'echo' ? -12 : 2;   /* pas à l'écho toute la journée */
       if (!R.autonomie.includes(sl.p.id) && isAuto(id)) sc -= 1.5;
@@ -2594,13 +2598,35 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     });
   }
   /* justification d'un choix : trame, fréquence sur ce poste, charge */
+  /* équité : nombre de demi-vacations tenues par chacun, poste par poste, sur une longue période (26 semaines avant, 8 après ; la semaine générée est exclue) */
+  const EQ_BACK = 26, EQ_FWD = 8; let eqCache = null;
+  function eqCounts(){
+    const ck = key(plStart);
+    if (eqCache && eqCache.ck === ck && eqCache.ov === overrides && eqCache.sw === swaps && eqCache.tr === trame) return eqCache.v;
+    const v = {post: {}, tot: {}};
+    if (trame) {
+      const posts = trame.postes.filter(p=>!p.info && !isSam(p)), from = addDays(plStart, -7*EQ_BACK), to = addDays(plStart, 7*EQ_FWD), w0 = key(plStart), w1 = key(addDays(plStart, 7));
+      for (let d = from; d < to; d = addDays(d, 1)) {
+        const dow = (d.getDay()+6)%7; if (dow > 4) continue;
+        const k = key(d); if (k >= w0 && k < w1) continue;
+        posts.forEach(p=>{ if (!okDay(p, dow)) return; (p.journee ? ['M'] : partsOf(p)).forEach(part=>{
+          const x = vacWho(p.id, k, part); if (!x) return;
+          x.who.forEach(id=>{ const m = v.post[p.id] || (v.post[p.id] = {}); m[id] = (m[id] || 0) + 1; v.tot[id] = (v.tot[id] || 0) + 1; });
+        }); });
+      }
+    }
+    eqCache = {ck, ov: overrides, sw: swaps, tr: trame, v};
+    return v;
+  }
   function genWhy(id, w){
     if ((w.before || []).includes(id)) return w.ou ? 'indiqué « ou » dans la trame pour ce poste, et disponible' : 'prévu à ce poste dans la trame, et disponible';
     let n = 0;
     Object.keys(overrides).forEach(d=>{ const o = overrides[d][w.poste+'_'+w.part]; if (o && o.w && o.w.includes(id)) n++; });
     Object.keys(trame.cases).forEach(c=>{ if (c.indexOf(w.poste+'_') === 0) { const x = trame.cases[c].who; if (Array.isArray(x) && x.includes(id)) n += 2; } });
     const pre = doctors[id] && doctors[id].interv && w.poste === 'bloc' ? 'interventionnel : le bloc en priorité · ' : '';
-    return pre + (n ? 'par ordre de fréquence : a déjà fait ce poste '+n+' fois' : 'disponible, et le moins chargé cette semaine (n’a pas l’habitude de ce poste)');
+    const eq = eqCounts(), pm = eq.post[w.poste] || {}, ids = grpDocs().map(d=>d.id), cnt = pm[id] || 0, act = ids.filter(x=>(pm[x] || 0) > 0 || x === id), avg = act.length ? Math.round(act.reduce((a,x)=>a+(pm[x] || 0), 0) / act.length * 10) / 10 : 0;
+    if (n || cnt) return pre + 'par équité : '+cnt+' demi-vacation'+(cnt > 1 ? 's' : '')+' à ce poste sur la période (moyenne '+String(avg).replace('.', ',')+'), l’un des moins sollicités parmi ceux qui le font';
+    return pre + 'disponible, et le moins chargé cette semaine (n’a pas l’habitude de ce poste)';
   }
   function genAfter(r){ return genPending[r.idx[0]].after; }
   function genRowHtml(r){ const w = genPending[r.idx[0]]; return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>'+(w.before.length && !r.sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(genNm(w.before))+' → ' : '')+'<b>'+esc(genNm(w.after))+'</b></small></span>'; }
