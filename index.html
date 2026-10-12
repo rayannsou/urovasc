@@ -2173,8 +2173,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const k = key(d), rows = [];
       trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{
         const v = vacWho(p.id, k, part), closed = !!v && !v.who.length && /^ferm/i.test(v.texte || ''), r = aPourvoir(p, k, i, part);
-        if (!r && !closed) return;
-        rows.push({slot: p.id+'|'+k+'|'+part, closed, name: postName(p.id, k), part: p.journee ? 'Journée' : part === 'M' ? 'Matin' : 'Après-midi', who: v ? v.who.filter(inGrp).map(dLabel) : []});
+                rows.push({slot: p.id+'|'+k+'|'+part, closed, name: postName(p.id, k), part: p.journee ? 'Journée' : part === 'M' ? 'Matin' : 'Après-midi', who: v ? v.who.filter(inGrp).map(dLabel) : []});
       }));
       if (rows.length) out.push({d, rows});
     });
