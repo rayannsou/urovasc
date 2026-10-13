@@ -3197,7 +3197,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   /* ---------- PDF de la semaine : dessiné sur un canvas puis encapsulé dans un PDF (sans bibliothèque) ---------- */
   let plPdfNew = false;
-  function pdfWeekCanvas(mon){
+  function pdfWeekCanvas(mon, grp){
+    const inG = id => !grp || (isIntId(id) === (grp === 'interne')), sdocs = sortedDocs().filter(dc=>inG(dc.id));
     const W = 2339, H = 1654, M = 56, c = document.createElement('canvas'); c.width = W; c.height = H;
     const g = c.getContext('2d'), FONT = 'Helvetica, Arial, sans-serif';
     const days = [0,1,2,3,4].map(i=>addDays(mon,i)), dk = days.map(key), INK = '#13201D', INTC = '#1B5FA8', LINE = '#C9D3CF';
@@ -3211,17 +3212,17 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const OFFP = {id: '__off', label: 'Off', off: true}, assigned = {};
     trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>days.forEach((d,i)=>PARTS.forEach(part=>{ const v = okDay(p,i) ? vacWho(p.id, dk[i], part) : null; if (v) v.who.forEach(id=>{ (assigned[dk[i]+'_'+part] = assigned[dk[i]+'_'+part] || new Set()).add(id); }); })));
     const offRows = PARTS.map(part=>({p: OFFP, part, cells: days.map((d,i)=>{
-      const ids = new Set(), a = absAt(dk[i], part); Object.values(a).forEach(l=>l.forEach(id=>ids.add(id)));
-      sortedDocs().forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (isIntId(dc.id) && dayInfo(dc, dk[i])[part] !== 'G' && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
-      return {who: sortedDocs().filter(dc=>ids.has(dc.id)).map(dc=>dc.id), texte: '', ou: false};
+      const ids = new Set(), a = absAt(dk[i], part); Object.values(a).forEach(l=>l.forEach(id=>{ if (inG(id)) ids.add(id); }));
+      sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i])[part] !== 'G' && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
+      return {who: sdocs.filter(dc=>ids.has(dc.id)).map(dc=>dc.id), texte: '', ou: false};
     })}));
     if (offRows.some(r=>r.cells.some(c=>c.who.length))) offRows.forEach(r=>rows.push(r));
     /* contrôle : toutes les indisponibilités ont-elles été prises en compte ? */
     const bad = [], DJ = ['lun.','mar.','mer.','jeu.','ven.'];
-    trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>days.forEach((d,i)=>{ if (!okDay(p,i)) return; PARTS.forEach(part=>{ if (p.journee && part !== 'M') return; const v = vacWho(p.id, dk[i], part); if (!v || v.ou) return; v.who.forEach(id=>{ const r = reasonFor(id, dk[i], part); if (r) bad.push(dLabel(id)+' ('+postName(p.id, dk[i])+', '+DJ[i]+' '+(part === 'M' ? 'matin' : 'après-midi')+' : '+r+')'); }); }); }));
-    const mks = [...new Set([dk[0], dk[4]].map(x=>x.slice(0,7)))], noConf = sortedDocs().filter(dc=>mks.some(m=>!(dc.conf && dc.conf[m])));
+    trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>days.forEach((d,i)=>{ if (!okDay(p,i)) return; PARTS.forEach(part=>{ if (p.journee && part !== 'M') return; const v = vacWho(p.id, dk[i], part); if (!v || v.ou) return; v.who.filter(inG).forEach(id=>{ const r = reasonFor(id, dk[i], part); if (r) bad.push(dLabel(id)+' ('+postName(p.id, dk[i])+', '+DJ[i]+' '+(part === 'M' ? 'matin' : 'après-midi')+' : '+r+')'); }); }); }));
+    const mks = [...new Set([dk[0], dk[4]].map(x=>x.slice(0,7)))], noConf = sdocs.filter(dc=>mks.some(m=>!(dc.conf && dc.conf[m])));
     const chk = bad.length ? {ok: false, t: 'Attention : '+bad.length+' indisponibilité'+(bad.length > 1 ? 's' : '')+' non respectée'+(bad.length > 1 ? 's' : '')+' — '+bad.slice(0,4).join(' ; ')+(bad.length > 4 ? ' …' : '')}
-      : {ok: true, t: 'Toutes les indisponibilités déclarées ont été prises en compte.'};
+      : {ok: true, t: 'Toutes les indisponibilités '+(grp === 'interne' ? 'des internes' : grp === 'medecin' ? 'des médecins' : 'déclarées')+' ont été prises en compte.'};
     const chk2 = noConf.length ? 'Indisponibilités non renseignées par : '+noConf.map(dc=>dc.label).join(', ')+'.' : '';
     const LAB = 300, PCOLW = 160, CW = (W - 2*M - LAB - PCOLW) / 5, HEAD = 200, DH = 64, FOOT = (av ? 86 : 40) + 50 + (chk2 ? 44 : 0), pad = 10;
     const toks = v => {
@@ -3249,7 +3250,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     g.fillStyle = INK; g.textBaseline = 'alphabetic';
     g.font = 'bold 54px '+FONT; g.fillText('Planning Imagerie', M, M+54);
     const sat = addDays(mon,5), rng = new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long'});
-    g.font = '36px '+FONT; g.fillStyle = '#586964'; g.fillText('Semaine du '+rng.format(mon)+' au '+rng.format(addDays(mon,4))+' '+addDays(mon,4).getFullYear(), M, M+104);
+    g.font = '36px '+FONT; g.fillStyle = '#586964'; g.fillText('Semaine du '+rng.format(mon)+' au '+rng.format(addDays(mon,4))+' '+addDays(mon,4).getFullYear()+(grp ? ' · Off et indisponibilités : '+(grp === 'interne' ? 'internes' : 'médecins') : ''), M, M+104);
     g.textAlign = 'right'; g.font = '26px '+FONT; g.fillText('Généré le '+new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}).format(new Date()), W-M, M+104);
     g.font = 'italic 26px '+FONT; g.fillText('Les internes sont en italique bleu', W-M, M+60); g.textAlign = 'left';
     const x0 = M, y0 = HEAD;
@@ -3352,10 +3353,10 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }
     return out;
   }
-  function pdfDownload(mon){
+  function pdfDownload(mon, grp){
     if (!trame || !trame.postes.length) return notify('Le planning n’est pas encore chargé.', true);
     try {
-      const blob = pdfFromCanvas(pdfWeekCanvas(mon)), url = URL.createObjectURL(blob), a = document.createElement('a');
+      const blob = pdfFromCanvas(pdfWeekCanvas(mon, grp)), url = URL.createObjectURL(blob), a = document.createElement('a');
       a.href = url; a.download = 'planning-imagerie-'+key(mon)+'.pdf'; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 60000);
       plPdfNew = false; notify('PDF de la semaine du '+fmtDM.format(mon)+' prêt.'); renderAstBar();
@@ -3978,8 +3979,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   $('#cwPrev').addEventListener('click',()=>{ cwStart = addDays(cwStart,-7); renderCreate(); });
   $('#cwNext').addEventListener('click',()=>{ cwStart = addDays(cwStart,7); renderCreate(); });
-  $('#plPdf').addEventListener('click', ()=>pdfDownload(plStart));
-  document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-plpdf]')) pdfDownload(plStart); });
+  $('#plPdf').addEventListener('click', ()=>pdfDownload(plStart, plGrp));
+  document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-plpdf]')) pdfDownload(plStart, plGrp); });
   document.addEventListener('click', e=>{ const t = e.target.closest && e.target; if (!t) return; if (t.closest('[data-redoyes]')) { redoOk = key(plStart); renderCompose(); } else if (t.closest('[data-delask]')) { delAsk = true; renderCompose(); } else if (t.closest('[data-delno]')) { delAsk = false; renderCompose(); } else if (t.closest('[data-delyes]')) { plWeekDel(); } else if (t.closest('[data-redono]')) { plStage = ''; astOn = false; renderCompose(); } });
   $('#gPdf').addEventListener('click', ()=>pdfDownload(weekStart));
   $('#cwJump').addEventListener('change', e=>{ if (e.target.value) { cwStart = mondayOf(parse(e.target.value)); renderCreate(); } });
