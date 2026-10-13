@@ -3241,10 +3241,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const days = [0,1,2,3,4].map(i=>addDays(mon,i)), dk = days.map(key), INK = '#13201D', INTC = '#1B5FA8', LINE = '#C9D3CF';
     const rows = [];
     trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>{
-      const rs = (p.journee ? ['M'] : PARTS).map(part=>({p, part, cells: days.map((d,i)=>okDay(p,i) ? vacWho(p.id, dk[i], part) : null)}));
+      const rs = (p.journee ? ['M'] : PARTS).map(part=>({p, part, cells: days.map((d,i)=>{ const v = okDay(p,i) ? vacWho(p.id, dk[i], part) : null; return v && grp ? Object.assign({}, v, {who: v.who.filter(inG)}) : v; })}));
       if (rs.some(r=>r.cells.some(x=>x && (x.who.length || x.texte)))) rs.forEach(r=>rows.push(r));
     });
-    const ap = trame.postes.find(isSam), av = ap ? vacWho(ap.id, key(addDays(mon,5)), 'M') : null;
+    const ap = trame.postes.find(isSam), av = ap && grp !== 'interne' ? vacWho(ap.id, key(addDays(mon,5)), 'M') : null;
+    if (av && grp === 'medecin') av.who = av.who.filter(inG);
     /* ligne « Off » : indisponibles, repos de garde, OFF de la trame, et internes sans vacation ce jour-là */
     const OFFP = {id: '__off', label: 'Off', off: true}, assigned = {};
     trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>days.forEach((d,i)=>PARTS.forEach(part=>{ const v = okDay(p,i) ? vacWho(p.id, dk[i], part) : null; if (v) v.who.forEach(id=>{ (assigned[dk[i]+'_'+part] = assigned[dk[i]+'_'+part] || new Set()).add(id); }); })));
@@ -3260,8 +3261,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const mks = [...new Set([dk[0], dk[4]].map(x=>x.slice(0,7)))], noConf = sdocs.filter(dc=>mks.some(m=>!(dc.conf && dc.conf[m])));
     const chk = bad.length ? {ok: false, t: 'Attention : '+bad.length+' indisponibilité'+(bad.length > 1 ? 's' : '')+' non respectée'+(bad.length > 1 ? 's' : '')+' — '+bad.slice(0,4).join(' ; ')+(bad.length > 4 ? ' …' : '')}
       : {ok: true, t: 'Toutes les indisponibilités '+(grp === 'interne' ? 'des internes' : grp === 'medecin' ? 'des médecins' : 'déclarées')+' ont été prises en compte.'};
+    const offCnt = sdocs.filter(dc=>isIntId(dc.id)).map(dc=>({l: dc.label, n: offRows.reduce((t,r)=>t + r.cells.filter(c=>c.who.includes(dc.id)).length, 0)}));
+    g.font = 'bold 26px '+FONT; const offTxt = offCnt.length && grp !== 'medecin' ? 'Nombre d’offs (demi-journées) : '+offCnt.map(o=>o.l+' '+o.n).join(' · ') : '';
+    let offLines = []; if (offTxt) { const words = offTxt.split(' '); let ln = ''; words.forEach(w=>{ const t = ln ? ln+' '+w : w; if (g.measureText(t).width > W - 2*M && ln) { offLines.push(ln); ln = w; } else ln = t; }); if (ln) offLines.push(ln); }
     const chk2 = noConf.length ? 'Indisponibilités non renseignées par : '+noConf.map(dc=>dc.label).join(', ')+'.' : '';
-    const LAB = 300, PCOLW = 160, CW = (W - 2*M - LAB - PCOLW) / 5, HEAD = 200, DH = 64, FOOT = (av ? 86 : 40) + 50 + (chk2 ? 44 : 0), pad = 10;
+    const LAB = 300, PCOLW = 160, CW = (W - 2*M - LAB - PCOLW) / 5, HEAD = 200, DH = 64, FOOT = (av ? 86 : 40) + 50 + (chk2 ? 44 : 0) + offLines.length * 36 + (offLines.length ? 10 : 0), pad = 10;
     const toks = v => {
       if (!v) return [];
       if (v.ou) return [{t: 'À confirmer : '+v.who.map(dLabel).join(' ou '), g: 1}];
@@ -3285,11 +3289,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }
     g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, W, H);
     g.fillStyle = INK; g.textBaseline = 'alphabetic';
-    g.font = 'bold 54px '+FONT; g.fillText('Planning Imagerie', M, M+54);
+    g.font = 'bold 54px '+FONT; g.fillText('Planning Imagerie'+(grp ? ' — '+(grp === 'interne' ? 'Internes' : 'Médecins') : ''), M, M+54);
     const sat = addDays(mon,5), rng = new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long'});
-    g.font = '36px '+FONT; g.fillStyle = '#586964'; g.fillText('Semaine du '+rng.format(mon)+' au '+rng.format(addDays(mon,4))+' '+addDays(mon,4).getFullYear()+(grp ? ' · Off et indisponibilités : '+(grp === 'interne' ? 'internes' : 'médecins') : ''), M, M+104);
+    g.font = '36px '+FONT; g.fillStyle = '#586964'; g.fillText('Semaine du '+rng.format(mon)+' au '+rng.format(addDays(mon,4))+' '+addDays(mon,4).getFullYear(), M, M+104);
     g.textAlign = 'right'; g.font = '26px '+FONT; g.fillText('Généré le '+new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}).format(new Date()), W-M, M+104);
-    g.font = 'italic 26px '+FONT; g.fillText('Les internes sont en italique bleu', W-M, M+60); g.textAlign = 'left';
+    g.font = 'italic 26px '+FONT; if (grp !== 'medecin') g.fillText('Les internes sont en italique bleu', W-M, M+60); g.textAlign = 'left';
     const x0 = M, y0 = HEAD;
     g.fillStyle = '#17302C'; g.fillRect(x0, y0, W-2*M, DH);
     g.fillStyle = '#FFFFFF'; g.font = 'bold 30px '+FONT; g.textAlign = 'center';
@@ -3326,6 +3330,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       if (av) fy += 0;
       g.font = 'bold 28px '+FONT; g.fillStyle = chk.ok ? '#1D6B3A' : '#B3392B';
       if (chk.ok) g.fillText('✓ '+chk.t, x0, fy + (av ? 54 : 0)); else { let t = '! '+chk.t; while (t.length > 20 && g.measureText(t).width > W - 2*M) t = t.slice(0, -2).trimEnd()+'…'; g.fillText(t, x0, fy + (av ? 54 : 0)); }
+      let oy = fy + (av ? 54 : 0) + 40 + (chk2 ? 40 : 0); if (offLines.length) { g.font = 'bold 26px '+FONT; g.fillStyle = INK; offLines.forEach((l, li)=>g.fillText(l, x0, oy + li*36)); }
       if (chk2) { g.font = '24px '+FONT; g.fillStyle = '#586964'; let t = chk2; while (t.length > 20 && g.measureText(t).width > W - 2*M) t = t.slice(0, -2).trimEnd()+'…'; g.fillText(t, x0, fy + (av ? 54 : 0) + 40); } }
     if (av) {
       const nm = av.who.map(dLabel).join(', ') || '—';
@@ -3394,7 +3399,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (!trame || !trame.postes.length) return notify('Le planning n’est pas encore chargé.', true);
     try {
       const blob = pdfFromCanvas(pdfWeekCanvas(mon, grp)), url = URL.createObjectURL(blob), a = document.createElement('a');
-      a.href = url; a.download = 'planning-imagerie-'+key(mon)+'.pdf'; document.body.appendChild(a); a.click(); a.remove();
+      a.href = url; a.download = 'planning-imagerie'+(grp === 'interne' ? '-internes' : grp === 'medecin' ? '-medecins' : '')+'-'+key(mon)+'.pdf'; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 60000);
       plPdfNew = false; notify('PDF de la semaine du '+fmtDM.format(mon)+' prêt.'); renderAstBar();
     } catch (e) { notify('Impossible de créer le PDF : '+(e && e.message || e), true); }
@@ -4019,7 +4024,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#plPdf').addEventListener('click', ()=>pdfDownload(plStart, plGrp));
   document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-plpdf]')) pdfDownload(plStart, plGrp); });
   document.addEventListener('click', e=>{ const t = e.target.closest && e.target; if (!t) return; if (t.closest('[data-redoyes]')) { redoOk = key(plStart); renderCompose(); } else if (t.closest('[data-delask]')) { delAsk = true; renderCompose(); } else if (t.closest('[data-delno]')) { delAsk = false; renderCompose(); } else if (t.closest('[data-delyes]')) { plWeekDel(); } else if (t.closest('[data-redono]')) { plStage = ''; astOn = false; renderCompose(); } });
-  $('#gPdf').addEventListener('click', ()=>pdfDownload(weekStart));
+  $('#gPdf').addEventListener('click', ()=>pdfDownload(weekStart, (isRim() || !me || !doctors[me]) ? '' : doctors[me].role === 'Interne' ? 'interne' : 'medecin'));
   $('#cwJump').addEventListener('change', e=>{ if (e.target.value) { cwStart = mondayOf(parse(e.target.value)); renderCreate(); } });
   $('#cwPostes').addEventListener('toggle', e=>{ const d = e.target; if (!d.dataset || !d.dataset.cwp || !cwOpen) return; if (d.open) cwOpen.add(d.dataset.cwp); else cwOpen.delete(d.dataset.cwp); }, true);
   $('#cwPostes').addEventListener('change', e=>{
