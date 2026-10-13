@@ -3248,8 +3248,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const days = [0,1,2,3,4].map(i=>addDays(mon,i)), dk = days.map(key), INK = '#13201D', INTC = '#1B5FA8', LINE = '#C9D3CF';
     const rows = [];
     trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>{
-      const rs = (p.journee ? ['M'] : PARTS).map(part=>({p, part, cells: days.map((d,i)=>{ const v = okDay(p,i) ? vacWho(p.id, dk[i], part) : null; return v && grp ? Object.assign({}, v, {who: v.who.filter(inG)}) : v; })}));
-      if (rs.some(r=>r.cells.some(x=>x && (x.who.length || x.texte)))) rs.forEach(r=>rows.push(r));
+      const rs = (p.journee ? ['M'] : PARTS).map(part=>({p, part, cells: days.map((d,i)=>{ const v = okDay(p,i) ? vacWho(p.id, dk[i], part) : null; return v && grp === 'medecin' ? Object.assign({}, v, {who: v.who.filter(inG)}) : v; })}));
+      /* internes : on garde les vacations où il y a un interne, avec les seniors postés à côté ; médecins : seulement les seniors */
+      if (rs.some(r=>r.cells.some(x=>x && ((grp === 'interne' ? x.who.some(isIntId) : x.who.length) || x.texte)))) rs.forEach(r=>rows.push(r));
     });
     const ap = trame.postes.find(isSam), av = ap && grp !== 'interne' ? vacWho(ap.id, key(addDays(mon,5)), 'M') : null;
     if (av && grp === 'medecin') av.who = av.who.filter(inG);
@@ -3300,7 +3301,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const sat = addDays(mon,5), rng = new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long'});
     g.font = '36px '+FONT; g.fillStyle = '#586964'; g.fillText('Semaine du '+rng.format(mon)+' au '+rng.format(addDays(mon,4))+' '+addDays(mon,4).getFullYear(), M, M+104);
     g.textAlign = 'right'; g.font = '26px '+FONT; g.fillText('Généré le '+new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}).format(new Date()), W-M, M+104);
-    g.font = 'italic 26px '+FONT; if (grp !== 'medecin') g.fillText('Les internes sont en italique bleu', W-M, M+60); g.textAlign = 'left';
+    g.font = 'italic 26px '+FONT; if (grp !== 'medecin') g.fillText(grp === 'interne' ? 'Internes en italique bleu · seniors postés en gras' : 'Les internes sont en italique bleu', W-M, M+60); g.textAlign = 'left';
     const x0 = M, y0 = HEAD;
     g.fillStyle = '#17302C'; g.fillRect(x0, y0, W-2*M, DH);
     g.fillStyle = '#FFFFFF'; g.font = 'bold 30px '+FONT; g.textAlign = 'center';
