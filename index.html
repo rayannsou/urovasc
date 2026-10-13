@@ -910,7 +910,6 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <details class="cardfold" id="fMp"><summary>Mon profil</summary>
           <p class="hint">Choisissez votre nom : l’accueil vous dira « Bonjour » avec votre nom et affichera votre semaine.</p>
     <div class="who-box mpbox">
-      <div id="authBox"></div>
       <label for="who">Je suis</label>
       <select id="who"><option value="">Chargement…</option></select>
       <div class="phbox"><span id="phPrev"><span class="phe">🩻</span></span><button type="button" class="ghost" id="phPick">📷 Choisir une photo de profil</button><button type="button" class="ghost" id="phDel" hidden>Retirer</button><input type="file" id="phFile" accept="image/*" hidden></div>
@@ -942,12 +941,6 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
             <div class="f"><label for="remHour">Heure du rappel</label><input type="time" id="remHour" value="20:00" step="900"></div>
           </div>
           <button type="button" class="primary" id="remBtn">🔔 Activer les rappels</button>
-        </div>
-        <div class="card" id="authAdm" hidden>
-          <details class="cardfold" id="authFold"><summary>🔐 Comptes et codes d’invitation</summary>
-          <p class="hint">Chaque personne reçoit un code à usage unique ; en le saisissant, son appareil est lié à son nom. Aucun mail nécessaire.</p>
-          <div id="authAdmBody"></div>
-          </details>
         </div>
         <div class="card" id="histCard" hidden>
           <details class="cardfold" id="histFold"><summary>🕘 Historique des modifications</summary>
@@ -1043,7 +1036,6 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     <div id="cfL" class="sheet-l"></div>
   </div>
 </div>
-<div id="authGate" class="sheet" hidden style="z-index:500"><div class="sheet-bg"></div><div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="gateT"><div class="sheet-h"><div><h3 id="gateT">Connexion</h3><p class="hint">Saisissez le code d’invitation reçu de Rim ou Rayann. Il lie cet appareil à votre nom (une seule fois).</p></div></div><div class="phbox"><input type="text" id="gateIn" autocomplete="off" autocapitalize="characters" placeholder="XXXXX-XXXXX" maxlength="12"><button type="button" class="primary" data-gatein="1">Se connecter</button></div><button type="button" class="ghost" data-gateskip="1" style="margin-top:10px">Voir le planning sans me connecter</button></div></div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <div id="instBox" class="instbox" hidden role="dialog" aria-label="Installer l’application">
@@ -1524,82 +1516,6 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (c.trim().toLowerCase() !== 'grenier') { notify('Code incorrect.', true); return false; }
     codeUntil = Date.now() + 30*60*1000; return true;
   }
-
-  /* ---------- comptes : code d'invitation à usage unique → appareil lié à un nom (sans mail) ---------- */
-  /* NB : tout se passe dans l'app ; pour une protection côté serveur il faut aussi des règles Firestore. */
-  let authCfg = {enforce: false}, authId = '', gateSkip = false, authLast = null;
-  const DEVK = 'planning-dev', INV_DAYS = 7, CODE_AL = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  const getTok = () => { try { return localStorage.getItem(DEVK) || ''; } catch(e) { return ''; } };
-  const normCode = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  async function sha(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2, '0')).join(''); }
-  const devCount = d => Object.values(d.dev || {}).filter(Boolean).length;
-  async function authCheck(){
-    let id = '';
-    try { const tok = getTok(); if (tok && window.crypto && crypto.subtle) { const th = await sha(tok); const d = Object.values(doctors).find(x=>x.dev && x.dev[th]); if (d) id = d.id; } } catch(e) {}
-    authId = id;
-    if (id && me !== id) { me = id; try { localStorage.setItem('planning-me', me); } catch(e) {} }
-    else if (!id && authCfg.enforce && me) { me = ''; try { localStorage.removeItem('planning-me'); } catch(e) {} }
-  }
-  function newCode(){ const a = new Uint8Array(10); crypto.getRandomValues(a); const c = [...a].map(x=>CODE_AL[x % CODE_AL.length]).join(''); return c.slice(0,5)+'-'+c.slice(5); }
-  async function authClaim(code){
-    if (!db || !window.crypto || !crypto.subtle) return notify('Connexion par code impossible dans cette vue.', true);
-    const c = normCode(code); if (c.length < 8) return notify('Saisissez le code reçu (10 caractères).', true);
-    const h = await sha(c), d = Object.values(doctors).find(x=>x.inv && x.inv.h === h);
-    if (!d) return notify('Code incorrect ou déjà utilisé.', true);
-    if (Date.now() - (d.inv.t || 0) > INV_DAYS*864e5) return notify('Ce code a expiré : demandez-en un nouveau.', true);
-    const a = new Uint8Array(16); crypto.getRandomValues(a); const tok = [...a].map(x=>x.toString(16).padStart(2, '0')).join('');
-    try { await db.doc('medecins/'+d.id).update({dev: {[await sha(tok)]: Date.now()}, inv: null}); } catch(e) { return handleErr(e); }
-    try { localStorage.setItem(DEVK, tok); } catch(e) { return notify('Ce navigateur refuse de mémoriser la connexion.', true); }
-    doctors[d.id] = Object.assign({}, d, {inv: null, dev: Object.assign({}, d.dev, {[await sha(tok)]: Date.now()})});
-    await authCheck(); renderAll(); notify('Bienvenue '+d.label+' : cet appareil est lié à votre nom.');
-  }
-  async function authUnlinkHere(){
-    const tok = getTok(); if (!tok || !authId || !db) return;
-    try { await db.doc('medecins/'+authId).update({dev: {[await sha(tok)]: null}}); } catch(e) { return handleErr(e); }
-    try { localStorage.removeItem(DEVK); localStorage.removeItem('planning-me'); } catch(e) {}
-    authId = ''; me = ''; renderAll(); notify('Appareil délié.');
-  }
-  function renderAuth(){
-    const box = $('#authBox'); if (!box) return;
-    const en = authCfg.enforce, d = authId ? doctors[authId] : null;
-    const w = $('#who'); if (w) { w.hidden = en; const lb = document.querySelector('label[for=who]'); if (lb) lb.hidden = en; }
-    box.innerHTML = (d ? '<p class="aststat ok">🔐 Cet appareil est lié à <b>'+esc(d.label)+'</b>.</p><button type="button" class="ghost" data-authout="1">Délier cet appareil</button>'
-      : '<label for="authIn">Code d’invitation</label><div class="phbox"><input type="text" id="authIn" autocomplete="off" autocapitalize="characters" placeholder="XXXXX-XXXXX" maxlength="12"><button type="button" class="primary" data-authin="1">Se connecter</button></div><p class="hint">Demandez votre code à Rim ou Rayann : il sert une seule fois et lie cet appareil à votre nom.'+(en ? '' : ' Pour l’instant vous pouvez encore choisir votre nom ci-dessous.')+'</p>');
-    const g = $('#authGate'); if (g) { const show = en && loaded && !authId && !gateSkip; if (g.hidden === show) g.hidden = !show; }
-    renderAuthAdm();
-  }
-  function renderAuthAdm(){
-    const card = $('#authAdm'); if (!card) return; card.hidden = !isRim(); if (card.hidden) return;
-    const ds = sortedDocs(), linked = ds.filter(d=>devCount(d)).length, now = Date.now();
-    $('#authAdmBody').innerHTML = '<p class="hint">'+linked+' compte'+(linked > 1 ? 's' : '')+' lié'+(linked > 1 ? 's' : '')+' sur '+ds.length+'. '+(authCfg.enforce ? 'Le code est <b>exigé</b> : les appareils non liés ne peuvent plus se faire passer pour quelqu’un.' : 'Mode souple : chacun peut encore choisir son nom. Exigez le code quand tout le monde est lié.')+'</p>'
-      + (authLast ? '<div class="qcard"><p class="qt">Code pour '+esc(authLast.label)+'</p><p class="qt" style="font:700 1.6rem var(--font-mono,monospace);letter-spacing:.08em;user-select:all">'+esc(authLast.code)+'</p><p class="qh">Valable '+INV_DAYS+' jours, un seul usage. Transmettez-le à la personne.</p><div class="qbtns"><button type="button" data-authcopy="1">Copier</button><button type="button" data-authclose="1">Fermer</button></div></div>' : '')
-      + ds.map(d=>{ const n = devCount(d), pend = d.inv && now - (d.inv.t || 0) < INV_DAYS*864e5;
-        return '<div class="butreq"><span><b>'+esc(d.label)+'</b><br><small>'+(n ? '🔗 '+n+' appareil'+(n > 1 ? 's' : '') : pend ? '⏳ code en attente' : 'non lié')+'</small></span><span class="astpair"><button type="button" class="ghost" data-authgen="'+esc(d.id)+'">'+(n || pend ? 'Nouveau code' : 'Code')+'</button>'+(n ? '<button type="button" class="ghost" data-authunl="'+esc(d.id)+'">Délier</button>' : '')+'</span></div>'; }).join('')
-      + (!authId && !authCfg.enforce && me ? '<button type="button" class="ghost" data-authme="1" style="margin-top:8px">Lier cet appareil à mon compte ('+esc(dLabel(me))+')</button>' : '')
-      + '<button type="button" class="'+(authCfg.enforce ? 'ghost' : 'primary')+'" data-authenf="1" style="margin-top:10px">'+(authCfg.enforce ? 'Repasser en mode souple (sans code)' : 'Exiger le code pour se connecter')+'</button>';
-  }
-  document.addEventListener('click', async e=>{
-    const t = e.target; if (!t.closest) return;
-    if (t.closest('[data-authin]')) { const i = $('#authIn'); if (i) authClaim(i.value); return; }
-    if (t.closest('[data-gatein]')) { authClaim($('#gateIn').value); return; }
-    if (t.closest('[data-gateskip]')) { gateSkip = true; renderAuth(); return; }
-    if (t.closest('[data-authout]')) { authUnlinkHere(); return; }
-    const gen = t.closest('[data-authgen]'); if (gen) {
-      if (!isRim() || !db) return; if (!askCode('créer un code d’invitation')) return;
-      const id = gen.dataset.authgen, code = newCode();
-      try { await db.doc('medecins/'+id).update({inv: {h: await sha(normCode(code)), t: Date.now()}}); authLast = {label: dLabel(id), code}; renderAuthAdm(); } catch(err) { handleErr(err); } return; }
-    const unl = t.closest('[data-authunl]'); if (unl) { if (!isRim() || !db || !askCode('délier les appareils')) return; try { await db.doc('medecins/'+unl.dataset.authunl).update({dev: null}); notify('Appareils déliés.'); } catch(err) { handleErr(err); } return; }
-    if (t.closest('[data-authcopy]')) { try { await navigator.clipboard.writeText(authLast.code); notify('Code copié.'); } catch(err) { notify('Sélectionnez le code pour le copier.', true); } return; }
-    if (t.closest('[data-authclose]')) { authLast = null; renderAuthAdm(); return; }
-    if (t.closest('[data-authme]')) { if (!isRim() || !me || !db || !askCode('lier cet appareil')) return;
-      const a = new Uint8Array(16); crypto.getRandomValues(a); const tok = [...a].map(x=>x.toString(16).padStart(2, '0')).join('');
-      try { await db.doc('medecins/'+me).update({dev: {[await sha(tok)]: Date.now()}}); localStorage.setItem(DEVK, tok); doctors[me].dev = Object.assign({}, doctors[me].dev, {[await sha(tok)]: Date.now()}); await authCheck(); renderAll(); notify('Appareil lié à votre compte.'); } catch(err) { handleErr(err); } return; }
-    if (t.closest('[data-authenf]')) { if (!isRim() || !db) return;
-      if (!authCfg.enforce) { if (!authId) return notify('Liez d’abord votre propre appareil (bouton « Lier cet appareil à mon compte ») pour ne pas vous bloquer.', true);
-        if (!askCode('exiger un code pour se connecter')) return; if (!window.confirm('Exiger le code ? Les personnes non liées devront saisir un code pour modifier leur planning.')) return; }
-      else if (!askCode('repasser en mode souple')) return;
-      try { await db.doc('meta/auth').set({enforce: !authCfg.enforce}); notify(authCfg.enforce ? 'Mode souple rétabli.' : 'Le code est désormais exigé.'); } catch(err) { handleErr(err); } return; }
-  });
   let butoir = {d: {}, unlock: {}, req: {}, nm: 3}, butKind = 'sem';
   const BUT_KIND = {sem: 'semaine', ast: 'astreinte'};
   const butAdminOf = g => { const ids = Object.keys(doctors).filter(i=>g === 'int' ? ['rayann'].includes(plNorm(doctors[i].label)) || i === 'rayann' : ['rm','rim'].includes(plNorm(doctors[i].label)) || i === 'rim'); return ids.includes(g === 'int' ? 'rayann' : 'rim') ? (g === 'int' ? 'rayann' : 'rim') : (ids[0] || (g === 'int' ? 'rayann' : 'rim')); };
@@ -1948,7 +1864,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
 
   function renderAll(){
-    renderRenMe(); renderBut(); renderAdminTabs(); renderHist(); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderAuth(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderBut(); renderAdminTabs(); renderHist(); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
 
@@ -3135,7 +3051,6 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   /* ---------- interactions ---------- */
   $('#goProfile').addEventListener('click', ()=>showTab('reglages'));
   $('#who').addEventListener('change', e=>{
-    if (authCfg.enforce) { e.target.value = me; return; }
     me = e.target.value;
     try { localStorage.setItem('planning-me', me); } catch(err) {}
     renderAll(); remLoaded = ''; renderRem();
@@ -5312,9 +5227,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, astMax: typeof v.astMax === 'number' && v.astMax > 0 ? Math.floor(v.astMax) : 0, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, dem: (v.dem && typeof v.dem === 'object') ? v.dem : {}, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : '', dev: (v.dev && typeof v.dev === 'object') ? v.dev : {}, inv: (v.inv && typeof v.inv === 'object') ? v.inv : null};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, noAst: v.noAst === true, astMax: typeof v.astMax === 'number' && v.astMax > 0 ? Math.floor(v.astMax) : 0, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, dem: (v.dem && typeof v.dem === 'object') ? v.dem : {}, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : ''};
       });
-      doctors = next; loaded = true; authCheck().then(()=>{ renderAll(); maybePatch(); });
+      doctors = next; loaded = true; renderAll(); maybePatch();
     }, err=>{
       loaded = true; notify('La connexion au planning partagé a été interrompue. Rechargez la page.', true); renderAll();
     });
@@ -5349,7 +5264,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       notesBy = next; subs.notes = true; renderGNotes(); renderToday(); maybeSeed();
     }, err=>{});
     db.doc('meta/butoir').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; butoir = {d: v.d || {}, unlock: v.unlock || {}, req: v.req || {}, nm: v.nm}; renderBut(); if (typeof renderMe === 'function') renderMe(); }, err=>{});
-    db.collection('meta').onSnapshot(snap=>{ { const a = snap.docs.find(x=>x.id === 'auth'); const en = !!(a && a.data() && a.data().enforce === true); if (en !== authCfg.enforce) { authCfg.enforce = en; authCheck().then(()=>renderAll()); } } hist = snap.docs.filter(s=>/^hist-/.test(s.id)).map(s=>Object.assign({id: s.id}, s.data() || {})).filter(h=>Array.isArray(h.dates) && h.dates.length).sort((a,b)=>(b.at||0)-(a.at||0)); renderHist(); }, err=>{});
+    db.collection('meta').onSnapshot(snap=>{ hist = snap.docs.filter(s=>/^hist-/.test(s.id)).map(s=>Object.assign({id: s.id}, s.data() || {})).filter(h=>Array.isArray(h.dates) && h.dates.length).sort((a,b)=>(b.at||0)-(a.at||0)); renderHist(); }, err=>{});
     db.doc('meta/ast1').onSnapshot(s=>{ astMeta = s.exists ? 'done' : 'absent'; ensureAst(); }, err=>{});
     db.doc('meta/patch-oct12').onSnapshot(s=>{ patchState = s.exists ? 'done' : 'absent'; maybePatch(); }, err=>{});
     db.doc('meta/seed2').onSnapshot(s=>{ seedState = s.exists ? 'done' : 'absent'; maybeSeed(); jumpToData(); }, err=>{});
