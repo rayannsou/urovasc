@@ -3207,7 +3207,23 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       if (rs.some(r=>r.cells.some(x=>x && (x.who.length || x.texte)))) rs.forEach(r=>rows.push(r));
     });
     const ap = trame.postes.find(isSam), av = ap ? vacWho(ap.id, key(addDays(mon,5)), 'M') : null;
-    const LAB = 300, PCOLW = 160, CW = (W - 2*M - LAB - PCOLW) / 5, HEAD = 200, DH = 64, FOOT = av ? 86 : 40, pad = 10;
+    /* ligne « Off » : indisponibles, repos de garde, OFF de la trame, et internes sans vacation ce jour-là */
+    const OFFP = {id: '__off', label: 'Off', off: true}, assigned = {};
+    trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>days.forEach((d,i)=>PARTS.forEach(part=>{ const v = okDay(p,i) ? vacWho(p.id, dk[i], part) : null; if (v) v.who.forEach(id=>{ (assigned[dk[i]+'_'+part] = assigned[dk[i]+'_'+part] || new Set()).add(id); }); })));
+    const offRows = PARTS.map(part=>({p: OFFP, part, cells: days.map((d,i)=>{
+      const ids = new Set(), a = absAt(dk[i], part); Object.values(a).forEach(l=>l.forEach(id=>ids.add(id)));
+      sortedDocs().forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (isIntId(dc.id) && dayInfo(dc, dk[i])[part] !== 'G' && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
+      return {who: sortedDocs().filter(dc=>ids.has(dc.id)).map(dc=>dc.id), texte: '', ou: false};
+    })}));
+    if (offRows.some(r=>r.cells.some(c=>c.who.length))) offRows.forEach(r=>rows.push(r));
+    /* contrôle : toutes les indisponibilités ont-elles été prises en compte ? */
+    const bad = [], DJ = ['lun.','mar.','mer.','jeu.','ven.'];
+    trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>days.forEach((d,i)=>{ if (!okDay(p,i)) return; PARTS.forEach(part=>{ if (p.journee && part !== 'M') return; const v = vacWho(p.id, dk[i], part); if (!v || v.ou) return; v.who.forEach(id=>{ const r = reasonFor(id, dk[i], part); if (r) bad.push(dLabel(id)+' ('+postName(p.id, dk[i])+', '+DJ[i]+' '+(part === 'M' ? 'matin' : 'après-midi')+' : '+r+')'); }); }); }));
+    const mks = [...new Set([dk[0], dk[4]].map(x=>x.slice(0,7)))], noConf = sortedDocs().filter(dc=>mks.some(m=>!(dc.conf && dc.conf[m])));
+    const chk = bad.length ? {ok: false, t: 'Attention : '+bad.length+' indisponibilité'+(bad.length > 1 ? 's' : '')+' non respectée'+(bad.length > 1 ? 's' : '')+' — '+bad.slice(0,4).join(' ; ')+(bad.length > 4 ? ' …' : '')}
+      : {ok: true, t: 'Toutes les indisponibilités déclarées ont été prises en compte.'};
+    const chk2 = noConf.length ? 'Indisponibilités non renseignées par : '+noConf.map(dc=>dc.label).join(', ')+'.' : '';
+    const LAB = 300, PCOLW = 160, CW = (W - 2*M - LAB - PCOLW) / 5, HEAD = 200, DH = 64, FOOT = (av ? 86 : 40) + 50 + (chk2 ? 44 : 0), pad = 10;
     const toks = v => {
       if (!v) return [];
       if (v.ou) return [{t: 'À confirmer : '+v.who.map(dLabel).join(' ou '), g: 1}];
@@ -3246,8 +3262,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const h = heights[ri], first = r.p !== prevP;
       if (first) { shade = !shade; startY = y; }
       g.fillStyle = shade ? '#F3F6F5' : '#FFFFFF'; g.fillRect(x0, y, W-2*M, h);
-      g.fillStyle = posteColor(r.p.id); if (first) g.fillRect(x0, y, 10, rows.filter(z=>z.p === r.p).reduce((a,z)=>a+heights[rows.indexOf(z)], 0));
-      if (first) { g.fillStyle = INK; const pn = postName(r.p.id, dk[0]); let pf = Math.min(32, fs+4); g.font = 'bold '+pf+'px '+FONT; while (pf > 14 && g.measureText(pn).width > LAB-36) { pf -= 2; g.font = 'bold '+pf+'px '+FONT; } g.fillText(pn, x0+24, y+fs+pad); }
+      g.fillStyle = r.p.off ? '#8A9A95' : posteColor(r.p.id); if (first) g.fillRect(x0, y, 10, rows.filter(z=>z.p === r.p).reduce((a,z)=>a+heights[rows.indexOf(z)], 0));
+      if (first) { g.fillStyle = INK; const pn = r.p.off ? 'Off' : postName(r.p.id, dk[0]); let pf = Math.min(32, fs+4); g.font = 'bold '+pf+'px '+FONT; while (pf > 14 && g.measureText(pn).width > LAB-36) { pf -= 2; g.font = 'bold '+pf+'px '+FONT; } g.fillText(pn, x0+24, y+fs+pad); }
       g.fillStyle = '#586964'; g.font = (fs-2)+'px '+FONT; g.fillText(r.p.journee ? 'Journée' : r.part === 'M' ? 'Matin' : 'Après-midi', x0+LAB, y+fs+pad);
       r.cells.forEach((v, i)=>{
         const cx = x0+LAB+PCOLW+CW*i;
@@ -3268,6 +3284,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     g.strokeStyle = LINE; g.lineWidth = 1.5;
     for (let i=0; i<=5; i++) { const lx = x0+LAB+PCOLW+CW*i; g.beginPath(); g.moveTo(lx, y0+DH); g.lineTo(lx, y); g.stroke(); }
     g.beginPath(); g.moveTo(x0+LAB, y0+DH); g.lineTo(x0+LAB, y); g.stroke();
+    { let fy = y + 44; g.textAlign = 'left';
+      if (av) fy += 0;
+      g.font = 'bold 28px '+FONT; g.fillStyle = chk.ok ? '#1D6B3A' : '#B3392B';
+      if (chk.ok) g.fillText('✓ '+chk.t, x0, fy + (av ? 54 : 0)); else { let t = '! '+chk.t; while (t.length > 20 && g.measureText(t).width > W - 2*M) t = t.slice(0, -2).trimEnd()+'…'; g.fillText(t, x0, fy + (av ? 54 : 0)); }
+      if (chk2) { g.font = '24px '+FONT; g.fillStyle = '#586964'; let t = chk2; while (t.length > 20 && g.measureText(t).width > W - 2*M) t = t.slice(0, -2).trimEnd()+'…'; g.fillText(t, x0, fy + (av ? 54 : 0) + 40); } }
     if (av) {
       const nm = av.who.map(dLabel).join(', ') || '—';
       g.fillStyle = INK; g.font = 'bold 32px '+FONT; g.fillText('Astreinte du samedi '+new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long'}).format(sat)+' : ', x0, y+58);
