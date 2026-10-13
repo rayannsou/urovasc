@@ -833,6 +833,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </ul>
         </div>
         <button type="button" class="ghost" id="gPdf">📄 Télécharger le PDF de la semaine</button>
+        <div id="pgSheet" class="sheet" hidden>
+          <div class="sheet-bg" data-pgx></div>
+          <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="pgT">
+            <div class="sheet-h"><div><h3 id="pgT">Quel PDF télécharger ?</h3><p class="hint">Les internes et les médecins ont chacun leur PDF (vacations, off et indisponibilités).</p></div></div>
+            <div class="astcol"><button type="button" class="astbtn big" data-pgg="interne">🎓 PDF des internes</button><button type="button" class="astbtn big" data-pgg="medecin">🩺 PDF des médecins</button><button type="button" class="astbtn big" data-pgg="">📋 Les deux ensemble</button><button type="button" class="ghost" data-pgx>Annuler</button></div>
+          </div>
+        </div>
         </div>
         <div id="gAstWrap" class="col" hidden>
           <div class="weekbar">
@@ -4024,7 +4031,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#plPdf').addEventListener('click', ()=>pdfDownload(plStart, plGrp));
   document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-plpdf]')) pdfDownload(plStart, plGrp); });
   document.addEventListener('click', e=>{ const t = e.target.closest && e.target; if (!t) return; if (t.closest('[data-redoyes]')) { redoOk = key(plStart); renderCompose(); } else if (t.closest('[data-delask]')) { delAsk = true; renderCompose(); } else if (t.closest('[data-delno]')) { delAsk = false; renderCompose(); } else if (t.closest('[data-delyes]')) { plWeekDel(); } else if (t.closest('[data-redono]')) { plStage = ''; astOn = false; renderCompose(); } });
-  $('#gPdf').addEventListener('click', ()=>pdfDownload(weekStart, (isRim() || !me || !doctors[me]) ? '' : doctors[me].role === 'Interne' ? 'interne' : 'medecin'));
+  $('#gPdf').addEventListener('click', ()=>{ if (isRim() || !me || !doctors[me]) { $('#pgSheet').hidden = false; return; } pdfDownload(weekStart, doctors[me].role === 'Interne' ? 'interne' : 'medecin'); });
+  $('#pgSheet').addEventListener('click', e=>{ const b = e.target.closest('[data-pgx],[data-pgg]'); if (!b) return; $('#pgSheet').hidden = true; if (b.dataset.pgg != null) pdfDownload(weekStart, b.dataset.pgg); });
   $('#cwJump').addEventListener('change', e=>{ if (e.target.value) { cwStart = mondayOf(parse(e.target.value)); renderCreate(); } });
   $('#cwPostes').addEventListener('toggle', e=>{ const d = e.target; if (!d.dataset || !d.dataset.cwp || !cwOpen) return; if (d.open) cwOpen.add(d.dataset.cwp); else cwOpen.delete(d.dataset.cwp); }, true);
   $('#cwPostes').addEventListener('change', e=>{
