@@ -1665,7 +1665,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }).join('');
 
     /* onglet Mes indisponibilités : menu déroulant par jour */
-    const inList = inMode === 'sat' ? [...Array(8)].map((_,j)=>[addDays(myWeek,5+7*j),5]) : [0,1,2,3,4,5].map(j=>[days[j],j]);
+    const inList = inMode === 'sat' ? [...Array(8)].map((_,j)=>[addDays(myWeek,5+7*j),5]) : [0,1,2,3,4,5,6].map(j=>[days[j],j]);   /* le dimanche sert à poser les gardes */
     const lockMs = [...new Set(inList.map(x=>key(x[0]).slice(0,7)))].filter(m=>butLocked(me, m+'-01'));
     $('#myDays').innerHTML = butBanners(lockMs) + inList.map(([d,i])=>{
       const k = key(d), inf = dayInfo(doc,k), dem = i === 5 ? demGet(doc, k) : null, own = dem ? 'S' : (doc.days[k] || '');
@@ -1677,7 +1677,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       body += cf.map(v=>'<div class="vac bad"><span class="vp">'+v.part+'</span><span>'+esc(postName(v.poste,k))+' <small>vous y êtes affecté(e) : à échanger</small></span></div>').join('');
       const head = '<label class="dr-date" for="ds-'+k+'">'+dateTxt(d,k)+'</label>'
         + '<select id="ds-'+k+'" class="dr-sel'+(own === 'G' ? ' sel-G' : own === 'S' ? ' sel-S' : (own || inf.kind === 'R') ? ' sel-I' : '')+'" data-k="'+k+'"'+(canWrite && inf.kind !== 'R' && !butLocked(me, k) ? '' : ' disabled')+'>'
-        + (inf.kind === 'R' ? [['R','Indisponible · Off lendemain de garde (auto)']] : own === 'A' ? opts.concat([['A','Astreinte (samedi matin)']]) : i === 5 ? optsSat(own) : opts).map(o=>'<option value="'+o[0]+'"'+(o[0] === own || o[0] === 'R' ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>';
+        + (inf.kind === 'R' ? [['R','Indisponible · Off lendemain de garde (auto)']] : own === 'A' ? opts.concat([['A','Astreinte (samedi matin)']]) : i === 5 ? optsSat(own) : i === 6 ? [['','Disponible'],['G','De garde · Off le lendemain']] : opts).map(o=>'<option value="'+o[0]+'"'+(o[0] === own || o[0] === 'R' ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>';
       return rowWrap(d,i,k,head,body);
     }).join('');
     const cms = butMonths(), bkind = butKindNow();
@@ -3511,11 +3511,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const start = mondayOf(today), yr = today.getFullYear();
     let o = '';
     for (let i=0;i<460;i++) {
-      const d = addDays(start,i); if (d.getDay() === 0) continue;
+      const d = addDays(start,i);
       o += '<option value="'+key(d)+'">'+esc(fmtShort.format(d))+(d.getFullYear() !== yr ? ' '+d.getFullYear() : '')+'</option>';
     }
     $('#pFrom').innerHTML = o; $('#pTo').innerHTML = o;
-    const t0 = today.getDay() === 0 ? addDays(today,1) : today;
+    const t0 = today;
     $('#pFrom').value = key(t0); $('#pTo').value = key(t0);
   }
   fillPeriod();
@@ -3534,7 +3534,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const patch = {}; let count = 0, kept = 0;
     for (let i=0;i<n;i++){
       const d = addDays(a,i), wd = (d.getDay()+6)%7, k = key(d);
-      if (wd === 6 || (!we && wd === 5)) continue;
+      if ((wd === 6 && type !== 'G' && type !== '') || (!we && wd === 5)) continue;
       if (type === '') patch[k] = null;
       else if (type === 'G') patch[k] = 'G';
       else { if (days[k] === 'G') { kept++; continue; } patch[k] = type; }
