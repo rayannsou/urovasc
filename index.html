@@ -266,7 +266,7 @@ select,input[type=date],input[type=text],input[type=time]{font-size:16px}
   h1{font-size:1.65rem}
   .top{gap:10px}
   .who-box{width:100%}
-  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--page);border-top:1.5px solid var(--line);border-bottom:0;gap:0;flex-wrap:nowrap;padding-bottom:env(safe-area-inset-bottom)}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;transform:translate3d(0,0,0);-webkit-transform:translate3d(0,0,0);will-change:transform;backface-visibility:hidden;background:var(--page);border-top:1.5px solid var(--line);border-bottom:0;gap:0;flex-wrap:nowrap;padding-bottom:env(safe-area-inset-bottom)}
   .tabs button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;letter-spacing:-.01em;line-height:1.1;min-height:62px;padding:6px 0;border-bottom:0;border-top:3px solid transparent;margin:0;position:relative;text-align:center}
   .tabs button[aria-selected=true]{border-top-color:var(--accent);color:var(--accent)}
   .tabs .ic{display:block}
@@ -1586,7 +1586,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '7a5b1edd88';
+  const BUILD = '83ae979ae9';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2453,6 +2453,15 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#astBarBox').addEventListener('change', e=>{ const pf = e.target.closest && e.target.closest('#pdfFile'); if (pf && pf.files && pf.files[0]) { const file = pf.files[0], pn = Math.max(1, +(($('#pdfPage') || {}).value) || 1); pf.value = ''; pdfRun(file, pn); return; } const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
   document.addEventListener('change', e=>{ if (e.target.id === 'prefWho') prefWho = e.target.value; else if (e.target.id === 'prefPost') prefPost = e.target.value; });
   document.addEventListener('click', e=>{ { const oo = e.target.closest && e.target.closest('[data-offopen]'); if (oo) { offOpen(oo.dataset.offopen); return; } } if (e.target.closest && e.target.closest('[data-wkview]')) { const wkv = e.target.closest('[data-wkview]').dataset.wkview, ed0 = wkv === 'edit'; weekStart = plStart; const unf0 = wkv === 'unf' ? {grp: plGrp || 'medecin'} : null; gDay = -1; showTab('general'); gUnf = unf0; if (unf0) { gGrp = unf0.grp; try { localStorage.setItem('planning-ggrp', gGrp); } catch(err) {} } renderGLabel(); renderTeam(); renderTrame(); try { window.scrollTo({top: 0}); } catch(err) {} if (ed0) { try { if (plGrp) { gGrp = plGrp; localStorage.setItem('planning-ggrp', gGrp); } } catch(err) {} let tgt = null; const wk0 = plStart; for (let i = 0; i < 5 && !tgt; i++) { const k = key(addDays(wk0, i)); trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ if (tgt) return; const r = aPourvoir(p, k, i, part); if (r && !r.ok) tgt = [p.id, k, part]; })); } if (!tgt) { const p0 = trame.postes.find(p=>!p.info && !isSam(p) && okDay(p, 0)); if (p0) tgt = [p0.id, key(wk0), p0.journee ? 'M' : partsOf(p0)[0]]; } const sg = gGrp; if (tgt) { qeShow(tgt[0], tgt[1], tgt[2]); gGrp = sg; } renderTrame(); } } });
+
+  /* barre d'onglets : sur iPhone elle peut rester « flottante » au milieu de l'écran après un défilement, un retour d'app ou un changement de barre Safari ; on force son repositionnement */
+  (function(){
+    const t = document.querySelector('.tabs'); if (!t) return; let raf = 0;
+    const fix = ()=>{ cancelAnimationFrame(raf); raf = requestAnimationFrame(()=>{ t.style.bottom = '0px'; t.style.transform = 'translate3d(0,0,0)'; void t.offsetHeight; t.style.transform = ''; }); };
+    ['resize','orientationchange','pageshow','focus','scroll'].forEach(ev=>window.addEventListener(ev, fix, {passive: true}));
+    document.addEventListener('visibilitychange', fix);
+    if (window.visualViewport) { window.visualViewport.addEventListener('resize', fix); window.visualViewport.addEventListener('scroll', fix); }
+  })();
   $('#astBarBox').addEventListener('click', async e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { qAns = ''; wzStep = 1; wzTrSub = ''; genPref = []; genAvoid = []; genPrio = null; genPrioAbs = null; genOffs = null; useTr = true; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
     const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; intNon[a[0]] = a[1] === '2'; return renderCompose(); }
     const nb = e.target.closest('[data-intn]'); if (nb) { const a = nb.dataset.intn.split('|'), cur = intNeed[a[0]] != null ? intNeed[a[0]] : (INT_RULES.need[a[0]] != null ? INT_RULES.need[a[0]] : INT_RULES.defaut); intNeed[a[0]] = Math.max(0, Math.min(4, cur + Number(a[1]))); Object.keys(intNeedHP).forEach(k=>{ if (k.startsWith(a[0]+'|')) delete intNeedHP[k]; }); return renderCompose(); }
