@@ -1585,7 +1585,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '73876c05f8';
+  const BUILD = 'd98666b3cf';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2201,12 +2201,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       notify(n ? 'Planning de la semaine supprimé ('+n+' vacations vidées).' : 'Rien à supprimer.');
     } catch(e) { handleErr(e); }
   }
-  function weekDone(){ if (!trame || plMode === 'ast') return false; const ds = [...Array(5)].map((_,i)=>addDays(plStart,i)).map((d,i)=>dayFill(d,i)); const f = ds.reduce((x,y)=>x+y.f,0), n = ds.reduce((x,y)=>x+y.n,0); return n > 0 && f === n; }
+  const wkClosed = () => { const x = trame && trame.sem && trame.sem[key(plStart)]; const g = x && x[plGrp === 'interne' ? 'int' : 'med']; return !!(g && g.done); };   /* semaine marquée « terminée » à la main, même incomplète */
+  function weekDone(){ if (!trame || plMode === 'ast') return false; if (wkClosed()) return true; const ds = [...Array(5)].map((_,i)=>addDays(plStart,i)).map((d,i)=>dayFill(d,i)); const f = ds.reduce((x,y)=>x+y.f,0), n = ds.reduce((x,y)=>x+y.n,0); return n > 0 && f === n; }
   function planStatus(){
     if (!trame) return '';
     const ds = [...Array(5)].map((_,i)=>addDays(plStart,i)).map((d,i)=>dayFill(d,i)), f = ds.reduce((a,x)=>a+x.f,0), n = ds.reduce((a,x)=>a+x.n,0);
     const row = (ok, txt, btn)=>'<div class="plrow '+(ok === 1 ? 'ok' : ok === 0 ? 'ko' : 'mid')+(btn ? ' plrem' : '')+'"><span class="pt">'+(ok === 1 ? '✅ ' : ok === 0 ? '⛔ ' : '🟠 ')+txt+'</span>'+(btn || '')+'</div>';
-    let h = '<div class="plstat">' + (!['auto','man','astask'].includes(plStage) || plMode === 'ast' ? '' : row(!n ? 0 : f === n ? 1 : f ? 2 : 0, 'Semaine du '+esc(fmtDM.format(plStart))+' : '+(!n ? 'aucune vacation' : f === n ? 'planning fait' : f ? 'à compléter' : 'pas encore fait')+' <small>('+f+' pourvues sur '+n+' à pourvoir)</small>', n && f === n ? '<button type="button" class="ghost" data-plpdf="1">📄 Voir</button>' : ''));
+    let h = '<div class="plstat">' + (!['auto','man','astask'].includes(plStage) || plMode === 'ast' ? '' : row(!n ? 0 : (f === n || wkClosed()) ? 1 : f ? 2 : 0, 'Semaine du '+esc(fmtDM.format(plStart))+' : '+(!n ? 'aucune vacation' : f === n ? 'planning fait' : wkClosed() ? 'planning terminé' : f ? 'à compléter' : 'pas encore fait')+' <small>('+f+' pourvues sur '+n+' à pourvoir)</small>', n && (f === n || wkClosed()) ? '<button type="button" class="ghost" data-plpdf="1">📄 Voir</button>' : ''));
     const ap = trame.postes.find(isSam);
     if (ap && plMode === 'ast' && plStage) { const sats = astSatsOf(astMonthList().slice(0,1).concat(astMonthList().slice(1,2))).filter(d=>d >= addDays(new Date(), -6)).slice(0,6), fs_ = sats.filter(d=>{ const v = vacWho(ap.id, key(d), 'M'); return v && v.who.filter(inGrp).length; }).length; if (sats.length) h += row(fs_ === sats.length ? 1 : fs_ ? 2 : 0, 'Astreintes des '+sats.length+' prochains samedis : '+(fs_ === sats.length ? 'faites' : fs_ ? 'à compléter' : 'pas encore faites')+' <small>('+fs_+' / '+sats.length+')</small>'); }
     /* 3e ligne : qui n'a pas renseigné ses indispos, avec un bouton de rappel (notification) */
@@ -2290,6 +2291,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     return '<div class="wktools">'
       + (fer.length ? '<p class="hint">🎌 Jour férié : '+fer.map(k=>esc(fmtShort.format(parse(k))+' ('+ferieName(k)+')')).join(', ')+' · aucune vacation à pourvoir, pas de off.</p>' : '')
       + (un.length ? '<details class="wkun"><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul>'+un.map(x=>'<li>'+esc(x.charAt(0).toUpperCase()+x.slice(1))+'</li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
+      + (n && f < n && !wkClosed() ? '<button type="button" class="astbtn" data-wkclose="1" style="margin-bottom:8px"'+dis+'>✅ Planning terminé (même incomplet)</button>' : '')
+      + (wkClosed() && f < n ? '<button type="button" class="astbtn" data-wkclose="0" style="margin-bottom:8px"'+dis+'>↩ Rouvrir le planning ('+(n-f)+' non pourvue'+(n-f > 1 ? 's' : '')+')</button>' : '')
       + (plGrp === 'interne' && offMany().length ? '<button type="button" class="astbtn" data-offopen="1" style="margin-bottom:8px">⚖ '+offMany().length+' interne'+(offMany().length > 1 ? 's ont' : ' a')+' plus de 2 off · affecter</button>' : '')
       + '<div class="astpair"><button type="button" class="astbtn" data-wkview="edit">✏️ Modifier</button><button type="button" class="astbtn" data-wkview="'+(un.length ? 'unf' : '1')+'">👁 Voir'+(un.length ? ' les non pourvues' : '')+'</button>'+(f && !noDel ? '<button type="button" class="astbtn dangerbtn" data-delask="1"'+dis+'>🗑 Supprimer les affectations</button>' : '')+'</div></div>';
   }
@@ -2461,6 +2464,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       else if (v === 'edit') wzTrSub = 'edit';
       else { wzTrSub = ''; wzStep = 2; plStage = 'auto'; }
       renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; }
+    const wcl = e.target.closest('[data-wkclose]'); if (wcl) { const on = wcl.dataset.wkclose === '1'; if (await wkSemSet([], x=>{ if (on) x.done = true; else delete x.done; })) { if (on) { plStage = 'auto'; redoOk = ''; } renderCompose(); notify(on ? 'Planning marqué comme terminé.' : 'Planning rouvert.'); } return; }
     const wk1 = e.target.closest('[data-wkc]'), wka = e.target.closest('[data-wkcall]');
     if (wk1 || wka) { const todo = [];
       if (wk1) { const a = wk1.dataset.wkc.split('|'); todo.push([a[0], Number(a[1]), a[2], !wkEff(a[0], Number(a[1]), a[2])]); }
