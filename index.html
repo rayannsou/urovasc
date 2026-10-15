@@ -1586,7 +1586,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '9a461169ca';
+  const BUILD = 'de62ef9673';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2284,7 +2284,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const list = offAll(); if (!list.length) return '';
     const tot = list.reduce((a,x)=>a + x.n, 0);
     return '<div class="redoq recap"><p class="aststat"><b>📊 Récap de la semaine · off par interne</b></p><p class="hint">'+tot+' demi-journée'+(tot > 1 ? 's' : '')+' off au total. Touchez « Affecter » pour poster un interne sur une vacation en plus : vous verrez qui est déjà dessus.</p><div class="col" style="gap:6px;text-align:left">'
-      + list.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · <span style="font-weight:700;color:'+(x.n > offMin() && x.slots.some(z=>!z.fixed) ? 'var(--red,#b3392b)' : 'inherit')+'">'+x.n+' off</span>'+(x.n > offMin() && x.slots.some(z=>!z.fixed) ? ' ⚠' : '')+(x.slots.some(z=>z.fixed) ? ' <small style="color:var(--muted);font-weight:400">(dont '+x.slots.filter(z=>z.fixed).length+' indispo / repos)</small>' : '')+'</span>'+(x.slots.some(z=>!z.fixed) ? '<button type="button" class="ghost" data-offopen="'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>＋ Affecter</button>' : '<span class="hint">✓</span>')+'</div>').join('')+'</div></div>';
+      + list.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · <span style="font-weight:700;color:'+(x.n > offMin() && x.slots.some(z=>!z.fixed) ? 'var(--red,#b3392b)' : 'inherit')+'">'+x.n+' off</span>'+(x.n > offMin() && x.slots.some(z=>!z.fixed) ? ' ⚠' : '')+(x.slots.some(z=>z.fixed) ? ' <small style="color:var(--muted);font-weight:400">(dont '+x.slots.filter(z=>z.fixed).length+' indispo / repos)</small>' : '')+'</span>'+(() => { const a = x.slots.some(z=>!z.fixed) ? '<button type="button" class="ghost" data-offopen="'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>＋ Affecter</button>' : '', b = x.n < offMin() && offAssigned(x.id).length ? '<button type="button" class="ghost" data-offopen="less|'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>− Désaffecter</button>' : ''; return (a || b) ? '<span class="astpair" style="flex:none">'+a+b+'</span>' : '<span class="hint">✓</span>'; })()+'</div>').join('')+'</div></div>';
   }
   function wkTools(noDel){
     if (!trame) return '';
@@ -5624,13 +5624,36 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const offAll = () => { const o = intOffs(); return sortedDocs().filter(d=>isIntId(d.id)).map(d=>({id: d.id, n: (o[d.id] || []).length, slots: o[d.id] || []})).sort((a,b)=>b.n - a.n); };
   let offMode = 'many';   /* 'many' : internes à plus de 2 off ; 'all' : récap de tous les internes */
   const offMany = () => { const o = intOffs(); return Object.keys(o).filter(id=>o[id].length > offMin() && o[id].some(z=>!z.fixed)).map(id=>({id, n: o[id].length, slots: o[id]})).sort((a,b)=>b.n - a.n); };
+  /* vacations de la semaine où l'interne est posté (pour le désaffecter) */
+  function offAssigned(id){
+    const out = [];
+    for (let i = 0; i < 5; i++) { const k = key(addDays(plStart, i)); if (isFerie(k)) continue;
+      PARTS.forEach(part=>{ trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i) && !(p.journee && part !== 'M')).forEach(p=>{ const v = vacWho(p.id, k, part); if (v && !v.ou && v.who.includes(id)) out.push({i, k, part, p, v}); }); }); }
+    return out;
+  }
+  const offLess = () => offAll().filter(x=>x.n < offMin() && offAssigned(x.id).length);
   function offOpen(id){
+    if (id && id.indexOf('less|') === 0) { offMode = 'less'; const m = offLess(); if (!m.length) return; offSel = m.some(x=>x.id === id.slice(5)) ? id.slice(5) : m[0].id; plGrp = 'interne'; $('#offSheet').hidden = false; return renderOff(); }
     offMode = id && id !== '1' ? 'all' : 'many';
     const m = offMode === 'all' ? offAll().filter(x=>x.slots.some(z=>!z.fixed)) : offMany().filter(x=>x.slots.some(z=>!z.fixed)); if (!m.length) return;
     offSel = id && id !== '1' && m.some(x=>x.id === id) ? id : (m.some(x=>x.id === offSel) ? offSel : m[0].id); plGrp = 'interne'; $('#offSheet').hidden = false; renderOff();
   }
+  function renderLess(){
+    const m = offLess();
+    if (!m.length) { $('#offSheet').hidden = true; notify('Plus personne n’a moins de '+offMin()+' off cette semaine.'); return; }
+    if (!m.some(x=>x.id === offSel)) offSel = m[0].id;
+    $('#offT').textContent = 'Désaffecter '+dLabel(offSel);
+    $('#offS').textContent = 'Semaine du '+fmtDM.format(plStart).replace(/\.$/,'')+'. '+dLabel(offSel)+' a moins de '+offMin()+' off : touchez une vacation pour l’en retirer (elle devient un off).';
+    $('#offWho').innerHTML = m.map(x=>'<button type="button" class="qchip" data-offp="'+esc(x.id)+'" aria-pressed="'+(x.id === offSel)+'" style="'+(x.id === offSel ? 'background:var(--accent);color:var(--accent-ink)' : '')+'">'+esc(dLabel(x.id))+' · '+x.n+' off</button>').join('');
+    const DJ = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
+    $('#offBody').innerHTML = offAssigned(offSel).map(a=>{
+      const rest = a.v.who.filter(x=>x !== offSel), ni = rest.filter(isIntId).length;
+      return '<div class="offslot"><b>'+DJ[a.i]+' '+fmtShort.format(parse(a.k)).replace(/^\S+\s/, '')+' · '+(a.p.journee ? 'journée' : PART_TXT[a.part])+'</b><button type="button" class="offopt" data-offrm="'+esc(a.p.id+'|'+a.k+'|'+a.part)+'">− '+esc(a.p.label)+'<small>'+(rest.length ? 'Resterait : '+rest.map(x=>(isIntId(x) ? '🎓 ' : '🩺 ')+esc(dLabel(x))).join(' · ') : '⚠ resterait sans personne')+(rest.length && !ni ? ' · ⚠ plus d’interne' : '')+'</small></button></div>';
+    }).join('');
+  }
   function renderOff(){
     if ($('#offSheet').hidden) return;
+    if (offMode === 'less') return renderLess();
     const m = offMode === 'all' ? offAll().filter(x=>x.slots.some(z=>!z.fixed)) : offMany().filter(x=>x.slots.some(z=>!z.fixed));
     if (!m.length) { $('#offSheet').hidden = true; notify(offMode === 'all' ? 'Plus aucun off cette semaine.' : 'Plus personne n’a plus de '+offMin()+' off cette semaine.'); return; }
     if (!m.some(x=>x.id === offSel)) offSel = m[0].id;
@@ -5649,6 +5672,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#offSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-offclose]')) { $('#offSheet').hidden = true; return; }
     const p = e.target.closest('[data-offp]'); if (p) { offSel = p.dataset.offp; renderOff(); return; }
+    const rm = e.target.closest('[data-offrm]'); if (rm && offSel) { const [po, k, part] = rm.dataset.offrm.split('|'); plScope = 'once'; plGrp = 'interne'; const cur = whoOf(po, k, part); await plApply(po, k, part, cur.filter(x=>x !== offSel), null); setTimeout(renderOff, 500); return; }
     const a = e.target.closest('[data-offadd]'); if (!a || !offSel) return;
     const [po, k, part] = a.dataset.offadd.split('|'); plScope = 'once'; plGrp = 'interne';
     const cur = whoOf(po, k, part); if (cur.includes(offSel)) return;
