@@ -557,6 +557,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 #trameCfgBody .intnh,#astBarBox .wkh{flex-direction:column;align-items:stretch;gap:6px}#trameCfgBody .trnm{display:flex;gap:6px;align-items:center}#trameCfgBody .trname{flex:1;min-width:0;width:100%;font-weight:700;min-height:38px}#trameCfgBody .trdel{flex:none;min-width:38px;min-height:38px;padding:0}#trameCfgBody .intnh .astpair{display:flex;gap:6px}#trameCfgBody .intnh .astpair .ghost{flex:1;min-height:32px;padding:0 8px;font-size:12.5px}#trameCfgBody .intgrid{gap:4px;margin-top:6px}#trameCfgBody .intgc{gap:3px}#trameCfgBody .intgc button{min-height:30px;height:30px;padding:0;font-size:12px;border-radius:8px}#trameCfgBody .intnr{padding:10px 0}
 .plsg .plwh{display:block;font-size:10.5px;font-weight:500;line-height:1.15;opacity:.75;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.plsg .plwh:empty{display:none}
 .priol .priabs{font-size:11px;font-weight:600;color:var(--accent)}.priol button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
+.qadd,.qchip{padding-top:6px;padding-bottom:6px;line-height:1.2}.qadd{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px}.qadd small{font-size:11px;font-weight:500;color:var(--muted);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qadd.bad small{color:#C62828}.qadd small:empty{display:none}.qchip{flex-wrap:wrap;row-gap:0}.qchip small{order:3;flex-basis:100%;font-size:11px;font-weight:500;color:var(--muted)}.qchip i{order:2}
 </style>
 
 <div class="wrap">
@@ -1584,7 +1585,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '1849fa4341';
+  const BUILD = '73876c05f8';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -4948,11 +4949,15 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const v = vacWho(ed.poste, ed.date, ed.part), cur = v ? v.who.slice() : [], q = normS($('#qeQ').value || '');
     $('#qeT').textContent = postName(ed.poste, ed.date)+(p.journee ? ' (journée entière)' : '');
     $('#qeS').textContent = new Intl.DateTimeFormat('fr-FR', {weekday:'long', day:'numeric', month:'long'}).format(parse(ed.date)).replace(/^./, c=>c.toUpperCase())+(p.journee ? '' : ' · '+PART_TXT[ed.part])+(v && v.ou ? ' · case « ou » : elle deviendra ferme' : '')+(v && v.texte ? ' · mention « '+v.texte+' »' : '');
-    const chip = id=>{ const r = reasonFor(id, ed.date, ed.part); return '<button type="button" class="qchip'+(r ? ' bad' : '')+'" data-qrm="'+esc(id)+'" aria-label="Retirer '+esc(dLabel(id))+'">'+(r ? '⚠ ' : '')+esc(dLabel(id))+'<i>✕</i></button>'; };
+    /* où chacun est posté sur cette même demi-journée (autres vacations) */
+    const elsewhere = {}, dw = (parse(ed.date).getDay()+6)%7;
+    trame.postes.forEach(q2=>{ if (q2.id === ed.poste || q2.info || dw > 4 || !okDay(q2, dw)) return; const x = vacWho(q2.id, ed.date, q2.journee ? 'M' : ed.part); if (x) x.who.forEach(id=>{ (elsewhere[id] = elsewhere[id] || []).includes(q2.label) || elsewhere[id].push(q2.label); }); });
+    const whereTxt = (id, r)=>{ const o = elsewhere[id] || []; return o.length ? '📍 '+o.join(' · ') : (r ? '⚠ '+r : (dw > 4 || !isIntId(id) ? '' : 'libre (off)')); };
+    const chip = id=>{ const r = reasonFor(id, ed.date, ed.part), o = elsewhere[id] || []; return '<button type="button" class="qchip'+(r ? ' bad' : '')+'" data-qrm="'+esc(id)+'" aria-label="Retirer '+esc(dLabel(id))+'">'+(r ? '⚠ ' : '')+esc(dLabel(id))+(o.length ? '<small>📍 '+esc(o.join(' · '))+'</small>' : '')+'<i>✕</i></button>'; };
     $('#qeBody').innerHTML = '<p class="qgt">Sur cette vacation</p>' + (cur.length ? '<div class="qchips">'+cur.map(chip).join('')+'</div>' : '<p class="hint">Personne pour l’instant.</p>')
       + cur.filter(id=>!(v && v.ou) && reasonFor(id, ed.date, ed.part)).map(id=>'<p class="aststat ko">⚠ '+esc(dLabel(id))+' : '+esc(reasonFor(id, ed.date, ed.part))+'</p>').join('');
     const pool = sortedDocs().filter(d=>!cur.includes(d.id) && (!q || normS(d.label).includes(q)) && (!gGrp || isIntId(d.id) === (gGrp === 'interne')));
-    const grp = (t, l)=>l.length ? '<p class="qgt">'+t+'</p><div class="qchips">'+l.map(d=>{ const r = reasonFor(d.id, ed.date, ed.part); return '<button type="button" class="qadd'+(r ? ' bad' : '')+'" data-qadd="'+esc(d.id)+'">＋ '+esc(dLabel(d.id))+(r ? '<small>⚠ '+esc(r)+'</small>' : '')+'</button>'; }).join('')+'</div>' : '';
+    const grp = (t, l)=>l.length ? '<p class="qgt">'+t+'</p><div class="qchips">'+l.map(d=>{ const r = reasonFor(d.id, ed.date, ed.part); return '<button type="button" class="qadd'+(r ? ' bad' : '')+'" data-qadd="'+esc(d.id)+'">＋ '+esc(dLabel(d.id))+'<small>'+esc(whereTxt(d.id, r))+'</small></button>'; }).join('')+'</div>' : '';
     const byAv = l=>l.slice().sort((a,b)=>(reasonFor(a.id, ed.date, ed.part) ? 1 : 0) - (reasonFor(b.id, ed.date, ed.part) ? 1 : 0));
     $('#qeAdd').innerHTML = grp('Seniors', byAv(pool.filter(d=>!isIntId(d.id)))) + grp('Internes', byAv(pool.filter(d=>isIntId(d.id)))) || '<p class="hint">Personne à ajouter.</p>';
     const ov = overrides[ed.date] && overrides[ed.date][ed.poste+'_'+ed.part]; $('#qeRev').hidden = !ov;
