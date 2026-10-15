@@ -969,7 +969,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <button type="button" class="primary" id="instBtn">📲 Ajouter à l’écran d’accueil</button>
         </div>
         <div class="card" id="remCard">
-          <h2>Rappels</h2>
+          <details class="cardfold" id="remFold"><summary>🔔 Rappels</summary>
           <p class="hint" id="remHint"></p>
           <div id="remBody" hidden>
             <label class="remrow"><input type="checkbox" id="remVeille"> Où je suis posté(e), la veille</label>
@@ -978,6 +978,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
             <div class="f"><label for="remHour">Heure du rappel</label><input type="time" id="remHour" value="20:00" step="900"></div>
           </div>
           <button type="button" class="primary" id="remBtn">🔔 Activer les rappels</button>
+          </details>
         </div>
         <div class="card" id="histCard" hidden>
           <details class="cardfold" id="histFold"><summary>🕘 Historique des modifications</summary>
@@ -1723,7 +1724,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       else if (inf.kind === 'A') pill = '<span class="st st-a">Astreinte (matin)</span>';
       else if (IND[own]) pill = '<span class="st st-i">'+IND[own]+'</span>';
       body += vacHtml(k);
-      if (!body && trame && i < 5) body = '<span class="none-txt">'+(isIntId(me) ? 'Off' : 'Pas de vacation')+'</span>';
+      if (!body && trame && i < 5) body = '<span class="none-txt">'+(isIntId(me) ? 'Off ☀️🏝️' : 'Pas de vacation')+'</span>';
       return rowWrap(d,i,k,'<span class="dr-date">'+dateTxt(d,k)+'</span>'+pill, body);
     }).join('');
 
@@ -1759,7 +1760,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (inf.kind === 'A') parts.unshift('astreinte ce matin');
     if (parts.length) return 'Aujourd’hui : '+parts.join(', ')+'.';
     if (wd > 4) return 'Bon week-end !';
-    return inf.kind === 'I' ? 'Vous êtes indisponible aujourd’hui.' : (isIntId(me) ? 'Off aujourd’hui.' : 'Pas de vacation prévue aujourd’hui.');
+    return inf.kind === 'I' ? 'Vous êtes indisponible aujourd’hui.' : (isIntId(me) ? 'Off aujourd’hui ☀️🏝️' : 'Pas de vacation prévue aujourd’hui.');
   }
   function renderHello(){
     const n = new Date(), d = doctors[me], hh = n.getHours();
@@ -1803,7 +1804,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         if (st && !acc) sub += ' — ⚠ mais vous êtes '+(st === 'G' ? 'de garde' : st === 'R' ? 'en repos de garde' : 'indisponible');
         if (acc) sub += ' — ✓ acceptée malgré votre '+(st === 'G' ? 'garde' : st === 'R' ? 'repos de garde' : 'indisponibilité');
       } else if (st) { cls += ' '+STAT[st][0]; what = STAT[st][1]; }
-      else { cls += ' free'; what = isIntId(me) ? 'Off' : 'Pas de vacation'; }
+      else { cls += ' free'; what = isIntId(me) ? 'Off ☀️🏝️' : 'Pas de vacation'; }
       if (!vs.length && !st) return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what lone">'+what+'</span></div>';
       const acts = vs.length && st ? '<span class="cfhint">'+(acc ? 'Acceptée · toucher pour modifier ›' : 'Toucher pour accepter ou refuser ›')+'</span>' : '';
       const cfa = vs.length && st ? ' role="button" tabindex="0" data-cfo="'+kk+'|'+part+'"' : '';
@@ -5353,6 +5354,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $('#admList').innerHTML = adms.length ? adms.map(d=>'<button type="button" class="qchip" data-admrm="'+esc(d.id)+'" aria-label="Retirer '+esc(d.label)+'">'+esc(d.label)+'<i>✕</i></button>').join('') : '<p class="hint" style="margin:0">Aucun administrateur désigné.</p>';
     $('#admAdd').innerHTML = '<option value="">Choisir une personne…</option>' + others.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('');
   }
+  $('#admFold > summary').addEventListener('click', e=>{ const f = $('#admFold'); if (!f.open && !askCode('ouvrir les administrateurs')) e.preventDefault(); });
   $('#admList').addEventListener('click', async e=>{ const b = e.target.closest('[data-admrm]'); if (!b) return; if (!askCode('retirer un administrateur')) return; if (await setDocField(b.dataset.admrm, {admin: false})) notify('Administrateur retiré.'); });
   $('#admAdd').addEventListener('change', async e=>{ const id = e.target.value; if (!id) return; if (!askCode('désigner un administrateur')) { e.target.value = ''; return; } if (await setDocField(id, {admin: true})) notify(dLabel(id)+' est maintenant administrateur.'); else e.target.value = ''; });
 
