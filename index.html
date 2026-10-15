@@ -1580,7 +1580,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '3182c26066';
+  const BUILD = 'cdd035df94';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2239,6 +2239,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   let wzStep = 1, genPref = [], prefWho = '', prefPost = '';   /* genPref : [{id, poste}] préférences de pose pour la génération */
   function wzSteps(){ const st = ['trame','close','post','pref']; if (plGrp === 'interne') { if (trame && trame.postes.some(p=>p.id === 'echo' || p.id === 'scanner-urg')) st.push('echo'); st.push('custom'); } else st.push('go'); return st; }
   /* vacations non pourvues de la semaine + accès au planning / suppression */
+  /* récap de la semaine (planning fait) : off par interne, avec affectation d'une vacation supplémentaire */
+  function wkRecap(){
+    if (plGrp !== 'interne' || !trame) return '';
+    const list = offAll(); if (!list.length) return '';
+    const tot = list.reduce((a,x)=>a + x.n, 0);
+    return '<div class="redoq recap"><p class="aststat"><b>📊 Récap de la semaine · off par interne</b></p><p class="hint">'+tot+' demi-journée'+(tot > 1 ? 's' : '')+' off au total. Touchez « Affecter » pour poster un interne sur une vacation en plus : vous verrez qui est déjà dessus.</p><div class="col" style="gap:6px;text-align:left">'
+      + list.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · <span style="font-weight:700;color:'+(x.n > 2 ? 'var(--red,#b3392b)' : 'inherit')+'">'+x.n+' off</span>'+(x.n > 2 ? ' ⚠' : '')+'</span>'+(x.n ? '<button type="button" class="ghost" data-offopen="'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>＋ Affecter</button>' : '<span class="hint">✓</span>')+'</div>').join('')+'</div></div>';
+  }
   function wkTools(){
     if (!trame) return '';
     const un = []; let f = 0, n = 0;
@@ -2315,7 +2323,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     else if (!plStage) { const bt = (k, ic, t)=>'<button type="button" class="astbtn big lrow" data-plpick="'+k+'"><span class="ai">'+ic+'</span><span class="at">'+t+'</span><span class="ac">›</span></button>'; box.innerHTML = '<div class="asthead"><span>Planning des <b>'+(plGrp === 'interne' ? 'internes' : 'médecins')+'</b></span><button type="button" class="ghost" data-plgrp="">Changer</button></div><div class="astcol">'+bt('imp','📥','Importer un planning')+bt('week','📅','Créer un planning de semaine')+bt('ast','🔔','Créer un planning d’astreinte')+'</div>'; }
     else if (plStage === 'impm') box.innerHTML = back + '<p class="aststat">Importer un planning…</p><div class="astcol">'+lb('data-implmode="week"','📅','Planning de semaine')+lb('data-implmode="ast"','🔔','Planning d’astreinte')+'</div>';
     else if (plStage === 'auto' && !ast && delAsk) box.innerHTML = back + '<div class="redoq"><p class="aststat"><b>Supprimer le planning de la semaine du '+esc(fmtDM.format(plStart))+' ?</b></p><p class="hint">Toutes les vacations de cette semaine ('+(plGrp === 'interne' ? 'internes' : plGrp ? 'seniors' : 'tout le monde')+') seront vidées. Vous pourrez ensuite en créer un nouveau.</p><div class="astpair"><button type="button" class="astbtn" data-delno="1">Annuler</button><button type="button" class="astbtn dangerbtn" data-delyes="1"'+(canWrite ? '' : ' disabled')+'>Oui, supprimer</button></div></div>';
-    else if (plStage === 'auto' && !ast && weekDone() && redoOk !== key(plStart)) box.innerHTML = back + '<div class="redoq"><p class="aststat"><b>Le planning de cette semaine est déjà fait.</b></p><p class="hint">Voulez-vous le refaire (le nouveau remplacera celui-ci une fois enregistré) ou le supprimer ?</p>'+(plGrp === 'interne' && offMany().length ? '<button type="button" class="astbtn" data-offopen="1" style="margin-bottom:8px">⚖ '+offMany().length+' interne'+(offMany().length > 1 ? 's ont' : ' a')+' plus de 2 off · affecter</button>' : '')+'<div class="astpair"><button type="button" class="astbtn" data-redono="1">Non</button><button type="button" class="astbtn" data-redoyes="1">Refaire</button><button type="button" class="astbtn dangerbtn" data-delask="1">🗑 Supprimer</button></div><div class="astpair" style="margin-top:8px"><button type="button" class="astbtn" data-wkview="edit">✏️ Modifier</button><button type="button" class="astbtn" data-wkview="1">👁 Voir le planning</button></div></div>';
+    else if (plStage === 'auto' && !ast && weekDone() && redoOk !== key(plStart)) box.innerHTML = back + wkRecap() + '<div class="redoq"><p class="aststat"><b>Le planning de cette semaine est déjà fait.</b></p><p class="hint">Voulez-vous le refaire (le nouveau remplacera celui-ci une fois enregistré) ou le supprimer ?</p>'+'<div class="astpair"><button type="button" class="astbtn" data-redono="1">Non</button><button type="button" class="astbtn" data-redoyes="1">Refaire</button><button type="button" class="astbtn dangerbtn" data-delask="1">🗑 Supprimer</button></div><div class="astpair" style="margin-top:8px"><button type="button" class="astbtn" data-wkview="edit">✏️ Modifier</button><button type="button" class="astbtn" data-wkview="1">👁 Voir le planning</button></div></div>';
     else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Planning d’astreinte' : 'Planning de semaine')+'</b> · comment la créer ?</p><div class="astcol">'+lb('data-plstage="auto"','⚡','Création automatique')+lb('data-plstage="man"','✋','Création manuelle')+'</div>';
     else if (plStage === 'imp') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis…</p><div class="astcol">'+lb('data-plstage="impx"','📗','Fichier Excel')+lb('data-plstage="impg"','🔗','Google Sheet')+lb('data-plstage="pdf"','📄','PDF')+lb('data-plstage="shot"','📷','Photo ou capture')+'</div>';
     else if (plStage === 'impx' || plStage === 'impg') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · '+(plStage === 'impx' ? 'fichier Excel' : 'Google Sheet')+'. '+(ast ? 'Seules les astreintes (samedis) du fichier seront importées.' : 'Seules les vacations de la semaine (lundi à vendredi) seront importées.')+'</p>';
@@ -2396,7 +2404,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   $('#astBarBox').addEventListener('change', e=>{ const pf = e.target.closest && e.target.closest('#pdfFile'); if (pf && pf.files && pf.files[0]) { const file = pf.files[0], pn = Math.max(1, +(($('#pdfPage') || {}).value) || 1); pf.value = ''; pdfRun(file, pn); return; } const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
   document.addEventListener('change', e=>{ if (e.target.id === 'prefWho') prefWho = e.target.value; else if (e.target.id === 'prefPost') prefPost = e.target.value; });
-  document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-offopen]')) { offOpen(); return; } if (e.target.closest && e.target.closest('[data-wkview]')) { const wkv = e.target.closest('[data-wkview]').dataset.wkview, ed0 = wkv === 'edit'; weekStart = plStart; const unf0 = wkv === 'unf' ? {grp: plGrp || 'medecin'} : null; gDay = -1; showTab('general'); gUnf = unf0; if (unf0) { gGrp = unf0.grp; try { localStorage.setItem('planning-ggrp', gGrp); } catch(err) {} } renderGLabel(); renderTeam(); renderTrame(); try { window.scrollTo({top: 0}); } catch(err) {} if (ed0) { try { if (plGrp) { gGrp = plGrp; localStorage.setItem('planning-ggrp', gGrp); } } catch(err) {} let tgt = null; const wk0 = plStart; for (let i = 0; i < 5 && !tgt; i++) { const k = key(addDays(wk0, i)); trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ if (tgt) return; const r = aPourvoir(p, k, i, part); if (r && !r.ok) tgt = [p.id, k, part]; })); } if (!tgt) { const p0 = trame.postes.find(p=>!p.info && !isSam(p) && okDay(p, 0)); if (p0) tgt = [p0.id, key(wk0), p0.journee ? 'M' : partsOf(p0)[0]]; } const sg = gGrp; if (tgt) { qeShow(tgt[0], tgt[1], tgt[2]); gGrp = sg; } renderTrame(); } } });
+  document.addEventListener('click', e=>{ { const oo = e.target.closest && e.target.closest('[data-offopen]'); if (oo) { offOpen(oo.dataset.offopen); return; } } if (e.target.closest && e.target.closest('[data-wkview]')) { const wkv = e.target.closest('[data-wkview]').dataset.wkview, ed0 = wkv === 'edit'; weekStart = plStart; const unf0 = wkv === 'unf' ? {grp: plGrp || 'medecin'} : null; gDay = -1; showTab('general'); gUnf = unf0; if (unf0) { gGrp = unf0.grp; try { localStorage.setItem('planning-ggrp', gGrp); } catch(err) {} } renderGLabel(); renderTeam(); renderTrame(); try { window.scrollTo({top: 0}); } catch(err) {} if (ed0) { try { if (plGrp) { gGrp = plGrp; localStorage.setItem('planning-ggrp', gGrp); } } catch(err) {} let tgt = null; const wk0 = plStart; for (let i = 0; i < 5 && !tgt; i++) { const k = key(addDays(wk0, i)); trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ if (tgt) return; const r = aPourvoir(p, k, i, part); if (r && !r.ok) tgt = [p.id, k, part]; })); } if (!tgt) { const p0 = trame.postes.find(p=>!p.info && !isSam(p) && okDay(p, 0)); if (p0) tgt = [p0.id, key(wk0), p0.journee ? 'M' : partsOf(p0)[0]]; } const sg = gGrp; if (tgt) { qeShow(tgt[0], tgt[1], tgt[2]); gGrp = sg; } renderTrame(); } } });
   $('#astBarBox').addEventListener('click', async e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { qAns = ''; wzStep = 1; wzTrSub = ''; genPref = []; useTr = true; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
     const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; intNon[a[0]] = a[1] === '2'; return renderCompose(); }
     const nb = e.target.closest('[data-intn]'); if (nb) { const a = nb.dataset.intn.split('|'), cur = intNeed[a[0]] != null ? intNeed[a[0]] : (INT_RULES.need[a[0]] != null ? INT_RULES.need[a[0]] : INT_RULES.defaut); intNeed[a[0]] = Math.max(0, Math.min(4, cur + Number(a[1]))); Object.keys(intNeedHP).forEach(k=>{ if (k.startsWith(a[0]+'|')) delete intNeedHP[k]; }); return renderCompose(); }
@@ -5521,23 +5529,26 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }
     return res;
   }
+  const offAll = () => { const o = intOffs(); return sortedDocs().filter(d=>isIntId(d.id)).map(d=>({id: d.id, n: (o[d.id] || []).length, slots: o[d.id] || []})).sort((a,b)=>b.n - a.n); };
+  let offMode = 'many';   /* 'many' : internes à plus de 2 off ; 'all' : récap de tous les internes */
   const offMany = () => { const o = intOffs(); return Object.keys(o).filter(id=>o[id].length > 2).map(id=>({id, n: o[id].length, slots: o[id]})).sort((a,b)=>b.n - a.n); };
-  function offOpen(){
-    const m = offMany(); if (!m.length) return;
-    offSel = m.some(x=>x.id === offSel) ? offSel : m[0].id; plGrp = 'interne'; $('#offSheet').hidden = false; renderOff();
+  function offOpen(id){
+    offMode = id && id !== '1' ? 'all' : 'many';
+    const m = offMode === 'all' ? offAll().filter(x=>x.n > 0) : offMany(); if (!m.length) return;
+    offSel = id && id !== '1' && m.some(x=>x.id === id) ? id : (m.some(x=>x.id === offSel) ? offSel : m[0].id); plGrp = 'interne'; $('#offSheet').hidden = false; renderOff();
   }
   function renderOff(){
     if ($('#offSheet').hidden) return;
-    const m = offMany();
-    if (!m.length) { $('#offSheet').hidden = true; notify('Plus personne n’a plus de 2 off cette semaine.'); return; }
+    const m = offMode === 'all' ? offAll().filter(x=>x.n > 0) : offMany();
+    if (!m.length) { $('#offSheet').hidden = true; notify(offMode === 'all' ? 'Plus aucun off cette semaine.' : 'Plus personne n’a plus de 2 off cette semaine.'); return; }
     if (!m.some(x=>x.id === offSel)) offSel = m[0].id;
-    $('#offT').textContent = m.length > 1 ? m.length+' internes ont plus de 2 off' : dLabel(m[0].id)+' a plus de 2 off';
+    $('#offT').textContent = offMode === 'all' ? 'Affecter une vacation à '+dLabel(offSel) : (m.length > 1 ? m.length+' internes ont plus de 2 off' : dLabel(m[0].id)+' a plus de 2 off');
     $('#offS').textContent = 'Semaine du '+fmtDM.format(plStart).replace(/\.$/,'')+'. Touchez une vacation pour y affecter la personne choisie : les gens déjà postés sont indiqués.';
     $('#offWho').innerHTML = m.map(x=>'<button type="button" class="qchip" data-offp="'+esc(x.id)+'" aria-pressed="'+(x.id === offSel)+'" style="'+(x.id === offSel ? 'background:var(--accent);color:var(--accent-ink)' : '')+'">'+esc(dLabel(x.id))+' · '+x.n+' off</button>').join('');
     const cur = m.find(x=>x.id === offSel), DJ = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
     $('#offBody').innerHTML = cur.slots.map(sl=>{
       const opts = trame.postes.filter(p=>!p.info && !isSam(p) && !p.journee && okDay(p, sl.i)).map(p=>{ const v = vacWho(p.id, sl.k, sl.part); if (!v || v.ou || (v.texte && /^ferm/i.test(v.texte) && !v.who.length)) return null; return {p, v, ni: v.who.filter(isIntId).length}; }).filter(Boolean).sort((a,b)=>a.ni - b.ni);
-      const names = v => v.who.length ? v.who.map(id=>isIntId(id) ? '<i>'+esc(dLabel(id))+'</i>' : '<b>'+esc(dLabel(id))+'</b>').join(', ') : 'personne';
+      const names = v => v.who.length ? v.who.slice().sort((x,y)=>(isIntId(y) ? 1 : 0) - (isIntId(x) ? 1 : 0)).map(id=>isIntId(id) ? '🎓 <b>'+esc(dLabel(id))+'</b>' : '🩺 '+esc(dLabel(id))).join(' · ') : 'personne pour le moment';
       return '<div class="offslot"><b>'+DJ[sl.i]+' '+fmtShort.format(parse(sl.k)).replace(/^\S+\s/, '')+' · '+PART_TXT[sl.part]+'</b>'
         + (opts.length ? opts.map((o,ix)=>'<button type="button" class="offopt'+(ix === 0 ? ' sug' : '')+'" data-offadd="'+esc(o.p.id+'|'+sl.k+'|'+sl.part)+'">'+(ix === 0 ? '⭐ ' : '')+esc(o.p.label)+'<small>Déjà : '+names(o.v)+'</small></button>').join('') : '<p class="hint">Aucune vacation ouverte sur ce créneau.</p>')
         + '</div>';
