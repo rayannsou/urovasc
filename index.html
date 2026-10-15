@@ -1586,7 +1586,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'ff45bc7b55';
+  const BUILD = '7a5b1edd88';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3514,11 +3514,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const OFFP = {id: '__off', label: 'Off', off: true}, assigned = {};
     trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>days.forEach((d,i)=>PARTS.forEach(part=>{ const v = okDay(p,i) ? vacWho(p.id, dk[i], part) : null; if (v) v.who.forEach(id=>{ (assigned[dk[i]+'_'+part] = assigned[dk[i]+'_'+part] || new Set()).add(id); }); })));
     const offRows = PARTS.map(part=>({p: OFFP, part, cells: days.map((d,i)=>{
+      if (isFerie(dk[i])) return {who: [], texte: part === 'M' ? 'Férié · '+ferieName(dk[i]) : '', ou: false};   /* jour férié : pas de off */
       const ids = new Set(), a = absAt(dk[i], part); Object.values(a).forEach(l=>l.forEach(id=>{ if (inG(id)) ids.add(id); }));
       sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i])[part] !== 'G' && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
       return {who: sdocs.filter(dc=>ids.has(dc.id)).map(dc=>dc.id), texte: '', ou: false};
     })}));
-    if (offRows.some(r=>r.cells.some(c=>c.who.length))) offRows.forEach(r=>rows.push(r));
+    if (offRows.some(r=>r.cells.some(c=>c.who.length || c.texte))) offRows.forEach(r=>rows.push(r));
     /* contrôle : toutes les indisponibilités ont-elles été prises en compte ? */
     const bad = [], DJ = ['lun.','mar.','mer.','jeu.','ven.'];
     trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>days.forEach((d,i)=>{ if (!okDay(p,i)) return; PARTS.forEach(part=>{ if (p.journee && part !== 'M') return; const v = vacWho(p.id, dk[i], part); if (!v || v.ou) return; v.who.filter(inG).forEach(id=>{ const r = reasonFor(id, dk[i], part); if (r) bad.push(dLabel(id)+' ('+postName(p.id, dk[i])+', '+DJ[i]+' '+(part === 'M' ? 'matin' : 'après-midi')+' : '+r+')'); }); }); }));
