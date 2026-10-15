@@ -1583,7 +1583,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'b334c9b396';
+  const BUILD = 'e7d90d27db';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2288,7 +2288,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const g = wkG(), mk = key(plStart);
     return saveTrame(t=>{ t.sem = t.sem || {}; const w = (t.sem[mk] = t.sem[mk] || {}); const x = (w[g] = w[g] || {add: {}, rem: {}}); x.add = x.add || {}; x.rem = x.rem || {};
       if (mut) mut(x);
-      (todo || []).forEach(([po, i, pt, on])=>{ const kk = tk(po, i, pt), base = g === 'int' ? !!(t.casesInt && t.casesInt[kk]) : !!t.cases[kk]; if (on) { delete x.rem[kk]; if (!base || x.blank) x.add[kk] = 1; } else { delete x.add[kk]; if (base && !x.blank) x.rem[kk] = 1; } }); }, true);
+      const iSeed = !t.intSet && !Object.keys(t.casesInt || {}).length;
+      (todo || []).forEach(([po, i, pt, on])=>{ const kk = tk(po, i, pt), base = g === 'int' ? (iSeed ? !!t.cases[kk] : !!(t.casesInt && t.casesInt[kk])) : !!t.cases[kk]; if (on) { delete x.rem[kk]; if (!base || x.blank) x.add[kk] = 1; } else { delete x.add[kk]; if (base && !x.blank) x.rem[kk] = 1; } }); }, true);
   }
   function wzHtml(back, stat, allOk, miss, dis){
     const st = wzSteps(), n = st.length, i = Math.max(1, Math.min(wzStep, n)) - 1, s = st[i];
@@ -2304,7 +2305,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const sen = plGrp !== 'interne', n0 = trame ? (sen ? Object.keys(trame.cases).filter(c=>!(trame.cases[c].who || []).length && !trame.cases[c].texte).length : Object.keys(trame.casesInt || {}).length) : 0;
       if (wzTrSub === 'mod') body = q('✏️ Voulez-vous modifier une vacation en particulier&nbsp;?', 'Vous ouvrez la trame pour changer des vacations <b>cette semaine seulement</b> (la trame générale reste inchangée).', '<button type="button" data-wzsub="edit" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="skip" aria-pressed="false">Non</button>');
       else if (wzTrSub === 'edit') body = wkTrHtml() + '<button type="button" class="astbtn go wznext" data-wzsub="skip">Appliquer cette trame · Suivant ›</button>';
-      else body = q('🗓 Voulez-vous appliquer la trame générale&nbsp;?', 'Trame '+(sen ? 'senior' : 'interne')+' : '+(n0 ? n0+' vacation'+(n0 > 1 ? 's' : '')+' à pourvoir chaque semaine.' : 'aucune vacation définie (Réglages → Trame du planning).')+' « Non » : vous partez d’une trame vierge, où vous cochez les vacations de la semaine.', '<button type="button" data-wzsub="yes" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="no" aria-pressed="false">Non</button>');
+      else body = q('🗓 Voulez-vous appliquer la trame générale&nbsp;?', 'Trame '+(sen ? 'senior' : 'interne')+' : '+(n0 ? n0+' vacation'+(n0 > 1 ? 's' : '')+' à pourvoir chaque semaine.' : 'aucune vacation définie (Réglages → Trame du planning).')+' « Non » : vous ouvrez la trame générale pour la modifier, cette semaine seulement (elle reste inchangée).', '<button type="button" data-wzsub="yes" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="no" aria-pressed="false">Non</button>');
     }
     else if (s === 'close') body = q('🔒 Voulez-vous fermer une vacation&nbsp;?', 'Une vacation fermée reste sans personne : elle ne sera pas remplie.', '<button type="button" data-astyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
     else if (s === 'post') body = q('✋ Voulez-vous poster quelqu’un quelque part&nbsp;?', 'Les vacations déjà pourvues sont conservées : la génération complète seulement les autres.', '<button type="button" data-wkpostyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
@@ -2437,7 +2438,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const pd = e.target.closest('[data-prefdel]'); if (pd) { genPref.splice(Number(pd.dataset.prefdel), 1); return renderCompose(); }
     const ws = e.target.closest('[data-wzsub]'); if (ws) { const v = ws.dataset.wzsub;
       if (v === 'yes') { useTr = true; if (semG(key(plStart), wkG()) && !(await wkSemSet([], x=>{ x.blank = false; x.add = {}; x.rem = {}; }))) return; wzTrSub = 'mod'; }
-      else if (v === 'no') { useTr = true; if (!(await wkSemSet([], x=>{ x.blank = true; x.add = {}; x.rem = {}; }))) return; wzTrSub = 'edit'; }
+      else if (v === 'no') { useTr = true; if (semG(key(plStart), wkG()) && !(await wkSemSet([], x=>{ x.blank = false; x.add = {}; x.rem = {}; }))) return; wzTrSub = 'edit'; }
       else if (v === 'edit') wzTrSub = 'edit';
       else { wzTrSub = ''; wzStep = 2; plStage = 'auto'; }
       renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; }
@@ -2608,6 +2609,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const slots = [], noSrBloc = [], noOu = [];
     HP.forEach(h=>posts.forEach(p=>{
       const tI = useTr && trInt(p.id, h.i, h.part, h.k);   /* vacation de la trame interne : prioritaire sur les règles par défaut */
+      const sw = useTr && semG(h.k, 'int'); if (!tI && sw && (sw.blank || (sw.rem && sw.rem[tk(p.id, h.i, h.part)]))) return;   /* retirée de la trame pour cette semaine */
       if (!okDay(p, h.i) || (p.journee && h.part !== 'M') || (!tI && R.exclus.test(p.id+' '+p.label))) return;
       if (!tI && R.seulement[p.id] && !R.seulement[p.id].includes(h.i+h.part)) return;
       let v = vacWho(p.id, h.k, h.part); if (v && !useTr && trEmpty(p.id, h.k, h.i, h.part)) v = null; if (!v) { if (tI || R.toujours.includes(p.id)) v = {who: [], stars: [], ou: false, texte: '', edited: false, open: false}; else return; }
