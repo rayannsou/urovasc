@@ -1586,7 +1586,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '83ae979ae9';
+  const BUILD = '06efac6a12';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3903,7 +3903,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   let trame = null, swaps = {}, swSig = '', pendingUndo = '', undoTimer = 0;
   const PCOL = ['#2F7A8C','#7A4FA3','#C2571A','#2E8B57','#B8860B','#C23B6B','#3B5BA5','#8A6D3B','#4B8F29','#A1443F','#5B6FBF','#127C7C'];
   const posteColor = id => { const i = trame ? trame.postes.findIndex(p=>p.id === id) : -1; return PCOL[(i < 0 ? 0 : i) % PCOL.length]; };
-  const docStyle = id => { let h = 0; for (const ch of String(id)) h = (h*31 + ch.charCodeAt(0)) % 360; return document.documentElement.dataset.theme === 'dark' ? 'background:hsl('+h+' 32% 26%);color:hsl('+h+' 70% 88%)' : 'background:hsl('+h+' 70% 89%);color:hsl('+h+' 60% 20%)'; };
+  const docStyle = id => { let h = 0; for (const ch of String(id)) h = (h*31 + ch.charCodeAt(0)) % 360; if (isIntId(id)) h = doctors[id] && doctors[id].auto === true ? 140 : 28;   /* internes : vert pastel = autonome, orange pastel = pas autonome (ou non renseigné) */ return document.documentElement.dataset.theme === 'dark' ? 'background:hsl('+h+' 32% 26%);color:hsl('+h+' 70% 88%)' : 'background:hsl('+h+' 70% 89%);color:hsl('+h+' 60% 20%)'; };
   const mqDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   /* palettes au choix : chaque palette est dérivée d'une couleur principale (teinte), en clair et en sombre */
   const PALS = [{id: '', label: 'Actuelle', acc: '#123F55', h: 200}, {id: 'chu', label: 'Vert CHU', acc: '#2A7552', h: 151}, {id: 'chub', label: 'Bleu CHU', acc: '#2C5C9D', h: 214},
