@@ -701,6 +701,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
             <input type="file" id="xlFile" accept=".xlsx,.xls,.csv" class="visually-hidden">
             <button type="button" class="ghost srcx" id="xlModel">Télécharger le modèle (semaine affichée)</button>
             <div class="srcg" style="display:flex;margin-top:12px;gap:8px;flex-wrap:wrap">
+              <p class="hint" style="flex:1 1 100%;margin:0;color:var(--ink)"><b>Méthode fiable (recommandée)</b> : dans Google Sheets, ouvrez l’onglet du mois, faites Ctrl+A puis Ctrl+C, et collez ici (Ctrl+V). Toutes les cases sont lues telles quelles.</p>
+              <textarea id="gsPaste" rows="4" placeholder="Collez ici le tableau copié depuis Google Sheets…" aria-label="Tableau collé" style="flex:1 1 100%;min-width:0;font:13px var(--font-mono);border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--bg);color:inherit"></textarea>
+              <input type="text" id="gsPasteTab" placeholder="Mois du tableau, ex. novembre 2026 (facultatif)" aria-label="Mois du tableau" style="flex:1 1 180px;min-width:0">
+              <button type="button" class="ghost" id="gsPasteGo">Importer le tableau collé</button>
+            </div>
+            <div class="srcg" style="display:flex;margin-top:12px;gap:8px;flex-wrap:wrap">
               <input type="url" id="gsLink" inputmode="url" placeholder="Ou collez un lien Google Sheets…" aria-label="Lien Google Sheets" style="flex:1 1 100%;min-width:0">
               <input type="text" id="gsTab" placeholder="Onglet(s), ex. sept 26, oct 26 (facultatif)" aria-label="Nom des onglets" style="flex:1 1 180px;min-width:0">
               <button type="button" class="ghost" id="gsGo">Importer le lien</button>
@@ -4495,6 +4501,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     try { await dl.save({filename: 'planning-semaine-'+key(days[0])+'.xlsx', data: new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}); notify('Modèle enregistré.'); }
     catch(e) { if (!e || e.code !== 'declined') notify("Impossible d'enregistrer le fichier ici.", true); }
   }
+  $('#gsPasteGo').addEventListener('click', ()=>{
+    const t = $('#gsPaste').value; if (!t.trim()) return notify('Collez d’abord le tableau copié depuis Google Sheets.', true);
+    const X = window.XLSX; if (!X) return notify("La lecture des fichiers Excel n'est pas disponible dans cette vue.", true);
+    const nm = ($('#gsPasteTab').value.trim() || new Intl.DateTimeFormat('fr-FR', {month:'long', year:'numeric'}).format(cwStart)).slice(0,31);
+    const w1 = X.read(t.replace(/\r/g,''), {type:'string', FS:'\t', raw:true}), out = X.utils.book_new();
+    X.utils.book_append_sheet(out, w1.Sheets[w1.SheetNames[0]], nm);
+    readBuffer(null, out);
+  });
   $('#gsGo').addEventListener('click', ()=>{ const v = $('#gsLink').value.trim(); if (v) readLink(v, $('#gsTab').value); else notify('Collez un lien Google Sheets.', true); });
   $('#xlFile').addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
   $('#xlModel').addEventListener('click', downloadModel);
