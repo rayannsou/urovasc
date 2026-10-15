@@ -546,6 +546,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 .astrow.mrow.done{opacity:.65;cursor:default}
 .mrow b small{font-weight:500;color:var(--muted)}
 #clSheet .seg{margin:0}
+
+#setMenu{display:flex;flex-direction:column;gap:18px}#setMenu .setlist{background:var(--surface,var(--card));border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.setrow{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 14px;border:0;border-top:1px solid var(--line);background:transparent;color:inherit;font:600 16px var(--font-body);text-align:left;cursor:pointer}.setrow:first-child{border-top:0}
+.setrow .si{flex:none;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:18px;color:#fff}.setrow .st{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.setrow .st small{font:400 12.5px var(--font-body);color:var(--muted)}.setrow .sc{color:var(--muted);font-size:22px}
+.setback{display:flex;align-items:center;gap:6px;min-height:44px;padding:0;border:0;background:transparent;color:var(--accent);font:600 16px var(--font-body);cursor:pointer}.setgt{margin:0 0 4px;font-size:24px}.setgrp{display:flex;flex-direction:column;gap:16px;min-width:0}.setgrp[hidden],#setMenu[hidden],#setCol[hidden]{display:none!important}
 </style>
 
 <div class="wrap">
@@ -905,7 +910,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     </section>
 
     <section id="view-reglages" aria-labelledby="tab-reglages" hidden>
-      <div class="col">
+      <div id="setMenu"></div>
+      <div class="col" id="setCol">
         <div class="card mp">
           <details class="cardfold" id="fMp"><summary>Mon profil</summary>
           <p class="hint">Choisissez votre nom : l’accueil vous dira « Bonjour » avec votre nom et affichera votre semaine.</p>
@@ -998,7 +1004,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         </div>
         <div class="card" id="trameCfg" hidden>
           <details class="cardfold" id="trameFold"><summary>🗓 Trame du planning (sans personne)</summary>
-          <p class="hint">Choisissez les vacations qui existent chaque semaine (poste, jour, matin / après-midi), sans y poster personne. La génération automatique les remplit ensuite. Une vacation cochée apparaît « non pourvue » tant que personne n’y est posté.</p>
+          <p class="hint">Deux trames distinctes : <b>senior</b> et <b>interne</b>. Choisissez les vacations qui existent chaque semaine (poste, jour, matin / après-midi), sans y poster personne. Au moment de créer un planning, la première question est « Utiliser la trame ? ». Une vacation cochée apparaît « non pourvue » tant que personne n’y est posté.</p>
+          <div class="astpair" id="trameGrp"><button type="button" class="astbtn" data-trg="medecin">🩺 Trame senior</button><button type="button" class="astbtn" data-trg="interne">🎓 Trame interne</button></div>
           <div id="trameCfgBody"></div>
           </details>
         </div>
@@ -2064,8 +2071,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   /* état du planning : fait ou non (semaine affichée, jours, astreintes) */
   /* vacation « à pourvoir » : ouverte dans la trame des médecins (ou déjà posée) ; pour les internes, selon leurs règles (hors facultatif, hors mentions seules). Renvoie null sinon, sinon {ok: pourvue ?} */
   function aPourvoir(p, k, dow, part){
-    const v = vacWho(p.id, k, part), inter = plGrp === 'interne', R = INT_RULES, mine = v ? v.who.filter(inGrp).length : 0;
+    let v = vacWho(p.id, k, part); const inter = plGrp === 'interne', R = INT_RULES;
+    if (v && !useTr && trEmpty(p.id, k, dow, part)) v = null;
+    const mine = v ? v.who.filter(inGrp).length : 0;
     if (inter) {
+      if (useTr && trInt(p.id, dow, part)) return {ok: !!mine};
       if (R.exclus.test(p.id+' '+p.label) || R.facultatif.includes(p.id)) return null;
       if (R.seulement[p.id] && !R.seulement[p.id].includes(dow+part)) return null;
       if (!v && !R.toujours.includes(p.id)) return null;
@@ -2146,8 +2156,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }).join('');
     return '<div class="intq"><p class="aststat"><b>Combien d’internes par poste ?</b></p><p class="hint">Choisissez l’effectif souhaité par vacation. Par exemple : 2 à l’échographie et 1 au scanner RdC, puis « Par demi-journée » pour ajuster un jour précis. 0 = personne.</p>'+rows+'<button type="button" class="ghost" data-intreset="1">Remettre les valeurs par défaut</button></div>';
   }
+  let useTr = true;   /* « utiliser la trame » : les vacations de la trame (sans personne) du groupe sont à pourvoir */
+  const trInt = (po, dow, part) => !!(trame && trame.casesInt && trame.casesInt[tk(po, dow, part)]);
+  function trEmpty(po, k, dow, part){ const c = trame && trame.cases[tk(po, dow, part)], o = overrides[k] && overrides[k][po+'_'+part]; return !!c && !(c.who || []).length && !c.texte && !o; }
   let wzStep = 1, genPref = [], prefWho = '', prefPost = '';   /* genPref : [{id, poste}] préférences de pose pour la génération */
-  function wzSteps(){ const st = ['close','post','pref']; if (plGrp === 'interne') { if (trame && trame.postes.some(p=>p.id === 'echo' || p.id === 'scanner-urg')) st.push('echo'); st.push('custom'); } else st.push('go'); return st; }
+  function wzSteps(){ const st = ['trame','close','post','pref']; if (plGrp === 'interne') { if (trame && trame.postes.some(p=>p.id === 'echo' || p.id === 'scanner-urg')) st.push('echo'); st.push('custom'); } else st.push('go'); return st; }
   /* vacations non pourvues de la semaine + accès au planning / suppression */
   function wkTools(){
     if (!trame) return '';
@@ -2169,7 +2182,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
     const q = (t, h, yes, no)=>'<div class="qcard"><p class="qt">'+t+'</p><p class="qh">'+h+'</p><div class="qbtns">'+yes+no+'</div></div>';
     let body = '';
-    if (s === 'close') body = q('🔒 Voulez-vous fermer une vacation&nbsp;?', 'Une vacation fermée reste sans personne : elle ne sera pas remplie.', '<button type="button" data-astyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
+    if (s === 'trame') {
+      const sen = plGrp !== 'interne', n = trame ? (sen ? Object.keys(trame.cases).filter(c=>!(trame.cases[c].who || []).length && !trame.cases[c].texte).length : Object.keys(trame.casesInt || {}).length) : 0;
+      body = q('🗓 Utiliser la trame&nbsp;?', 'Trame '+(sen ? 'senior' : 'interne')+' : '+(n ? n+' vacation'+(n > 1 ? 's' : '')+' à pourvoir chaque semaine.' : 'aucune vacation définie (Réglages → Trame du planning).')+' « Non » : la génération ignore cette trame.', '<button type="button" data-wztr="1" aria-pressed="'+useTr+'">Oui</button>', '<button type="button" data-wztr="0" aria-pressed="'+!useTr+'">Non</button>');
+    }
+    else if (s === 'close') body = q('🔒 Voulez-vous fermer une vacation&nbsp;?', 'Une vacation fermée reste sans personne : elle ne sera pas remplie.', '<button type="button" data-astyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
     else if (s === 'post') body = q('✋ Voulez-vous poster quelqu’un quelque part&nbsp;?', 'Les vacations déjà pourvues sont conservées : la génération complète seulement les autres.', '<button type="button" data-wkpostyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
     else if (s === 'pref') {
       const people = grpDocs(), posts = trame.postes.filter(p=>!p.info && !isSam(p)), pw = people.some(d=>d.id === prefWho) ? prefWho : (people[0] ? people[0].id : ''), pp = posts.some(p=>p.id === prefPost) ? prefPost : (posts[0] ? posts[0].id : '');
@@ -2187,7 +2204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }
     else if (s === 'custom') body = '<div class="qcard"><p class="qt">⚙ Voulez-vous personnaliser les effectifs&nbsp;?</p><p class="qh">Par défaut : 1 interne sur chaque autre vacation de la trame. Personnalisez poste par poste, ou générez directement.</p></div>' + intCustomBtn() + (intCustom ? intNeedUI() : '') + gen;
     else body = '<div class="qcard"><p class="qt">✅ Tout est prêt</p><p class="qh">Vous pouvez générer le planning de la semaine.</p></div>' + gen;
-    return prev + wkTools() + dots + body;
+    return prev + dots + body + wkTools();
   }
   function renderAstBar(){
     const box = $('#astBarBox'); if (!box) return;
@@ -2284,7 +2301,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#astBarBox').addEventListener('change', e=>{ const pf = e.target.closest && e.target.closest('#pdfFile'); if (pf && pf.files && pf.files[0]) { const file = pf.files[0], pn = Math.max(1, +(($('#pdfPage') || {}).value) || 1); pf.value = ''; pdfRun(file, pn); return; } const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
   document.addEventListener('change', e=>{ if (e.target.id === 'prefWho') prefWho = e.target.value; else if (e.target.id === 'prefPost') prefPost = e.target.value; });
   document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-wkview]')) { weekStart = plStart; gDay = -1; showTab('general'); renderGLabel(); renderTeam(); renderTrame(); try { window.scrollTo({top: 0}); } catch(err) {} } });
-  $('#astBarBox').addEventListener('click', e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { qAns = ''; wzStep = 1; genPref = []; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
+  $('#astBarBox').addEventListener('click', e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { qAns = ''; wzStep = 1; genPref = []; useTr = true; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
     const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; intNon[a[0]] = a[1] === '2'; return renderCompose(); }
     const nb = e.target.closest('[data-intn]'); if (nb) { const a = nb.dataset.intn.split('|'), cur = intNeed[a[0]] != null ? intNeed[a[0]] : (INT_RULES.need[a[0]] != null ? INT_RULES.need[a[0]] : INT_RULES.defaut); intNeed[a[0]] = Math.max(0, Math.min(4, cur + Number(a[1]))); Object.keys(intNeedHP).forEach(k=>{ if (k.startsWith(a[0]+'|')) delete intNeedHP[k]; }); return renderCompose(); }
     const ho = e.target.closest('[data-inthp]'); if (ho) { const a = ho.dataset.inthp.split('|'), k = a[0]+'|'+a[1]+a[2], cur = intNeedOf(a[0], a[1], a[2]); intNeedHP[k] = (cur + 1) % 4; return renderCompose(); }
@@ -2296,6 +2313,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const im = e.target.closest('[data-implmode]'); if (im) { plMode = im.dataset.implmode; plStage = 'imp'; renderCompose(); return; } const pk = e.target.closest('[data-plpick]'); if (pk) { if (pk.dataset.plpick === 'imp') plStage = 'impm'; else { plMode = pk.dataset.plpick; plStage = 'how'; } renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; if (plStage === 'auto' && plMode === 'ast' && !astOn) plStage = 'astm'; if (plStage === 'how' || plStage === 'astm' && sg.dataset.plstage === 'astm') astOn = false; if (plStage === '') astOn = false; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false);
     const pa = e.target.closest('[data-prefadd]'); if (pa) { const w = $('#prefWho'), q = $('#prefPost'); if (w && q && w.value && q.value && !genPref.some(x=>x.id === w.value && x.poste === q.value)) genPref.push({id: w.value, poste: q.value}); prefWho = w ? w.value : ''; prefPost = q ? q.value : ''; return renderCompose(); }
     const pd = e.target.closest('[data-prefdel]'); if (pd) { genPref.splice(Number(pd.dataset.prefdel), 1); return renderCompose(); }
+    const wt = e.target.closest('[data-wztr]'); if (wt) { useTr = wt.dataset.wztr === '1'; wzStep = 2; plStage = 'auto'; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; }
     const wg = e.target.closest('[data-wzgo]'); if (wg) { wzStep = Math.max(1, Number(wg.dataset.wzgo) || 1); plStage = 'auto'; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; }
     const ic = e.target.closest('[data-intcnt]'); if (ic) { const a = ic.dataset.intcnt.split('|'); intNeed[a[0]] = Number(a[1]); Object.keys(intNeedHP).forEach(k=>{ if (k.startsWith(a[0]+'|')) delete intNeedHP[k]; }); if (Number(a[1]) < 2) { intOnlyAuto[a[0]] = false; intNon[a[0]] = false; } return renderCompose(); }
     if (e.target.closest('[data-wkpostno]')) { qAns = 'nopost'; renderCompose(); return; }
@@ -2369,6 +2387,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         const slots = [];
         posts.forEach(p=>{ if (!okDay(p, i)) return; if (p.journee && part !== 'M') return;
           let v = vacWho(p.id, k, part);
+          if (v && !useTr && trEmpty(p.id, k, i, part)) v = null;
           if (v && v.dl && !v.who.length && !v.ou) v = Object.assign({}, v, {synth: true});
           if (!v) { const oh = overrides && Object.keys(overrides).some(d=>{ const o = overrides[d][p.id+'_'+part]; return o && o.w && o.w.some(inGrp); }); if (!oh && !(Number(p.min) > 0)) return; v = {who: [], stars: [], ou: false, texte: '', edited: false, open: false, synth: true}; }   /* vacation vide mais déjà tenue par le passé : à pourvoir */
           if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
@@ -2450,15 +2469,16 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     /* vacations à pourvoir */
     const slots = [], noSrBloc = [], noOu = [];
     HP.forEach(h=>posts.forEach(p=>{
-      if (!okDay(p, h.i) || (p.journee && h.part !== 'M') || R.exclus.test(p.id+' '+p.label)) return;
-      if (R.seulement[p.id] && !R.seulement[p.id].includes(h.i+h.part)) return;
-      let v = vacWho(p.id, h.k, h.part); if (!v) { if (R.toujours.includes(p.id)) v = {who: [], stars: [], ou: false, texte: '', edited: false, open: false}; else return; }
-      if (v.texte && !v.who.length && !R.toujours.includes(p.id)) return;   /* mention seule (fermée, ostéo, gynéco…) : pas de vacation à pourvoir */
+      const tI = useTr && trInt(p.id, h.i, h.part);   /* vacation de la trame interne : prioritaire sur les règles par défaut */
+      if (!okDay(p, h.i) || (p.journee && h.part !== 'M') || (!tI && R.exclus.test(p.id+' '+p.label))) return;
+      if (!tI && R.seulement[p.id] && !R.seulement[p.id].includes(h.i+h.part)) return;
+      let v = vacWho(p.id, h.k, h.part); if (v && !useTr && trEmpty(p.id, h.k, h.i, h.part)) v = null; if (!v) { if (tI || R.toujours.includes(p.id)) v = {who: [], stars: [], ou: false, texte: '', edited: false, open: false}; else return; }
+      if (v.texte && !v.who.length && !tI && !R.toujours.includes(p.id)) return;   /* mention seule (fermée, ostéo, gynéco…) : pas de vacation à pourvoir */
       if (v.ou) { noOu.push(p.label+' '+fmtShort.format(parse(h.k))+' '+PART_TXT[h.part]); return; }   /* « à confirmer » côté seniors : on n'y touche pas */
       const ov = overrides[h.k] && overrides[h.k][p.id+'_'+h.part], mine = ov && ov.w ? ov.w.filter(inGrp) : [];
-      const nd = intNeedOf(p.id, h.i, h.part); if (nd <= 0) return;
+      const nd = tI ? Math.max(1, intNeedOf(p.id, h.i, h.part)) : intNeedOf(p.id, h.i, h.part); if (nd <= 0) return;
       const kp = ov && !ov.a && mine.length ? mine : null;
-      if (!kp && R.sansInterne.some(x=>x.re.test(p.id+' '+p.label) && x.slots.includes(h.i+h.part))) return;
+      if (!kp && !tI && R.sansInterne.some(x=>x.re.test(p.id+' '+p.label) && x.slots.includes(h.i+h.part))) return;
       if (R.seniorRequis.includes(p.id)) {
         const vs = p.journee ? PARTS.map(pt=>vacWho(p.id, h.k, pt)).filter(Boolean) : [v];
         if (!vs.some(x=>x.who.some(isSrId))) {
@@ -3136,7 +3156,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     plGrp = '';
     if (t === 'plan') { plStage = ''; astOn = false; redoOk = ''; qAns = ''; wzStep = 1; delAsk = false; renderCompose(); }
     if (t === 'recherche') { rcMode = ''; rcRender(true); }
-    if (t === 'reglages') { renderBut(); }
+    if (t === 'reglages') { renderBut(); showSetGrp(''); }
     if (t === 'reglages') { manSig = ''; pSig = ''; renderManage(); renderPostes(); applyRO(); renderRem(); }
   }
 
@@ -3484,7 +3504,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const hr = t.closest('[data-histrestore]'); if (hr) return histRestore(hr.dataset.histrestore);
     const sf = t.closest('[data-butself]'); if (sf) { if (!db || !me || !isButAdmin()) return; const bk = sf.dataset.butself; if (!askCode('se déverrouiller')) return; try { await db.doc('meta/butoir').update({unlock: {[bk]: (butoir.unlock[bk] || []).filter(x=>x !== me).concat([me])}}); notify('Vous pouvez modifier vos indisponibilités ('+butLbl(bk)+').'); } catch(err) { handleErr(err); } return; }
     const kb = t.closest('[data-butkind]'); if (kb) { butKind = kb.dataset.butkind; return renderBut(); }
-    if (t.closest('[data-butgo]')) { e.preventDefault(); e.stopPropagation(); butKind = butKindNow(); showTab('reglages'); const f = $('#butFold'); if (f) { f.open = true; setTimeout(()=>{ try { f.scrollIntoView({block: 'start'}); } catch(err) {} }, 50); } return; }
+    if (t.closest('[data-butgo]')) { e.preventDefault(); e.stopPropagation(); butKind = butKindNow(); showTab('reglages'); const f = $('#butFold'); if (f) { revealSet(f); f.open = true; setTimeout(()=>{ try { f.scrollIntoView({block: 'start'}); } catch(err) {} }, 50); } return; }
     const ok = t.closest('[data-butok]'), lk = t.closest('[data-butlock]');
     if (ok || lk) {
       if (!isButAdmin() || !db) return;
@@ -3715,7 +3735,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       postes: Array.isArray(v.postes) ? v.postes.filter(p=>p && typeof p.id === 'string' && typeof p.label === 'string') : [],
       cases: v.cases && typeof v.cases === 'object' ? v.cases : {},
       off: v.off && typeof v.off === 'object' ? v.off : {},
-      regles: Array.isArray(v.regles) ? v.regles.filter(Boolean) : []
+      regles: Array.isArray(v.regles) ? v.regles.filter(Boolean) : [],
+      casesInt: v.casesInt && typeof v.casesInt === 'object' ? v.casesInt : {}
     };
   }
   const findPost = id => trame ? trame.postes.find(p=>p.id === id) : null;
@@ -5202,24 +5223,62 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
   /* trame sans personne : vacations qui existent chaque semaine (cases vides) */
   const TDN = ['Lun','Mar','Mer','Jeu','Ven'];
-  let trSig = '';
+  let trSig = '', trGrp = '';
   function renderTrameCfg(){
     const card = $('#trameCfg'); if (!card) return; card.hidden = !(isRim() && trame); if (card.hidden) return;
-    const sig = JSON.stringify([trame.postes.map(p=>p.id+p.label+(p.journee ? 'j' : '')), Object.keys(trame.cases).sort().map(k=>k+((trame.cases[k].who || []).length ? '*' : ''))]) + canWrite;
+    const sig = JSON.stringify([trame.postes.map(p=>p.id+p.label+(p.journee ? 'j' : '')), Object.keys(trame.cases).sort().map(k=>k+((trame.cases[k].who || []).length ? '*' : ''))]) + canWrite + trGrp + JSON.stringify(Object.keys(trame.casesInt || {}).sort());
     if (sig === trSig) return; trSig = sig;
+    document.querySelectorAll('#trameGrp [data-trg]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.trg === trGrp)));
+    const INT = trGrp === 'interne', isOn = (po, i, pt)=>INT ? !!(trame.casesInt && trame.casesInt[tk(po, i, pt)]) : !!trame.cases[tk(po, i, pt)];
+    if (!trGrp) { $('#trameCfgBody').innerHTML = '<p class="aststat"><b>Quelle trame voulez-vous créer ?</b></p>'; return; }
     $('#trameCfgBody').innerHTML = trame.postes.filter(p=>!p.info && !isSam(p)).map(p=>{
       const parts = p.journee ? ['M'] : PARTS;
       return '<div class="intnr"><div class="intnh"><span><b>'+esc(p.label)+'</b></span><span class="astpair"><button type="button" class="ghost" data-trall="'+esc(p.id)+'|1"'+(canWrite ? '' : ' disabled')+'>Tout cocher</button><button type="button" class="ghost" data-trall="'+esc(p.id)+'|0"'+(canWrite ? '' : ' disabled')+'>Tout décocher</button></span></div>'
-        + '<div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = !!trame.cases[tk(p.id, i, pt)]; return '<button type="button" data-trc="'+esc(p.id+'|'+i+'|'+pt)+'" class="'+(on ? 'ov' : '')+'" aria-pressed="'+on+'" aria-label="'+TDN[i]+' '+(p.journee ? 'journée' : PART_TXT[pt])+'"'+(canWrite ? '' : ' disabled')+'>'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div></div>'; }).join('') || '<p class="hint">Aucun poste.</p>';
+        + '<div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = isOn(p.id, i, pt); return '<button type="button" data-trc="'+esc(p.id+'|'+i+'|'+pt)+'" class="'+(on ? 'ov' : '')+'" aria-pressed="'+on+'" aria-label="'+TDN[i]+' '+(p.journee ? 'journée' : PART_TXT[pt])+'"'+(canWrite ? '' : ' disabled')+'>'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div></div>'; }).join('') || '<p class="hint">Aucun poste.</p>';
   }
+
+  /* Réglages « à la iPhone » : menu de thèmes, puis sous-pages */
+  const SET_GRPS = [
+    {id:'compte', ic:'👤', bg:'#3B82F6', t:'Mon compte', sub:'Profil, apparence, calendrier, rappels', sel:['#fMp','#fApp','#instBtn','#remCard','#fCal']},
+    {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#trameCfg','#creerCard','#impSlotR','#exportCard']},
+    {id:'equipe', ic:'👥', bg:'#10B981', t:'Équipe et postes', sub:'Personnes, postes du service', sel:['#teamCard','#postCard']},
+    {id:'suivi', ic:'🔔', bg:'#EF4444', t:'Suivi', sub:'Date butoir, rappels, historique', sel:['#butCard','#msgCard','#histCard']}
+  ];
+  let setGrp = '';
+  function setCards(g){ return g.sel.map(q=>{ const el = document.querySelector(q); return el ? (el.classList.contains('card') || el.id === 'impSlotR' ? el : el.closest('.card')) : null; }).filter(Boolean); }
+  function initSetGroups(){
+    const col = $('#setCol'); if (!col || col.dataset.done) return; col.dataset.done = '1';
+    const vers = [...col.children].find(c=>c.tagName === 'P' && /Version du/.test(c.textContent));
+    SET_GRPS.forEach(g=>{ const w = document.createElement('div'); w.className = 'setgrp'; w.id = 'sg-'+g.id; w.hidden = true; const cards = setCards(g); const h = document.createElement('h2'); h.className = 'setgt'; h.textContent = g.t; w.appendChild(h); cards.forEach(c=>w.appendChild(c)); col.appendChild(w); });
+    if (vers) $('#setMenu').dataset.vers = vers.textContent, vers.remove();
+    renderSetMenu();
+    new MutationObserver(()=>{ if (!setGrp) renderSetMenu(); }).observe(col, {attributes: true, attributeFilter: ['hidden'], subtree: true});
+  }
+  function renderSetMenu(){
+    const m = $('#setMenu'); if (!m) return;
+    const rows = SET_GRPS.filter(g=>{ const w = $('#sg-'+g.id); return w && [...w.children].some(c=>c.tagName !== 'H2' && !c.hidden && (c.id !== 'impSlotR' || c.children.length)); });
+    const html = '<div class="setlist">'+rows.map(g=>'<button type="button" class="setrow" data-setgrp="'+g.id+'"><span class="si" style="background:'+g.bg+'">'+g.ic+'</span><span class="st">'+g.t+'<small>'+g.sub+'</small></span><span class="sc">›</span></button>').join('')+'</div>';
+    if (m.dataset.h !== html) { m.dataset.h = html; m.innerHTML = html; }
+  }
+  function showSetGrp(id){
+    initSetGroups(); setGrp = id || '';
+    SET_GRPS.forEach(g=>{ const w = $('#sg-'+g.id); if (w) w.hidden = g.id !== setGrp; });
+    const m = $('#setMenu'); if (m) m.hidden = !!setGrp;
+    let b = $('#setBack'); if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'setBack'; b.className = 'setback'; b.textContent = '‹ Réglages'; b.addEventListener('click', ()=>{ showSetGrp(''); window.scrollTo(0,0); }); $('#setCol').parentNode.insertBefore(b, $('#setCol')); }
+    b.hidden = !setGrp; if (!setGrp) renderSetMenu(); else window.scrollTo(0,0);
+  }
+  function revealSet(el){ initSetGroups(); const w = el && el.closest('.setgrp'); if (w) showSetGrp(w.id.slice(3)); }
+  $('#setMenu').addEventListener('click', e=>{ const b = e.target.closest('[data-setgrp]'); if (b) showSetGrp(b.dataset.setgrp); });
+  $('#trameGrp').addEventListener('click', e=>{ const b = e.target.closest('[data-trg]'); if (!b) return; trGrp = b.dataset.trg; trSig = ''; renderTrameCfg(); });
   $('#trameCfgBody').addEventListener('click', async e=>{
     const one = e.target.closest('[data-trc]'), all = e.target.closest('[data-trall]'); if (!one && !all) return;
+    const INT = trGrp === 'interne', isOn = (po, i, pt)=>INT ? !!(trame.casesInt && trame.casesInt[tk(po, i, pt)]) : !!trame.cases[tk(po, i, pt)];
     const todo = []; // [poste, dow, part, on]
-    if (one) { const a = one.dataset.trc.split('|'); todo.push([a[0], Number(a[1]), a[2], !trame.cases[tk(a[0], Number(a[1]), a[2])]]); }
+    if (one) { const a = one.dataset.trc.split('|'); todo.push([a[0], Number(a[1]), a[2], !isOn(a[0], Number(a[1]), a[2])]); }
     else { const a = all.dataset.trall.split('|'), p = findPost(a[0]); if (!p) return; (p.journee ? ['M'] : PARTS).forEach(pt=>[0,1,2,3,4].forEach(i=>todo.push([a[0], i, pt, a[1] === '1']))); }
-    const withPeople = todo.filter(x=>!x[3] && (((trame.cases[tk(x[0], x[1], x[2])] || {}).who) || []).length);
+    const withPeople = INT ? [] : todo.filter(x=>!x[3] && (((trame.cases[tk(x[0], x[1], x[2])] || {}).who) || []).length);
     if (withPeople.length && !window.confirm(withPeople.length+' vacation'+(withPeople.length > 1 ? 's' : '')+' avec des personnes postées resteront telles quelles (seules les cases vides sont retirées).')) return;
-    if (await saveTrame(t=>{ todo.forEach(([po, i, pt, on])=>{ const k = tk(po, i, pt), c = t.cases[k]; if (on) { if (!c) t.cases[k] = {who: []}; } else if (c && !(c.who || []).length && !c.texte) delete t.cases[k]; }); })) { trSig = ''; notify('Trame enregistrée.'); }
+    if (await saveTrame(t=>{ if (INT) { t.casesInt = t.casesInt || {}; todo.forEach(([po, i, pt, on])=>{ const k = tk(po, i, pt); if (on) t.casesInt[k] = 1; else delete t.casesInt[k]; }); return; } todo.forEach(([po, i, pt, on])=>{ const k = tk(po, i, pt), c = t.cases[k]; if (on) { if (!c) t.cases[k] = {who: []}; } else if (c && !(c.who || []).length && !c.texte) delete t.cases[k]; }); })) { trSig = ''; notify('Trame enregistrée.'); }
   });
   $('#postesList').addEventListener('change', async e=>{
     const pmn = e.target.closest('select[data-pmin]');
