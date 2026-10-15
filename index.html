@@ -1723,7 +1723,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       else if (inf.kind === 'A') pill = '<span class="st st-a">Astreinte (matin)</span>';
       else if (IND[own]) pill = '<span class="st st-i">'+IND[own]+'</span>';
       body += vacHtml(k);
-      if (!body && trame && i < 5) body = '<span class="none-txt">Pas de vacation</span>';
+      if (!body && trame && i < 5) body = '<span class="none-txt">'+(isIntId(me) ? 'Off' : 'Pas de vacation')+'</span>';
       return rowWrap(d,i,k,'<span class="dr-date">'+dateTxt(d,k)+'</span>'+pill, body);
     }).join('');
 
@@ -1759,7 +1759,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (inf.kind === 'A') parts.unshift('astreinte ce matin');
     if (parts.length) return 'Aujourd’hui : '+parts.join(', ')+'.';
     if (wd > 4) return 'Bon week-end !';
-    return inf.kind === 'I' ? 'Vous êtes indisponible aujourd’hui.' : 'Pas de vacation prévue aujourd’hui.';
+    return inf.kind === 'I' ? 'Vous êtes indisponible aujourd’hui.' : (isIntId(me) ? 'Off aujourd’hui.' : 'Pas de vacation prévue aujourd’hui.');
   }
   function renderHello(){
     const n = new Date(), d = doctors[me], hh = n.getHours();
@@ -1803,7 +1803,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         if (st && !acc) sub += ' — ⚠ mais vous êtes '+(st === 'G' ? 'de garde' : st === 'R' ? 'en repos de garde' : 'indisponible');
         if (acc) sub += ' — ✓ acceptée malgré votre '+(st === 'G' ? 'garde' : st === 'R' ? 'repos de garde' : 'indisponibilité');
       } else if (st) { cls += ' '+STAT[st][0]; what = STAT[st][1]; }
-      else { cls += ' free'; what = 'Pas de vacation'; }
+      else { cls += ' free'; what = isIntId(me) ? 'Off' : 'Pas de vacation'; }
       if (!vs.length && !st) return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what lone">'+what+'</span></div>';
       const acts = vs.length && st ? '<span class="cfhint">'+(acc ? 'Acceptée · toucher pour modifier ›' : 'Toucher pour accepter ou refuser ›')+'</span>' : '';
       const cfa = vs.length && st ? ' role="button" tabindex="0" data-cfo="'+kk+'|'+part+'"' : '';
