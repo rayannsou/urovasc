@@ -1582,7 +1582,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '4b91fb9451';
+  const BUILD = '90da5a094e';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2236,7 +2236,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   let wzTrSub = '';   /* sous-étape de « trame » : '' | 'mod' (modifier une vacation ?) | 'edit' (trame de la semaine) */
   let useTr = true;   /* « utiliser la trame » : les vacations de la trame (sans personne) du groupe sont à pourvoir */
-  const intEmpty = () => !!trame && !Object.keys(trame.casesInt || {}).length;   /* trame interne jamais enregistrée : on part de la trame générale */
+  const intEmpty = () => !!trame && !trame.intSet && !Object.keys(trame.casesInt || {}).length;   /* trame interne jamais enregistrée : on part de la trame générale */
   const trInt = (po, dow, part, k) => { if (!trame) return false; const kk = tk(po, dow, part), s = k ? semG(k, 'int') : null; if (s) { if (s.add && s.add[kk]) return true; if (s.blank || (s.rem && s.rem[kk])) return false; } return !!(trame.casesInt && trame.casesInt[kk]); };
   function trEmpty(po, k, dow, part){ const c = trame && effCase(po, k, dow, part), o = overrides[k] && overrides[k][po+'_'+part]; return !!c && !(c.who || []).length && !c.texte && !o; }
   let genPrio = null;   /* ordre de priorité des vacations (internes) pour cette génération ; null = ordre enregistré dans la trame */
@@ -3886,6 +3886,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       regles: Array.isArray(v.regles) ? v.regles.filter(Boolean) : [],
       casesInt: v.casesInt && typeof v.casesInt === 'object' ? v.casesInt : {},
       sem: v.sem && typeof v.sem === 'object' ? v.sem : {},
+      intSet: v.intSet === true,
       prio: Array.isArray(v.prio) ? v.prio.filter(x=>typeof x === 'string') : []
     };
   }
@@ -5454,7 +5455,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   let trSig = '', trGrp = '';
   function renderTrameCfg(){
     const card = $('#trameCfg'); if (!card) return; card.hidden = !(isRim() && trame); if (card.hidden) return;
-    const sig = JSON.stringify([trame.postes.map(p=>p.id+p.label+(p.journee ? 'j' : '')), Object.keys(trame.cases).sort().map(k=>k+((trame.cases[k].who || []).length ? '*' : ''))]) + canWrite + trGrp + JSON.stringify(Object.keys(trame.casesInt || {}).sort()) + JSON.stringify(trame.prio || []) + intEmpty();
+    const sig = JSON.stringify([trame.postes.map(p=>p.id+p.label+(p.journee ? 'j' : '')), Object.keys(trame.cases).sort().map(k=>k+((trame.cases[k].who || []).length ? '*' : ''))]) + canWrite + trGrp + JSON.stringify(Object.keys(trame.casesInt || {}).sort()) + JSON.stringify(trame.prio || []) + intEmpty() + !!trame.intSet;
     if (sig === trSig) return; trSig = sig;
     document.querySelectorAll('#trameGrp [data-trg]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.trg === trGrp)));
     const INT = trGrp === 'interne', isOn = (po, i, pt)=>INT ? (intEmpty() ? !!trame.cases[tk(po, i, pt)] : !!(trame.casesInt && trame.casesInt[tk(po, i, pt)])) : !!trame.cases[tk(po, i, pt)];
@@ -5477,6 +5478,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const pb = e.target.closest('[data-trprio]'); if (pb) { const nl = prioMove(prioList0(), pb.dataset.trprio); if (await saveTrame(t=>{ t.prio = nl; })) { trSig = ''; renderTrameCfg(); } return; }
     const b = e.target.closest('[data-trdel]'); if (!b) return;
     const id = b.dataset.trdel, q = findPost(id); if (!q) return;
+    if (trGrp === 'interne') {
+      if (!window.confirm('Retirer « '+q.label+' » de la trame des internes ? Elle reste dans la trame senior et dans le planning des médecins.')) return;
+      const seedI = intEmpty();
+      if (await saveTrame(t=>{ t.intSet = true; t.casesInt = t.casesInt || {}; if (seedI) Object.keys(t.cases).forEach(k=>{ t.casesInt[k] = 1; }); Object.keys(t.casesInt).forEach(k=>{ if (k.indexOf(id+'_') === 0) delete t.casesInt[k]; }); })) { trSig = ''; notify('Retirée de la trame des internes.'); }
+      return;
+    }
     if (!window.confirm('Supprimer « '+q.label+' » ? Elle disparaît de la trame senior et de la trame interne, et du planning. (Les personnes déjà postées ne sont pas effacées de la base, mais ne s’affichent plus.)')) return;
     if (await saveTrame(t=>{ t.postes = t.postes.filter(x=>x.id !== id); [t.cases, t.casesInt].forEach(m=>{ if (!m) return; Object.keys(m).forEach(k=>{ if (k.indexOf(id+'_') === 0) delete m[k]; }); }); })) { trSig = ''; notify('Vacation supprimée.'); }
   });
@@ -5629,7 +5636,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     else { const a = all.dataset.trall.split('|'), p = findPost(a[0]); if (!p) return; (p.journee ? ['M'] : PARTS).forEach(pt=>[0,1,2,3,4].forEach(i=>todo.push([a[0], i, pt, a[1] === '1']))); }
     const withPeople = INT ? [] : todo.filter(x=>!x[3] && (((trame.cases[tk(x[0], x[1], x[2])] || {}).who) || []).length);
     if (withPeople.length && !window.confirm(withPeople.length+' vacation'+(withPeople.length > 1 ? 's' : '')+' avec des personnes postées resteront telles quelles (seules les cases vides sont retirées).')) return;
-    if (await saveTrame(t=>{ if (INT) { t.casesInt = t.casesInt || {}; if (seed) Object.keys(t.cases).forEach(k=>{ t.casesInt[k] = 1; }); todo.forEach(([po, i, pt, on])=>{ const k = tk(po, i, pt); if (on) t.casesInt[k] = 1; else delete t.casesInt[k]; }); return; } todo.forEach(([po, i, pt, on])=>{ const k = tk(po, i, pt), c = t.cases[k]; if (on) { if (!c) t.cases[k] = {who: []}; } else if (c && !(c.who || []).length && !c.texte) delete t.cases[k]; }); })) { trSig = ''; notify('Trame enregistrée.'); }
+    if (await saveTrame(t=>{ if (INT) { t.intSet = true; t.casesInt = t.casesInt || {}; if (seed) Object.keys(t.cases).forEach(k=>{ t.casesInt[k] = 1; }); todo.forEach(([po, i, pt, on])=>{ const k = tk(po, i, pt); if (on) t.casesInt[k] = 1; else delete t.casesInt[k]; }); return; } todo.forEach(([po, i, pt, on])=>{ const k = tk(po, i, pt), c = t.cases[k]; if (on) { if (!c) t.cases[k] = {who: []}; } else if (c && !(c.who || []).length && !c.texte) delete t.cases[k]; }); })) { trSig = ''; notify('Trame enregistrée.'); }
   });
   $('#postesList').addEventListener('change', async e=>{
     const pmn = e.target.closest('select[data-pmin]');
