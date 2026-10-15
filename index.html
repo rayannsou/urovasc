@@ -1586,7 +1586,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'de62ef9673';
+  const BUILD = 'ff45bc7b55';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2275,6 +2275,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   function prioMove(list, act){ const a = act.split('|'), id = a.slice(1).join('|'), i = list.indexOf(id), l = list.slice();
     if (a[0] === 'add' && i < 0) l.push(id); else if (a[0] === 'rm' && i >= 0) l.splice(i, 1); else if (a[0] === 'up' && i > 0) { l[i] = l[i-1]; l[i-1] = id; } else if (a[0] === 'dn' && i >= 0 && i < l.length-1) { l[i] = l[i+1]; l[i+1] = id; }
     return l; }
+  let genAvoid = [];   /* [{id, poste}] : « pas sur ce poste » pour la génération */
+  const avoids = (id, po) => genAvoid.some(x=>x.id === id && x.poste === po);
   let wzStep = 1, genPref = [], prefWho = '', prefPost = '';   /* genPref : [{id, poste}] préférences de pose pour la génération */
   function wzSteps(){ const st = ['trame','close','post','pref']; if (plGrp === 'interne') { st.push('prio'); if (trame && trame.postes.some(p=>p.id === 'echo' || p.id === 'scanner-urg')) st.push('echo'); st.push('custom'); } else st.push('go'); return st; }
   /* vacations non pourvues de la semaine + accès au planning / suppression */
@@ -2338,10 +2340,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     else if (s === 'post') body = q('✋ Voulez-vous poster quelqu’un quelque part&nbsp;?', 'Les vacations déjà pourvues sont conservées : la génération complète seulement les autres.', '<button type="button" data-wkpostyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
     else if (s === 'pref') {
       const people = grpDocs(), posts = trame.postes.filter(p=>!p.info && !isSam(p)), pw = people.some(d=>d.id === prefWho) ? prefWho : (people[0] ? people[0].id : ''), pp = posts.some(p=>p.id === prefPost) ? prefPost : (posts[0] ? posts[0].id : '');
-      body = '<div class="qcard"><p class="qt">⭐ Voulez-vous des préférences&nbsp;?</p><p class="qh">Par exemple : poster préférentiellement Khalil sur l’échographie. La génération le place en priorité sur ce poste, quand il est disponible.</p></div>'
+      body = '<div class="qcard"><p class="qt">⭐ Voulez-vous des préférences&nbsp;?</p><p class="qh">Par exemple : poster préférentiellement Khalil sur l’échographie (⭐), ou ne jamais le poster au bloc (🚫). Choisissez la personne et le poste, puis le type de demande.</p></div>'
+        + (genAvoid.length ? '<div class="wktools">'+genAvoid.map((x,k)=>'<div class="butreq"><span>🚫 <b>'+esc(dLabel(x.id))+'</b> pas sur <b>'+esc((findPost(x.poste) || {label: x.poste}).label)+'</b></span><button type="button" class="ghost" data-avoiddel="'+k+'" aria-label="Retirer">✕</button></div>').join('')+'</div>' : '')
         + (genPref.length ? '<div class="wktools">'+genPref.map((x,k)=>'<div class="butreq"><span>⭐ <b>'+esc(dLabel(x.id))+'</b> de préférence sur <b>'+esc((findPost(x.poste) || {label: x.poste}).label)+'</b></span><button type="button" class="ghost" data-prefdel="'+k+'" aria-label="Retirer">✕</button></div>').join('')+'</div>' : '')
-        + '<div class="intq"><div class="f"><label for="prefWho">Qui</label><select id="prefWho">'+people.map(d=>'<option value="'+esc(d.id)+'"'+(d.id === pw ? ' selected' : '')+'>'+esc(dLabel(d.id))+'</option>').join('')+'</select></div><div class="f" style="margin-top:8px"><label for="prefPost">Sur quel poste</label><select id="prefPost">'+posts.map(p=>'<option value="'+esc(p.id)+'"'+(p.id === pp ? ' selected' : '')+'>'+esc(p.label)+'</option>').join('')+'</select></div><button type="button" class="astbtn go" data-prefadd="1" style="margin-top:10px">＋ Ajouter cette préférence</button></div>'
-        + '<button type="button" class="astbtn go wznext" data-wzgo="'+(i+2)+'">'+(genPref.length ? 'Suivant ›' : 'Aucune préférence · Suivant ›')+'</button>';
+        + '<div class="intq"><div class="f"><label for="prefWho">Qui</label><select id="prefWho">'+people.map(d=>'<option value="'+esc(d.id)+'"'+(d.id === pw ? ' selected' : '')+'>'+esc(dLabel(d.id))+'</option>').join('')+'</select></div><div class="f" style="margin-top:8px"><label for="prefPost">Sur quel poste</label><select id="prefPost">'+posts.map(p=>'<option value="'+esc(p.id)+'"'+(p.id === pp ? ' selected' : '')+'>'+esc(p.label)+'</option>').join('')+'</select></div><div class="astpair" style="margin-top:10px"><button type="button" class="astbtn go" data-prefadd="1">⭐ De préférence</button><button type="button" class="astbtn" data-avoidadd="1">🚫 Pas sur ce poste</button></div></div>'
+        + '<button type="button" class="astbtn go wznext" data-wzgo="'+(i+2)+'">'+(genPref.length || genAvoid.length ? 'Suivant ›' : 'Aucune préférence · Suivant ›')+'</button>';
     }
     else if (s === 'echo') {
       const nd = id=>intNeed[id] != null ? intNeed[id] : (INT_RULES.need[id] != null ? INT_RULES.need[id] : INT_RULES.defaut);
@@ -2450,7 +2453,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#astBarBox').addEventListener('change', e=>{ const pf = e.target.closest && e.target.closest('#pdfFile'); if (pf && pf.files && pf.files[0]) { const file = pf.files[0], pn = Math.max(1, +(($('#pdfPage') || {}).value) || 1); pf.value = ''; pdfRun(file, pn); return; } const f = e.target.closest && e.target.closest('#shotFile'); if (f && f.files && f.files[0]) { const file = f.files[0]; f.value = ''; shotRun(file); } });
   document.addEventListener('change', e=>{ if (e.target.id === 'prefWho') prefWho = e.target.value; else if (e.target.id === 'prefPost') prefPost = e.target.value; });
   document.addEventListener('click', e=>{ { const oo = e.target.closest && e.target.closest('[data-offopen]'); if (oo) { offOpen(oo.dataset.offopen); return; } } if (e.target.closest && e.target.closest('[data-wkview]')) { const wkv = e.target.closest('[data-wkview]').dataset.wkview, ed0 = wkv === 'edit'; weekStart = plStart; const unf0 = wkv === 'unf' ? {grp: plGrp || 'medecin'} : null; gDay = -1; showTab('general'); gUnf = unf0; if (unf0) { gGrp = unf0.grp; try { localStorage.setItem('planning-ggrp', gGrp); } catch(err) {} } renderGLabel(); renderTeam(); renderTrame(); try { window.scrollTo({top: 0}); } catch(err) {} if (ed0) { try { if (plGrp) { gGrp = plGrp; localStorage.setItem('planning-ggrp', gGrp); } } catch(err) {} let tgt = null; const wk0 = plStart; for (let i = 0; i < 5 && !tgt; i++) { const k = key(addDays(wk0, i)); trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ if (tgt) return; const r = aPourvoir(p, k, i, part); if (r && !r.ok) tgt = [p.id, k, part]; })); } if (!tgt) { const p0 = trame.postes.find(p=>!p.info && !isSam(p) && okDay(p, 0)); if (p0) tgt = [p0.id, key(wk0), p0.journee ? 'M' : partsOf(p0)[0]]; } const sg = gGrp; if (tgt) { qeShow(tgt[0], tgt[1], tgt[2]); gGrp = sg; } renderTrame(); } } });
-  $('#astBarBox').addEventListener('click', async e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { qAns = ''; wzStep = 1; wzTrSub = ''; genPref = []; genPrio = null; genPrioAbs = null; genOffs = null; useTr = true; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
+  $('#astBarBox').addEventListener('click', async e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { qAns = ''; wzStep = 1; wzTrSub = ''; genPref = []; genAvoid = []; genPrio = null; genPrioAbs = null; genOffs = null; useTr = true; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
     const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; intNon[a[0]] = a[1] === '2'; return renderCompose(); }
     const nb = e.target.closest('[data-intn]'); if (nb) { const a = nb.dataset.intn.split('|'), cur = intNeed[a[0]] != null ? intNeed[a[0]] : (INT_RULES.need[a[0]] != null ? INT_RULES.need[a[0]] : INT_RULES.defaut); intNeed[a[0]] = Math.max(0, Math.min(4, cur + Number(a[1]))); Object.keys(intNeedHP).forEach(k=>{ if (k.startsWith(a[0]+'|')) delete intNeedHP[k]; }); return renderCompose(); }
     const ho = e.target.closest('[data-inthp]'); if (ho) { const a = ho.dataset.inthp.split('|'), k = a[0]+'|'+a[1]+a[2], cur = intNeedOf(a[0], a[1], a[2]); intNeedHP[k] = (cur + 1) % 4; return renderCompose(); }
@@ -2462,7 +2465,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const im = e.target.closest('[data-implmode]'); if (im) { plMode = im.dataset.implmode; plStage = 'imp'; renderCompose(); return; } const pk = e.target.closest('[data-plpick]'); if (pk) { if (pk.dataset.plpick === 'imp') plStage = 'impm'; else { plMode = pk.dataset.plpick; plStage = 'how'; } renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } const sg = e.target.closest('[data-plstage]'); if (sg) { plStage = sg.dataset.plstage; if (plStage === 'auto' && plMode === 'ast' && !astOn) plStage = 'astm'; if (plStage === 'how' || plStage === 'astm' && sg.dataset.plstage === 'astm') astOn = false; if (plStage === '') astOn = false; renderCompose(); try { window.scrollTo({top: 0}); } catch(err) {} return; } if (e.target.closest('[data-astassign]')) plAssign(false);
     const om = e.target.closest('[data-offmin]'); if (om) { genOffs = offStep(offMin(), Number(om.dataset.offmin)); return renderCompose(); }
     const pq = e.target.closest('[data-prio]'); if (pq) { if (pq.dataset.prio.startsWith('abs|')) { const id = pq.dataset.prio.slice(4); genPrio = prioList(); genPrioAbs = absToggle(absList(), id); } else genPrio = prioMove(prioList(), pq.dataset.prio); return renderCompose(); }
-    const pa = e.target.closest('[data-prefadd]'); if (pa) { const w = $('#prefWho'), q = $('#prefPost'); if (w && q && w.value && q.value && !genPref.some(x=>x.id === w.value && x.poste === q.value)) genPref.push({id: w.value, poste: q.value}); prefWho = w ? w.value : ''; prefPost = q ? q.value : ''; return renderCompose(); }
+    const pa = e.target.closest('[data-prefadd]'); if (pa) { const w = $('#prefWho'), q = $('#prefPost'); if (w && q && w.value && q.value && !genPref.some(x=>x.id === w.value && x.poste === q.value)) { genPref.push({id: w.value, poste: q.value}); genAvoid = genAvoid.filter(x=>!(x.id === w.value && x.poste === q.value)); } prefWho = w ? w.value : ''; prefPost = q ? q.value : ''; return renderCompose(); }
+    const av = e.target.closest('[data-avoidadd]'); if (av) { const w = $('#prefWho'), q = $('#prefPost'); if (w && q && w.value && q.value && !avoids(w.value, q.value)) { genAvoid.push({id: w.value, poste: q.value}); genPref = genPref.filter(x=>!(x.id === w.value && x.poste === q.value)); } prefWho = w ? w.value : ''; prefPost = q ? q.value : ''; return renderCompose(); }
+    const ad = e.target.closest('[data-avoiddel]'); if (ad) { genAvoid.splice(Number(ad.dataset.avoiddel), 1); return renderCompose(); }
     const pd = e.target.closest('[data-prefdel]'); if (pd) { genPref.splice(Number(pd.dataset.prefdel), 1); return renderCompose(); }
     const ws = e.target.closest('[data-wzsub]'); if (ws) { const v = ws.dataset.wzsub;
       if (v === 'yes') { useTr = true; if (semG(key(plStart), wkG()) && !(await wkSemSet([], x=>{ x.blank = false; x.add = {}; x.rem = {}; }))) return; wzTrSub = 'mod'; }
@@ -2579,7 +2584,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           Object.keys(overrides).forEach(d=>{ const o = overrides[d][p.id+'_'+part]; if (o) o.w.forEach(id=>{ freq[id] = (freq[id]||0) + 1; }); });
           Object.keys(trame.cases).forEach(c=>{ if (c.indexOf(p.id+'_') === 0 && c.slice(-part.length-1) === '_'+part) { const w = trame.cases[c].who; if (Array.isArray(w)) w.forEach(id=>{ freq[id] = (freq[id]||0) + 2; }); } });
           const pool = (v.ou ? v.who.concat(docs.map(d=>d.id).filter(id=>!v.who.includes(id) && freq[id])) : docs.map(d=>d.id))
-            .filter((id, ix, ar)=>ar.indexOf(id) === ix && !keep.includes(id) && !taken.has(id) && !reasonFor(id, k, part));
+            .filter((id, ix, ar)=>ar.indexOf(id) === ix && !keep.includes(id) && !taken.has(id) && !reasonFor(id, k, part) && !avoids(id, p.id));
           const eqP = eqAll.post[p.id] || {};   /* équité : le moins sollicité sur ce poste d'abord, puis sur l'ensemble des postes */
           const prefS = new Set(genPref.filter(x=>x.poste === p.id).map(x=>x.id));
           pool.sort((a,b)=>(prefS.has(b) ? 1 : 0) - (prefS.has(a) ? 1 : 0) || (v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || ((eqP[a]||0) - (eqP[b]||0)) || ((eqAll.tot[a]||0) - (eqAll.tot[b]||0)) || ((load[a]||0) - (load[b]||0)));
@@ -2634,6 +2639,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const days = [0,1,2,3,4].map(i=>key(addDays(plStart, i)));
     const HP = []; days.forEach((k,i)=>PARTS.forEach(part=>{ if (!isFerie(k)) HP.push({i, k, part, id: i+part}); }));
     const okAt = (id, h) => !reasonFor(id, h.k, h.part);
+    const okFor = (id, po) => !avoids(id, po);
     /* vacations à pourvoir */
     const slots = [], noSrBloc = [], noOu = [];
     HP.forEach(h=>posts.forEach(p=>{
@@ -2704,7 +2710,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     HP.forEach(h=>{ resN[h.id] = 0; resA[h.id] = 0; aNeed[h.id] = slots.filter(sl=>sl.h.id === h.id && !sl.keep && R.autonomie.includes(sl.p.id) && sl.need >= 2).reduce((n,sl)=>n + (intNon[sl.p.id] ? 0 : intOnlyAuto[sl.p.id] ? sl.need : 1), 0); });
     const freeAt = (d, h)=>okAt(d.id, h) && !off[d.id].has(h.id) && !taken[h.id].has(d.id);
     const roomAt = (d, h)=>{
-      if (!blocSlot[h.id] || blocRes[h.id] || !freeAt(d, h)) return false;
+      if (!blocSlot[h.id] || blocRes[h.id] || !freeAt(d, h) || !okFor(d.id, 'bloc')) return false;
       const av = ints.filter(x=>freeAt(x, h)).length - resN[h.id] - 1;
       if (av < Math.max(demand[h.id], PR.length ? prioWant(h, blocSlot[h.id]) : 0)) return false;
       if (isAuto(d.id)) { const aa = ints.filter(x=>isAuto(x.id) && freeAt(x, h)).length - resA[h.id] - 1; if (aa < aNeed[h.id]) return false; }
@@ -2741,7 +2747,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const order = sl=>(sl.p.id === 'bloc' && blocRes[h.id]) ? -20 : ABS.has(sl.p.id) ? -30 + prRank(sl.p.id) * 0.1 : PR.includes(sl.p.id) ? -10 + prRank(sl.p.id) * 0.1 : R.autonomie.includes(sl.p.id) ? R.priorite.indexOf(sl.p.id) * 0.1 : R.facultatif.includes(sl.p.id) ? 3 : 2;
       here.slice().sort((a,b)=>order(a)-order(b)).forEach(sl=>{
         if (sl.keep) { prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = sl.keep; return; }
-        const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
+        const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id) && okFor(id, sl.p.id));
         const best = list => list.slice().sort((a,b)=>score(b, sl) - score(a, sl))[0];
         let pick = [];
         if (sl.p.id === 'bloc' && blocRes[h.id]) pick = [blocRes[h.id]];
@@ -2766,7 +2772,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       here.filter(sl=>!sl.keep && sl.pick && R.autonomie.includes(sl.p.id) && sl.need >= 2).forEach(sl=>{
         let guard = 8; const nA = !intNon[sl.p.id];
         while (guard-- > 0 && (sl.pick.length < sl.need || (nA && !sl.pick.some(isAuto)))) {
-          const needAuto = nA && !sl.pick.some(isAuto), okc = id => !sl.pick.includes(id) && (!needAuto || isAuto(id)) && (!intOnlyAuto[sl.p.id] || isAuto(id));
+          const needAuto = nA && !sl.pick.some(isAuto), okc = id => !sl.pick.includes(id) && okFor(id, sl.p.id) && (!needAuto || isAuto(id)) && (!intOnlyAuto[sl.p.id] || isAuto(id));
           let src = null;
           for (const b of here) { if (R.facultatif.includes(b.p.id) && !b.keep && b.pick) { const c = b.pick.find(okc); if (c) { src = {b, id: c}; break; } } }
           if (!src) { const c = ints.map(d=>d.id).filter(id=>okc(id) && okAt(id, h) && off[id].has(h.id) && !taken[h.id].has(id)).sort((a,b)=>off[b].size - off[a].size)[0]; if (c) src = {id: c, off: true}; }
@@ -2783,7 +2789,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       if (ABS.size) here.filter(sl=>!sl.keep && sl.pick && ABS.has(sl.p.id) && !(R.autonomie.includes(sl.p.id) && sl.need >= 2)).forEach(sl=>{
         let g = 8;
         while (g-- > 0 && sl.pick.length < sl.need) {
-          const okc = id => !sl.pick.includes(id) && (!intOnlyAuto[sl.p.id] || isAuto(id));
+          const okc = id => !sl.pick.includes(id) && okFor(id, sl.p.id) && (!intOnlyAuto[sl.p.id] || isAuto(id));
           let src = null;
           for (const b of here) { if (b === sl || b.keep || !b.pick || ABS.has(b.p.id)) continue; if (b.pick.length > (R.facultatif.includes(b.p.id) ? 0 : b.need)) { const c = b.pick.find(okc); if (c) { src = {b, id: c}; break; } } }
           if (!src) { const c = ints.map(d=>d.id).filter(id=>okc(id) && okAt(id, h) && off[id].has(h.id) && !taken[h.id].has(id)).sort((a,b)=>off[b].size - off[a].size)[0]; if (c) src = {id: c, off: true}; }
@@ -2816,7 +2822,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       if (ext.length) {
         const left = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
         left.sort((a,b)=>(load[a]||0) - (load[b]||0));
-        left.forEach(id=>{ const oks = ext.filter(x=>x.pick.length < R.maxRenfort && (!intOnlyAuto[x.p.id] || isAuto(id)) && !(x.p.id === 'echo' && h.part === 'AM' && ((prev[h.k+'|M'] || {}).echo || []).includes(id))); if (!oks.length) return; oks.sort((a,b)=>a.pick.length - b.pick.length); const sl = oks[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
+        left.forEach(id=>{ const oks = ext.filter(x=>x.pick.length < R.maxRenfort && okFor(id, x.p.id) && (!intOnlyAuto[x.p.id] || isAuto(id)) && !(x.p.id === 'echo' && h.part === 'AM' && ((prev[h.k+'|M'] || {}).echo || []).includes(id))); if (!oks.length) return; oks.sort((a,b)=>a.pick.length - b.pick.length); const sl = oks[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
       }
       /* internes restants, sans poste sur cette demi-journée : off (plus de 2 off possibles) */
       ints.forEach(d=>{ if (okAt(d.id, h) && !taken[h.id].has(d.id) && !off[d.id].has(h.id)) off[d.id].add(h.id); });
