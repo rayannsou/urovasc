@@ -551,6 +551,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 .setrow{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 14px;border:0;border-top:1px solid var(--line);background:transparent;color:inherit;font:600 16px var(--font-body);text-align:left;cursor:pointer}.setrow:first-child{border-top:0}
 .setrow .si{flex:none;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:18px;color:#fff}.setrow .st{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.setrow .st small{font:400 12.5px var(--font-body);color:var(--muted)}.setrow .sc{color:var(--muted);font-size:22px}
 .setback{display:flex;align-items:center;gap:6px;min-height:44px;padding:0;border:0;background:transparent;color:var(--accent);font:600 16px var(--font-body);cursor:pointer}.setgt{margin:0 0 4px;font-size:24px}.setgrp{display:flex;flex-direction:column;gap:16px;min-width:0}.setgrp[hidden],#setMenu[hidden],#setCol[hidden]{display:none!important}
+.qchips{display:flex;flex-wrap:wrap;gap:8px}.qchip,.qadd{min-height:44px;border:1px solid var(--line);border-radius:22px;background:var(--bg);color:inherit;font:600 15px var(--font-body);padding:0 14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer}.qchip{background:var(--accent-soft);border-color:var(--accent)}.qchip.bad,.qadd.bad{border-color:#C62828}.qchip i{font-style:normal;opacity:.6}.qadd small{font:400 11.5px var(--font-body);color:#C62828}.qgt{margin:6px 0 0;font:700 11px var(--font-mono);letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}#qeQ{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font:16px var(--font-body);background:var(--bg);color:inherit}#qeAdd{min-height:0;max-height:34vh}#qeAdd .qchips{padding-bottom:4px}#gGrpBar{margin-top:-4px}#qeSheet{z-index:350}
 </style>
 
 <div class="wrap">
@@ -797,6 +798,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <button type="button" id="gNext" aria-label="Semaine suivante">›</button>
           <button type="button" id="gToday" class="ghost">Cette semaine</button>
         </div>
+        <div class="subtabs" id="gGrpBar" role="group" aria-label="Afficher"><button type="button" data-ggrp="" aria-pressed="true">Tous</button><button type="button" data-ggrp="medecin" aria-pressed="false">🩺 Seniors</button><button type="button" data-ggrp="interne" aria-pressed="false">🎓 Internes</button></div>
         <div id="gAlert" class="alert" hidden></div>
         <div id="gPoste" class="col">
           <div id="trameWrap" class="tw"></div>
@@ -1041,6 +1043,16 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   </main>
 
 
+</div>
+<div id="qeSheet" class="sheet" hidden>
+  <div class="sheet-bg" data-qeclose></div>
+  <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="qeT">
+    <div class="sheet-h"><div><h3 id="qeT"></h3><p class="hint" id="qeS"></p></div><button type="button" class="ghost" data-qeclose aria-label="Fermer">✕</button></div>
+    <div id="qeBody" class="sheet-l"></div>
+    <input type="search" id="qeQ" placeholder="Chercher un nom…" autocomplete="off" aria-label="Chercher un nom">
+    <div id="qeAdd" class="sheet-l"></div>
+    <div class="astpair"><button type="button" class="ghost" id="qeRev" hidden>Effacer cette vacation</button><button type="button" class="astbtn go" data-qeclose>Terminé</button></div>
+  </div>
 </div>
 <div id="cfSheet" class="sheet" hidden>
   <div class="sheet-bg" data-cfclose></div>
@@ -3858,7 +3870,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
   /* ---------- vue Trame ---------- */
   /* ---------- lecture du planning d'astreinte (onglet Planning) ---------- */
-  let gKind = 'week', gaStart = null;
+  let gKind = 'week', gaStart = null, gGrp = '';
+  try { gGrp = localStorage.getItem('planning-ggrp') || ''; } catch(e) {}
   const satOf = d => { const m = mondayOf(d); return addDays(m, 5); };
   function renderGAst(){
     const list = $('#gaList'); if (!list) return;
@@ -3901,6 +3914,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (e.target.closest('[data-garevert]')) { $('#gaSheet').hidden = true; if (await revertSlot(ap.id, gaEditK, 'M')) notify('Trame rétablie pour ce samedi.'); renderGAst(); }
   });
   document.querySelectorAll('[data-gkind]').forEach(b=>b.addEventListener('click', ()=>{ gKind = b.dataset.gkind; renderGAst(); }));
+  document.querySelectorAll('[data-ggrp]').forEach(b=>b.addEventListener('click', ()=>{ gGrp = b.dataset.ggrp; try { localStorage.setItem('planning-ggrp', gGrp); } catch(e) {} renderTrame(); }));
   $('#gaPrev').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), -70); renderGAst(); });
   $('#gaNext').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), 70); renderGAst(); });
   $('#gaToday').addEventListener('click', ()=>{ gaStart = satOf(new Date()); renderGAst(); });
@@ -3913,6 +3927,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       renderGAlert(); renderEditor(); return;
     }
     ensureEd();
+    const vis = id => !gGrp || (isIntId(id) === (gGrp === 'interne'));
+    document.querySelectorAll('[data-ggrp]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.ggrp === gGrp)));
     const narrow = window.matchMedia && window.matchMedia('(max-width:700px)').matches;
     wrap.classList.toggle('tw', !narrow);
     if (narrow) {
@@ -3934,7 +3950,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           const v = vs[ix]; let cfl = false, inner = '';
           if (v) {
             inner = v.texte ? '<span class="ch">'+esc(v.texte)+'</span>' : '';
-            inner += v.who.map(id=>{ const r = v.ou ? '' : reasonFor(id,dk,part); if (r) cfl = true; return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+(r ? ' · '+esc(r) : '')+'</span>'; }).join(v.ou ? ' ou ' : '');
+            inner += v.who.filter(vis).map(id=>{ const r = v.ou ? '' : reasonFor(id,dk,part); if (r) cfl = true; return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+(r ? ' · '+esc(r) : '')+'</span>'; }).join(v.ou ? ' ou ' : '');
             if (v.open) inner += '<span class="cap open">à pourvoir</span>';
             if (v.edited) inner += '<span class="cap mod">modifié pour ce jour</span>';
           } else inner = '<span class="muted">—</span>';
@@ -3943,8 +3959,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         L += '</div>';
       });
       if (!any) L += '<p class="empty">Aucune vacation ce jour-là.</p>';
-      const ab = PARTS.map(part=>({part, g: absAt(dk, part)}));
-      ab.forEach(x=>{ const l = offList(gDay, dk, x.part).filter(id=>doctors[id]); if (l.length) { const cur = x.g.Off || []; x.g.Off = cur.concat(l.filter(id=>!cur.includes(id))); } });
+      const ab = PARTS.map(part=>{ const g0 = absAt(dk, part), g = {}; Object.keys(g0).forEach(c=>{ const l = g0[c].filter(vis); if (l.length) g[c] = l; }); return {part, g}; });
+      ab.forEach(x=>{ const l = offList(gDay, dk, x.part).filter(id=>doctors[id] && vis(id)); if (l.length) { const cur = x.g.Off || []; x.g.Off = cur.concat(l.filter(id=>!cur.includes(id))); } });
       if (ab.some(x=>Object.keys(x.g).length)) {
         L += '<div class="prow pabs"><div class="pname">Absences</div>';
         ab.forEach(x=>{
@@ -3979,14 +3995,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           if (!v) { h += '<td class="v none'+end+sel+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : pas de vacation, toucher pour en ajouter"></td>'; return; }
           let inner = v.texte ? '<span class="ch">'+esc(v.texte)+'</span>' : '';
           let cfl = false;
-          inner += v.who.map(id=>{
+          inner += v.who.filter(vis).map(id=>{
             const r = v.ou ? '' : reasonFor(id,k,part); if (r) cfl = true;
             return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+(r ? ' title="'+esc(dLabel(id)+' : '+r)+'"' : '')+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+'</span>';
           }).join(v.ou ? ' ou ' : '');
           if (v.open) inner += '<span class="cap open">à pourvoir</span>';
           if (p.variante) inner += '<span class="cap'+(vv !== p.variante ? ' alt' : '')+'">'+esc(ABREV[vv] || vv)+'</span>';
           if (v.edited) inner += '<span class="cap mod">modifié</span>';
-          h += '<td class="v'+end+sel+(cfl ? ' cfl' : '')+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : '+esc(v.who.map(dLabel).join(', ') || 'personne')+(cfl ? ', conflit' : '')+'">'+inner+'</td>';
+          h += '<td class="v'+end+sel+(cfl ? ' cfl' : '')+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : '+esc(v.who.filter(vis).map(dLabel).join(', ') || 'personne')+(cfl ? ', conflit' : '')+'">'+inner+'</td>';
         });
       });
       h += '</tr>';
@@ -3997,13 +4013,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       h += '<tr class="absrow"><th class="who" scope="row">'+esc(c)+'</th>' + keys.map((d,i)=>PARTS.map((part,pi)=>{
         if (i === 5 && part === 'AM') return '';
         const l = wk[i][pi][c] || [];
-        return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
+        return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.filter(vis).map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
       }).join('')).join('') + '</tr>';
     });
     h += ('<tr><th class="who" scope="row">OFF</th>' + keys.map((d,i)=>PARTS.map(part=>{
       if (i === 5 && part === 'AM') return '';
       const l = offList(i, key(d), part);
-      return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
+      return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.filter(vis).map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
     }).join('')).join('') + '</tr>') + '</tbody></table>';
     wrap.innerHTML = h;
     renderGAlert(); renderEditor();
@@ -4566,7 +4582,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     box.innerHTML = bad.map(id=>'⚠ <strong>'+esc(dLabel(id))+'</strong> n’est pas disponible : '+esc(reasonFor(id, ed.date, ed.part))+', '+esc(fmtShort.format(parse(ed.date)))+' '+PART_TXT[ed.part]+'.').join('<br>');
     const ov = overrides[ed.date] && overrides[ed.date][ed.poste+'_'+ed.part];
     $('#edRevert').hidden = !ov;
-    applyRO();
+    applyRO(); renderQe();
   }
 
   /* interface Internes / Seniors : on ne touche qu'aux personnes de son groupe, l'autre groupe est conservé */
@@ -4689,13 +4705,39 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const ok = await revertSlot(ed.poste, ed.date, ed.part);
     if (ok) notify('Vacation effacée.');
   });
-  function gotoCell(poste, date, part){
-    { const gm = $('#gMore'); if (gm) gm.open = true; }
+  function gotoCell(poste, date, part){ qeShow(poste, date, part); }
+  /* modification rapide d'une vacation : fenêtre « toucher pour ajouter / retirer » */
+  let qeOpen = false;
+  function qeShow(poste, date, part){
     ed.poste = poste; ed.date = date; ed.part = part;
     const gi = [0,1,2,3,4,5].find(i=>key(addDays(weekStart,i)) === date); if (gi !== undefined) gDay = gi;
-    renderTrame();
-    $('#edForm').scrollIntoView({block:'nearest'});
+    qeOpen = true; plGrp = ''; $('#qeQ').value = ''; $('#qeSheet').hidden = false; renderQe(); renderTrame();
   }
+  function qeClose(){ qeOpen = false; $('#qeSheet').hidden = true; renderTrame(); }
+  function renderQe(){
+    if (!qeOpen) return;
+    const p = findPost(ed.poste); if (!p) return qeClose();
+    const v = vacWho(ed.poste, ed.date, ed.part), cur = v ? v.who.slice() : [], q = normS($('#qeQ').value || '');
+    $('#qeT').textContent = postName(ed.poste, ed.date)+(p.journee ? ' (journée entière)' : '');
+    $('#qeS').textContent = new Intl.DateTimeFormat('fr-FR', {weekday:'long', day:'numeric', month:'long'}).format(parse(ed.date)).replace(/^./, c=>c.toUpperCase())+(p.journee ? '' : ' · '+PART_TXT[ed.part])+(v && v.ou ? ' · case « ou » : elle deviendra ferme' : '')+(v && v.texte ? ' · mention « '+v.texte+' »' : '');
+    const chip = id=>{ const r = reasonFor(id, ed.date, ed.part); return '<button type="button" class="qchip'+(r ? ' bad' : '')+'" data-qrm="'+esc(id)+'" aria-label="Retirer '+esc(dLabel(id))+'">'+(r ? '⚠ ' : '')+esc(dLabel(id))+'<i>✕</i></button>'; };
+    $('#qeBody').innerHTML = '<p class="qgt">Sur cette vacation</p>' + (cur.length ? '<div class="qchips">'+cur.map(chip).join('')+'</div>' : '<p class="hint">Personne pour l’instant.</p>')
+      + cur.filter(id=>!(v && v.ou) && reasonFor(id, ed.date, ed.part)).map(id=>'<p class="aststat ko">⚠ '+esc(dLabel(id))+' : '+esc(reasonFor(id, ed.date, ed.part))+'</p>').join('');
+    const pool = sortedDocs().filter(d=>!cur.includes(d.id) && (!q || normS(d.label).includes(q)) && (!gGrp || isIntId(d.id) === (gGrp === 'interne')));
+    const grp = (t, l)=>l.length ? '<p class="qgt">'+t+'</p><div class="qchips">'+l.map(d=>{ const r = reasonFor(d.id, ed.date, ed.part); return '<button type="button" class="qadd'+(r ? ' bad' : '')+'" data-qadd="'+esc(d.id)+'">＋ '+esc(dLabel(d.id))+(r ? '<small>⚠ '+esc(r)+'</small>' : '')+'</button>'; }).join('')+'</div>' : '';
+    const byAv = l=>l.slice().sort((a,b)=>(reasonFor(a.id, ed.date, ed.part) ? 1 : 0) - (reasonFor(b.id, ed.date, ed.part) ? 1 : 0));
+    $('#qeAdd').innerHTML = grp('Seniors', byAv(pool.filter(d=>!isIntId(d.id)))) + grp('Internes', byAv(pool.filter(d=>isIntId(d.id)))) || '<p class="hint">Personne à ajouter.</p>';
+    const ov = overrides[ed.date] && overrides[ed.date][ed.poste+'_'+ed.part]; $('#qeRev').hidden = !ov;
+  }
+  $('#qeSheet').addEventListener('click', async e=>{
+    if (e.target.closest('[data-qeclose]')) return qeClose();
+    const rm = e.target.closest('[data-qrm]'), ad = e.target.closest('[data-qadd]');
+    if (rm || ad) { plScope = 'once'; const cur = edWho(); if (rm) await plApply(ed.poste, ed.date, ed.part, cur.filter(x=>x !== rm.dataset.qrm), null); else if (!cur.includes(ad.dataset.qadd)) await plApply(ed.poste, ed.date, ed.part, cur.concat([ad.dataset.qadd]), ad.dataset.qadd); renderQe(); return; }
+    if (e.target.closest('#qeRev')) { if (await revertSlot(ed.poste, ed.date, ed.part)) notify('Vacation effacée.'); renderQe(); }
+  });
+  $('#qeQ').addEventListener('input', renderQe);
+  document.addEventListener('keydown', e=>{ if (e.key === 'Escape' && qeOpen) qeClose(); });
+
   $('#trameWrap').addEventListener('click', e=>{
     const gd = e.target.closest('[data-gd]'); if (gd) { gDay = Number(gd.dataset.gd); renderTrame(); return; }
     const td = e.target.closest('[data-p]'); if (td) gotoCell(td.dataset.p, td.dataset.d, td.dataset.part);
