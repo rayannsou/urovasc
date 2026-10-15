@@ -553,7 +553,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 .setback{display:flex;align-items:center;gap:6px;min-height:44px;padding:0;border:0;background:transparent;color:var(--accent);font:600 16px var(--font-body);cursor:pointer}.setgt{margin:0 0 4px;font-size:24px}.setgrp{display:flex;flex-direction:column;gap:16px;min-width:0}.setgrp[hidden],#setMenu[hidden],#setCol[hidden]{display:none!important}
 .qchips{display:flex;flex-wrap:wrap;gap:8px}.qchip,.qadd{min-height:44px;border:1px solid var(--line);border-radius:22px;background:var(--bg);color:inherit;font:600 15px var(--font-body);padding:0 14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer}.qchip{background:var(--accent-soft);border-color:var(--accent)}.qchip.bad,.qadd.bad{border-color:#C62828}.qchip i{font-style:normal;opacity:.6}.qadd small{font:400 11.5px var(--font-body);color:#C62828}.qgt{margin:6px 0 0;font:700 11px var(--font-mono);letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}#qeQ{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font:16px var(--font-body);background:var(--bg);color:inherit}#qeAdd{min-height:0;max-height:34vh}#qeAdd .qchips{padding-bottom:4px}#gGrpBar{margin-top:-4px}#qeSheet{z-index:350}
 @media (max-width:700px){.setrow{min-height:92px;gap:16px;padding:12px 18px;font-size:20px}.setrow .setic{width:52px;height:52px;border-radius:13px;font-size:28px}.setrow .settx small{font-size:15px;line-height:1.3}.setrow .setch{font-size:30px}#setMenu .setlist{border-radius:18px}#setMenu{gap:22px}.setback{min-height:52px;font-size:19px}.setgt{font-size:30px;margin-bottom:8px}}
-#offSheet{z-index:340}.offslot{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}.offslot>b{font-size:14px}.offopt{min-height:48px;text-align:left;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:inherit;font:600 14px var(--font-body);padding:6px 12px;display:flex;flex-direction:column;gap:2px;cursor:pointer}.offopt small{font:400 12.5px var(--font-body);color:var(--muted)}.offopt small b{color:var(--ink)}.offopt small i{color:#1B5FA8}.offopt.sug{border-color:var(--accent);background:var(--accent-soft)}</style>
+#offSheet{z-index:340}.offslot{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}.offslot>b{font-size:14px}.offopt{min-height:48px;text-align:left;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:inherit;font:600 14px var(--font-body);padding:6px 12px;display:flex;flex-direction:column;gap:2px;cursor:pointer}.offopt small{font:400 12.5px var(--font-body);color:var(--muted)}.offopt small b{color:var(--ink)}.offopt small i{color:#1B5FA8}.offopt.sug{border-color:var(--accent);background:var(--accent-soft)}.rg{display:flex;flex-wrap:wrap;gap:4px;align-items:center;width:100%}.rg em{font:700 10px var(--font-mono);font-style:normal;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);flex:none}.pw .rg em{min-width:68px;font-size:11px}.team.trame td.v .rg{justify-content:center;gap:2px}.team.trame td.v .rg em{width:100%;text-align:center;font-size:9px;opacity:.75}.team.trame td.v .rg+.rg{margin-top:3px;padding-top:3px;border-top:1px dashed var(--line)}</style>
 
 <div class="wrap">
   <header class="top">
@@ -3969,6 +3969,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }
     ensureEd();
     const vis = id => !gGrp || (isIntId(id) === (gGrp === 'interne'));
+    /* seniors et internes séparés, chacun avec son libellé */
+    const splitChips = (v, mk, full)=>{
+      const all = v.who.filter(vis); if (v.ou) return all.map(mk).join(' ou ');
+      const sr = all.filter(id=>!isIntId(id)), it = all.filter(isIntId);
+      const row = (l, ids)=>ids.length ? '<div class="rg"><em>'+l+'</em>'+ids.map(mk).join('')+'</div>' : '';
+      return row(full ? 'Senior'+(sr.length > 1 ? 's' : '') : 'Sr', sr) + row(full ? 'Interne'+(it.length > 1 ? 's' : '') : 'Int', it);
+    };
     document.querySelectorAll('[data-ggrp]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.ggrp === gGrp)));
     const narrow = window.matchMedia && window.matchMedia('(max-width:700px)').matches;
     wrap.classList.toggle('tw', !narrow);
@@ -3991,7 +3998,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           const v = vs[ix]; let cfl = false, inner = '';
           if (v) {
             inner = v.texte ? '<span class="ch">'+esc(v.texte)+'</span>' : '';
-            inner += v.who.filter(vis).map(id=>{ const r = v.ou ? '' : reasonFor(id,dk,part); if (r) cfl = true; return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+(r ? ' · '+esc(r) : '')+'</span>'; }).join(v.ou ? ' ou ' : '');
+            inner += splitChips(v, id=>{ const r = v.ou ? '' : reasonFor(id,dk,part); if (r) cfl = true; return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+(r ? ' · '+esc(r) : '')+'</span>'; }, true);
             if (v.open) inner += '<span class="cap open">à pourvoir</span>';
             if (v.edited) inner += '<span class="cap mod">modifié pour ce jour</span>';
           } else inner = '<span class="muted">—</span>';
@@ -4036,10 +4043,10 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           if (!v) { h += '<td class="v none'+end+sel+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : pas de vacation, toucher pour en ajouter"></td>'; return; }
           let inner = v.texte ? '<span class="ch">'+esc(v.texte)+'</span>' : '';
           let cfl = false;
-          inner += v.who.filter(vis).map(id=>{
+          inner += splitChips(v, id=>{
             const r = v.ou ? '' : reasonFor(id,k,part); if (r) cfl = true;
             return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+(r ? ' title="'+esc(dLabel(id)+' : '+r)+'"' : '')+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+'</span>';
-          }).join(v.ou ? ' ou ' : '');
+          }, false);
           if (v.open) inner += '<span class="cap open">à pourvoir</span>';
           if (p.variante) inner += '<span class="cap'+(vv !== p.variante ? ' alt' : '')+'">'+esc(ABREV[vv] || vv)+'</span>';
           if (v.edited) inner += '<span class="cap mod">modifié</span>';
