@@ -62,4 +62,26 @@ function dueFor(data, id, user, now) {
 }
 /* dates dont les ajustements sont nécessaires pour un jour donné */
 const neededDates = today => [addDays(today, 1), addDays(today, 7)];
-module.exports = {whoAt, postsOf, onAstreinte, dueFor, neededDates, addDays, dowOf, frDate};
+/* ---- changements de planning : photographie des 14 prochains jours, comparée à la précédente ---- */
+const CHG_DAYS = 14;
+const chgDates = today => Array.from({length: CHG_DAYS}, (_, i) => addDays(today, i));
+function slotKeys(data, id, k) {
+  if (dowOf(k) > 5) return [];
+  const out = postsOf(data, id, k).map(p => k + '|' + p.label + '|' + p.part);
+  if (onAstreinte(data, id, k)) out.push(k + '|Astreinte|M');
+  return out.sort();
+}
+function snapshotFor(data, id, today) { return [].concat(...chgDates(today).map(k => slotKeys(data, id, k))); }
+const fmtSlot = key => { const [k, label, part] = key.split('|'); return frDate(k) + ' : ' + label + (label === 'Astreinte' ? '' : part === 'M' ? ' (matin)' : ' (après-midi)'); };
+/* prev = photographie précédente (tableau) ou undefined ; cur = photographie actuelle. Seuls les jours encore à venir comptent. */
+function changeMessage(prev, cur, today) {
+  if (!Array.isArray(prev)) return null;
+  const keep = x => x.split('|')[0] >= today;
+  const P = new Set(prev.filter(keep)), C = new Set(cur.filter(keep));
+  const added = [...C].filter(x => !P.has(x)), removed = [...P].filter(x => !C.has(x));
+  if (!added.length && !removed.length) return null;
+  const lines = added.slice(0, 3).map(x => '+ ' + fmtSlot(x)).concat(removed.slice(0, 3).map(x => '− ' + fmtSlot(x)));
+  const more = added.length + removed.length - lines.length;
+  return {title: 'Votre planning a changé', body: lines.join('\n') + (more > 0 ? '\n… et ' + more + ' autre' + (more > 1 ? 's' : '') : '')};
+}
+module.exports = {whoAt, postsOf, onAstreinte, dueFor, neededDates, addDays, dowOf, frDate, chgDates, slotKeys, snapshotFor, changeMessage};

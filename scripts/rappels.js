@@ -1,7 +1,7 @@
 'use strict';
 /* Rappels push SANS forfait Blaze : lancé toutes les ~15 min par GitHub Actions (gratuit). */
 const admin = require('firebase-admin');
-const {dueFor, neededDates} = require('../functions/plan');
+const {dueFor, neededDates, chgDates, snapshotFor, changeMessage} = require('../functions/plan');
 admin.initializeApp({credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))});
 const fs = admin.firestore();
 (async () => {
@@ -28,9 +28,24 @@ const fs = admin.firestore();
   await Promise.all(neededDates(now.date).map(async d => { const s = await fs.doc('ajustements/' + d).get(); if (s.exists) overrides[d] = s.data(); }));
   const swaps = (await fs.collection('echanges').get()).docs.map(d => d.data());
   const data = {trame: tr.exists ? tr.data() : {postes: [], cases: {}}, overrides, swaps};
+  /* changements de planning : on lit les 14 prochains jours une fois pour tout le monde */
+  const cov = Object.assign({}, overrides);
+  await Promise.all(chgDates(now.date).filter(d => !cov[d]).map(async d => { const s = await fs.doc('ajustements/' + d).get(); if (s.exists) cov[d] = s.data(); }));
+  const chgData = Object.assign({}, data, {overrides: cov});
   let n = 0;
   for (const u of users) {
     const v = u.data(); if (!v.token) continue;
+    {
+      const snap = snapshotFor(chgData, u.id, now.date), msg = v.chg === false ? null : changeMessage(v.snap, snap, now.date);
+      if (!Array.isArray(v.snap) || JSON.stringify(v.snap) !== JSON.stringify(snap)) {
+        let sentOk = true;
+        if (msg) {
+          try { await admin.messaging().send({token: v.token, notification: {title: msg.title, body: msg.body}, webpush: {fcmOptions: {link: 'https://rayannsou.github.io/urovasc/'}}}); n++; }
+          catch (e) { sentOk = false; if (e && /registration-token|not-registered|invalid-argument/i.test(String(e.code || e.message))) { await u.ref.set({on: false, token: ''}, {merge: true}); continue; } console.error('changement', u.id, e && e.message); }
+        }
+        if (sentOk) await u.ref.set({snap, snapAt: Date.now()}, {merge: true});
+      }
+    }
     for (const m of dueFor(data, u.id, v, now)) {
       try {
         await admin.messaging().send({token: v.token, notification: {title: m.title, body: m.body}, webpush: {fcmOptions: {link: 'https://rayannsou.github.io/urovasc/'}}});

@@ -973,6 +973,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <p class="hint" id="remHint"></p>
           <div id="remBody" hidden>
             <label class="remrow"><input type="checkbox" id="remVeille"> Où je suis posté(e), la veille</label>
+            <label class="remrow"><input type="checkbox" id="remChg"> Quand mon planning change (14 prochains jours)</label>
             <label class="remrow"><input type="checkbox" id="remA7"> Astreinte : 1 semaine avant</label>
             <label class="remrow"><input type="checkbox" id="remA1"> Astreinte : 24 h avant</label>
             <div class="f"><label for="remHour">Heure du rappel</label><input type="time" id="remHour" value="20:00" step="900"></div>
@@ -1578,7 +1579,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '8425c0ff00';
+  const BUILD = 'c6d01494d4';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3269,7 +3270,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   function remPaint(){
     const P = window.__push, hint = $('#remHint'), btn = $('#remBtn'), body = $('#remBody');
     body.hidden = !rem.on;
-    $('#remVeille').checked = rem.veille !== false; $('#remA7').checked = rem.ast7 !== false; $('#remA1').checked = rem.ast1 !== false; $('#remHour').value = rem.hour || '20:00';
+    $('#remVeille').checked = rem.veille !== false; $('#remChg').checked = rem.chg !== false; $('#remA7').checked = rem.ast7 !== false; $('#remA1').checked = rem.ast1 !== false; $('#remHour').value = rem.hour || '20:00';
     btn.textContent = rem.on ? '🔕 Désactiver les rappels' : '🔔 Activer les rappels';
     btn.className = rem.on ? 'ghost' : 'primary';
     if (!me) { hint.textContent = 'Choisissez d’abord votre nom dans « Mon profil » : les rappels sont personnels.'; btn.disabled = true; return; }
@@ -3285,7 +3286,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     remPaint(); renderMsg();
   }
   async function remSave(extra){
-    const d = Object.assign({hour:$('#remHour').value || '20:00', veille:$('#remVeille').checked, ast7:$('#remA7').checked, ast1:$('#remA1').checked, updatedAt:Date.now()}, extra || {});
+    const d = Object.assign({hour:$('#remHour').value || '20:00', veille:$('#remVeille').checked, chg:$('#remChg').checked, ast7:$('#remA7').checked, ast1:$('#remA1').checked, updatedAt:Date.now()}, extra || {});
     await db.doc('push/'+me).update(d);
     Object.assign(rem, d);
   }
@@ -3350,7 +3351,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       $('#msgTxt').value = ''; msgSel.clear(); renderMsg(); notify('Message en file d’envoi : il partira dans les 10 à 15 minutes.');
     } catch(e) { handleErr(e); }
   });
-  ['#remVeille','#remA7','#remA1','#remHour'].forEach(id=>$(id).addEventListener('change', async ()=>{ if (!rem.on || !me) return; try { await remSave(); notify('Rappels mis à jour.'); } catch(e) { handleErr(e); } }));
+  ['#remVeille','#remChg','#remA7','#remA1','#remHour'].forEach(id=>$(id).addEventListener('change', async ()=>{ if (!rem.on || !me) return; try { await remSave(); notify('Rappels mis à jour.'); } catch(e) { handleErr(e); } }));
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
   $('#rcPrev').addEventListener('click', ()=>{ rcDay = addDays(rcDay,-1); rcRender(); });
   $('#rcNext').addEventListener('click', ()=>{ rcDay = addDays(rcDay,1); rcRender(); });
