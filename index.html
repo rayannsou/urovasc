@@ -1585,7 +1585,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'd98666b3cf';
+  const BUILD = 'aaed2af20e';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2279,7 +2279,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const list = offAll(); if (!list.length) return '';
     const tot = list.reduce((a,x)=>a + x.n, 0);
     return '<div class="redoq recap"><p class="aststat"><b>📊 Récap de la semaine · off par interne</b></p><p class="hint">'+tot+' demi-journée'+(tot > 1 ? 's' : '')+' off au total. Touchez « Affecter » pour poster un interne sur une vacation en plus : vous verrez qui est déjà dessus.</p><div class="col" style="gap:6px;text-align:left">'
-      + list.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · <span style="font-weight:700;color:'+(x.n > 2 ? 'var(--red,#b3392b)' : 'inherit')+'">'+x.n+' off</span>'+(x.n > 2 ? ' ⚠' : '')+'</span>'+(x.slots.some(z=>!z.fixed) ? '<button type="button" class="ghost" data-offopen="'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>＋ Affecter</button>' : '<span class="hint">✓</span>')+'</div>').join('')+'</div></div>';
+      + list.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · <span style="font-weight:700;color:'+(x.n > 2 && x.slots.some(z=>!z.fixed) ? 'var(--red,#b3392b)' : 'inherit')+'">'+x.n+' off</span>'+(x.n > 2 && x.slots.some(z=>!z.fixed) ? ' ⚠' : '')+(x.slots.some(z=>z.fixed) ? ' <small style="color:var(--muted);font-weight:400">(dont '+x.slots.filter(z=>z.fixed).length+' indispo / repos)</small>' : '')+'</span>'+(x.slots.some(z=>!z.fixed) ? '<button type="button" class="ghost" data-offopen="'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>＋ Affecter</button>' : '<span class="hint">✓</span>')+'</div>').join('')+'</div></div>';
   }
   function wkTools(noDel){
     if (!trame) return '';
@@ -5614,7 +5614,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   const offAll = () => { const o = intOffs(); return sortedDocs().filter(d=>isIntId(d.id)).map(d=>({id: d.id, n: (o[d.id] || []).length, slots: o[d.id] || []})).sort((a,b)=>b.n - a.n); };
   let offMode = 'many';   /* 'many' : internes à plus de 2 off ; 'all' : récap de tous les internes */
-  const offMany = () => { const o = intOffs(); return Object.keys(o).filter(id=>o[id].length > 2).map(id=>({id, n: o[id].length, slots: o[id]})).sort((a,b)=>b.n - a.n); };
+  const offMany = () => { const o = intOffs(); return Object.keys(o).filter(id=>o[id].length > 2 && o[id].some(z=>!z.fixed)).map(id=>({id, n: o[id].length, slots: o[id]})).sort((a,b)=>b.n - a.n); };
   function offOpen(id){
     offMode = id && id !== '1' ? 'all' : 'many';
     const m = offMode === 'all' ? offAll().filter(x=>x.slots.some(z=>!z.fixed)) : offMany().filter(x=>x.slots.some(z=>!z.fixed)); if (!m.length) return;
