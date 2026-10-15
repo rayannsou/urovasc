@@ -559,7 +559,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 .priol .priabs{font-size:11px;font-weight:600;color:var(--accent)}.priol button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
 .qadd,.qchip{padding-top:6px;padding-bottom:6px;line-height:1.2}.qadd{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px}.qadd small{font-size:11px;font-weight:500;color:var(--muted);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qadd.bad small{color:#C62828}.qadd small:empty{display:none}.qchip{flex-wrap:wrap;row-gap:0}.qchip small{order:3;flex-basis:100%;font-size:11px;font-weight:500;color:var(--muted)}.qchip i{order:2}
 .offstep{align-items:center;justify-content:center;gap:12px}.offstep .astbtn{width:52px;min-height:44px;flex:none}.offstep .offv{min-width:80px;text-align:center;font-size:18px}
-#dpSheet{z-index:420}.toast{z-index:600}
+#dpSheet{z-index:420}.toast{z-index:600}.sheet-l,.sheet-p{overscroll-behavior:contain}.sheet-l{-webkit-overflow-scrolling:touch;min-height:0}.sheet-bg,.sheet-h{touch-action:none}html:has(.sheet:not([hidden])),body:has(.sheet:not([hidden])){overflow:hidden}
 </style>
 
 <div class="wrap">
@@ -1587,7 +1587,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'a7b0a82f39';
+  const BUILD = 'eca3f8cafc';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5696,6 +5696,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     await plApply(po, k, part, cur.concat([offSel]), offSel);
     setTimeout(renderOff, 500);
   });
+  /* fenêtres ouvertes : le défilement ne doit jamais entraîner la page derrière (iOS) */
+  document.addEventListener('touchmove', e=>{
+    if (!document.querySelector('.sheet:not([hidden])')) return;
+    let n = e.target; while (n && n !== document.body) { if (n.nodeType === 1 && n.closest && n.closest('.sheet-p') && n.scrollHeight > n.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowY)) return; n = n.parentNode; }
+    e.preventDefault();
+  }, {passive: false});
   /* Réglages « à la iPhone » : menu de thèmes, puis sous-pages */
   const SET_GRPS = [
     {id:'compte', ic:'👤', bg:'#3B82F6', t:'Mon compte', sub:'Profil, apparence, calendrier, rappels, administrateurs', sel:['#fMp','#fApp','#instBtn','#remCard','#fCal','#admCard']},
