@@ -559,6 +559,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 .priol .priabs{font-size:11px;font-weight:600;color:var(--accent)}.priol button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
 .qadd,.qchip{padding-top:6px;padding-bottom:6px;line-height:1.2}.qadd{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px}.qadd small{font-size:11px;font-weight:500;color:var(--muted);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qadd.bad small{color:#C62828}.qadd small:empty{display:none}.qchip{flex-wrap:wrap;row-gap:0}.qchip small{order:3;flex-basis:100%;font-size:11px;font-weight:500;color:var(--muted)}.qchip i{order:2}
 .offstep{align-items:center;justify-content:center;gap:12px}.offstep .astbtn{width:52px;min-height:44px;flex:none}.offstep .offv{min-width:80px;text-align:center;font-size:18px}
+#dpSheet{z-index:420}
 </style>
 
 <div class="wrap">
@@ -672,13 +673,6 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
             <div class="sheet-h"><div><h3 id="plShT"></h3><p id="plShS" class="hint"></p></div><button type="button" class="ghost" data-plclose>Terminé</button></div>
             <input type="search" id="plShQ" placeholder="Écrire un nom…" autocomplete="off" autocapitalize="none" aria-label="Rechercher un médecin">
             <div id="plShL" class="sheet-l"></div>
-          </div>
-        </div>
-        <div id="dpSheet" class="sheet" hidden>
-          <div class="sheet-bg" data-dpx></div>
-          <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="dpT">
-            <div class="sheet-h"><div><h3 id="dpT">Déjà posté(e) ailleurs</h3><p id="dpTxt" class="hint"></p></div></div>
-            <div class="astcol"><button type="button" class="astbtn big" id="dpMove" data-dpmove="1"></button><button type="button" class="astbtn big" data-dpdup="1">Double poste (garder les deux)</button><button type="button" class="ghost" data-dpx>Annuler</button></div>
           </div>
         </div>
       </div>
@@ -1091,6 +1085,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     <button type="button" class="astbtn go" data-offclose>Terminé</button>
   </div>
 </div>
+<div id="dpSheet" class="sheet" hidden>
+          <div class="sheet-bg" data-dpx></div>
+          <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="dpT">
+            <div class="sheet-h"><div><h3 id="dpT">Déjà posté(e) ailleurs</h3><p id="dpTxt" class="hint"></p></div></div>
+            <div class="astcol"><button type="button" class="astbtn big" id="dpMove" data-dpmove="1"></button><button type="button" class="astbtn big" data-dpdup="1">Double poste (garder les deux)</button><button type="button" class="ghost" data-dpx>Annuler</button></div>
+          </div>
+        </div>
 <div id="qeSheet" class="sheet" hidden>
   <div class="sheet-bg" data-qeclose></div>
   <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="qeT">
@@ -1586,7 +1587,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '06efac6a12';
+  const BUILD = 'f48905433f';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
