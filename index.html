@@ -4269,7 +4269,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const gid = (/[?#&]gid=(\d+)/.exec(url) || [])[1];
     const names = (tabs || '').split(/[,;]+/).map(t=>t.trim()).filter(Boolean);
     const fail = "Impossible de lire ce lien. Vérifiez qu'il est partagé « Toute personne disposant du lien » et que le nom de l'onglet est exact (ex. oct 26). Sinon, téléchargez le .xlsx (Fichier → Télécharger) et importez-le.";
-    const csvOf = async (q)=>{ const r = await fetch(base+'/gviz/tq?tqx=out:csv&'+q); if (!r.ok) throw new Error('http '+r.status); const t = await r.text(); if (/^\s*<(!doctype|html)/i.test(t)) throw new Error('html'); return t; };
+    const csvOf = async (q)=>{ const r = await fetch(base+'/gviz/tq?tqx=out:csv&headers=0&'+q); if (!r.ok) throw new Error('http '+r.status); const t = await r.text(); if (/^\s*<(!doctype|html)/i.test(t)) throw new Error('html'); return t; };
     try {
       if (names.length || gid) {
         const out = X.utils.book_new();
