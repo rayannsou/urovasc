@@ -1616,7 +1616,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'd390f4de0e';
+  const BUILD = 'd9142a67fe';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5551,20 +5551,28 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   async function exportAstList(sats, grp, base, ttl){
     const ap = trame && trame.postes.find(isSam); if (!ap) return notify('Le poste d’astreinte n’existe pas encore.', true);
     if (!sats.length) return notify('Aucun samedi à exporter.', true);
-    const hs = grp !== 'interne', hi = grp !== 'medecin', head = ['Samedi'].concat(hs ? ['Senior'] : [], hi ? ['Interne'] : [], ['Indisponibilités']), rows = [head], cnt = {}, bad = [];
+    const hs = grp !== 'interne', hi = grp !== 'medecin', head = ['Samedi'].concat(hs ? ['Senior'] : [], hi ? ['Interne'] : [], ['Disponibilité', 'Souhait respecté']), rows = [head], cnt = {}, bad = [], wbad = [];
+    let wOk = 0, wKo = 0;
+    const inG = id=>grp === 'medecin' ? !isIntId(id) : grp === 'interne' ? isIntId(id) : true;
     sats.forEach(dt=>{
-      const k = key(dt), v = vacWho(ap.id, k, 'M'), who = (v ? v.who : []).filter(id=>grp === 'medecin' ? !isIntId(id) : grp === 'interne' ? isIntId(id) : true), sen = who.filter(id=>!isIntId(id)), int = who.filter(isIntId);
+      const k = key(dt), v = vacWho(ap.id, k, 'M'), who = (v ? v.who : []).filter(inG), sen = who.filter(id=>!isIntId(id)), int = who.filter(isIntId);
       const ko = who.map(id=>[id, reasonFor(id, k, 'M')]).filter(x=>x[1]);
       who.forEach(id=>{ cnt[id] = (cnt[id] || 0) + 1; });
       ko.forEach(x=>bad.push([dLabel(x[0])+' · '+fmtShort.format(dt), x[1], '']));
-      rows.push([fmtShort.format(dt)].concat(hs ? [sen.map(dLabel).join(', ') || '—'] : [], hi ? [int.map(dLabel).join(', ') || '—'] : [], [!who.length ? '' : ko.length ? '⚠ '+ko.map(x=>dLabel(x[0])+' ('+x[1]+')').join(' ; ') : 'Respectées']));
+      const wl = [];
+      sortedDocs().filter(d=>inG(d.id)).forEach(d=>{ const x = demGet(d, k); if (!x || !x.w) return; const has = who.includes(d.id), okw = x.w === 'want' ? has : !has;
+        if (okw) wOk++; else { wKo++; wbad.push([dLabel(d.id)+' · '+fmtShort.format(dt), x.w === 'want' ? 'voulait l’astreinte, non posté(e)' : 'préférait ne pas, posté(e)', '']); }
+        wl.push((okw ? '✓ ' : '✗ ')+dLabel(d.id)+' ('+(x.w === 'want' ? 'voulait' : 'évitait')+')'); });
+      rows.push([fmtShort.format(dt)].concat(hs ? [sen.map(dLabel).join(', ') || '—'] : [], hi ? [int.map(dLabel).join(', ') || '—'] : [], [!who.length ? '' : ko.length ? '⚠ '+ko.map(x=>dLabel(x[0])+' ('+x[1]+')').join(' ; ') : 'Respectée', wl.join(' ; ') || '—']));
     });
     const tot = astCounts(), ids = Object.keys(cnt), nm = id=>(doctors[id] && doctors[id].label) || id;
     const gl = (lab, isI)=>{ const l = ids.filter(id=>!!isIntId(id) === isI).sort((a,b)=>(cnt[b]-cnt[a]) || nm(a).localeCompare(nm(b), 'fr')); return l.length ? [[lab, '', '']].concat(l.map(id=>[nm(id), cnt[id], tot[id] || 0])) : []; };
-    const bil = [['Bilan', '', ''], ['Indisponibilités', bad.length ? '⚠ '+bad.length+' non respectée'+(bad.length > 1 ? 's' : '') : '✓ Toutes respectées', '']].concat(bad, [['', '', ''], ['Personne', 'Sur la période', 'Total planning']], hs ? gl('Seniors', false) : [], hi ? gl('Internes', true) : []);
+    const bil = [['Bilan', '', ''], ['Disponibilités', bad.length ? '⚠ '+bad.length+' non respectée'+(bad.length > 1 ? 's' : '') : '✓ Toutes respectées', '']].concat(bad,
+      [['Souhaits', (wOk+wKo) ? (wKo ? '⚠ '+wKo+' non respecté'+(wKo > 1 ? 's' : '')+' sur '+(wOk+wKo) : '✓ Tous respectés ('+wOk+')') : 'Aucun souhait exprimé', '']], wbad,
+      [['', '', ''], ['Personne', 'Sur la période', 'Total planning']], hs ? gl('Seniors', false) : [], hi ? gl('Internes', true) : []);
     await deliverSheets([
-      {name: 'Astreintes', title: 'Planning des astreintes · '+ttl, aoa: rows, hdr: 1, cols: [{wch:14},{wch:22},{wch:22},{wch:40}]},
-      {name: 'Bilan', title: 'Bilan des astreintes · '+ttl, aoa: bil, hdr: 1, cols: [{wch:46},{wch:18},{wch:18}]}
+      {name: 'Astreintes', title: 'Planning des astreintes · '+ttl, aoa: rows, hdr: 1, cols: [{wch:14},{wch:22},{wch:22},{wch:30},{wch:40}]},
+      {name: 'Bilan', title: 'Bilan des astreintes · '+ttl, aoa: bil, hdr: 1, cols: [{wch:46},{wch:34},{wch:18}]}
     ], base);
   }
   async function exportAstreintes(ym){
