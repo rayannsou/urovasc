@@ -1604,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'f6ed08e3b4';
+  const BUILD = 'd19f092dba';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5904,15 +5904,18 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   /* noms collés par la lecture (« HRRM » = HR + RM) : découpés en personnes connues si c'est possible */
   function iiSplit(name){
-    const n = normS(name).replace(/[^a-z]/g, ''); if (n.length < 3) return null;
+    const raw = String(name || ''), n = normS(raw).replace(/[^a-z]/g, ''); if (n.length < 3) return null;
     const labs = {}; sortedDocs().forEach(d=>{ const l = normS(d.label).replace(/[^a-z]/g, ''); if (l.length >= 2 && !labs[l]) labs[l] = d.id; });
-    const memo = {}, best = i=>{ if (i === n.length) return []; if (i in memo) return memo[i]; let b = null; for (let j = i + 2; j <= n.length; j++) { const id = labs[n.slice(i, j)]; if (!id) continue; const r = best(j); if (r && (!b || r.length + 1 < b.length)) b = [id].concat(r); } return memo[i] = b; };
-    const r = best(0); return r && r.length >= 2 ? r : null;
+    const memo = {};
+    /* meilleur découpage : un maximum de lettres reconnues, peu de morceaux ; un morceau inconnu doit faire au moins 2 lettres */
+    const best = i=>{ if (i === n.length) return {cost: 0, p: []}; if (i in memo) return memo[i]; let b = null;
+      for (let j = i + 2; j <= n.length; j++) { const seg = n.slice(i, j), id = labs[seg], r = best(j); if (!r) continue; const c = r.cost + (id ? 1 : 10 + seg.length * 3); if (!b || c < b.cost) b = {cost: c, p: [id ? {id} : {raw: seg.toUpperCase()}].concat(r.p)}; }
+      return memo[i] = b; };
+    const r = best(0); if (!r || r.p.length < 2 || !r.p.some(x=>x.id)) return null; return r.p;
   }
   function iiCollect(entries){
-    entries = entries.flatMap(e=>{ if (e.name === '' || iiWho(e.name)) return [e]; const sp = iiSplit(e.name); return sp ? sp.map(id=>Object.assign({}, e, {name: doctors[id].label})) : [e]; });
     const by = {}, unk = new Set(), seen = new Set();
-    entries.forEach(e=>{ const known = e.name === '' ? '' : iiWho(e.name), id = known || '?', gk = known || '?'+normS(e.name); const sk = gk+'|'+e.k+'|'+(e.v === 'W' ? 'W' : 'I'); if (seen.has(sk)) return; seen.add(sk); (by[gk] || (by[gk] = {id, raw: known ? '' : String(e.name || '').trim(), items: []})).items.push({k: e.k, v: e.v, from: e.from || ''}); });
+    entries.forEach(e=>{ const known = e.name === '' ? '' : iiWho(e.name), id = known || '?', gk = known || '?'+normS(e.name); const sk = gk+'|'+e.k+'|'+(e.v === 'W' ? 'W' : 'I'); if (seen.has(sk)) return; seen.add(sk); (by[gk] || (by[gk] = {id, raw: known ? '' : String(e.name || '').trim(), split: known || e.name === '' ? null : iiSplit(e.name), items: []})).items.push({k: e.k, v: e.v, from: e.from || ''}); });
     return {rows: Object.values(by).map(r=>(r.items.sort((a,b)=>a.k < b.k ? -1 : 1), r.on = true, r)).sort((a,b)=>(a.id === '?' ? 1e6 : (doctors[a.id] || {}).order || 0) - (b.id === '?' ? 1e6 : (doctors[b.id] || {}).order || 0)), unknown: []};
   }
   /* personnes proches d'un nom non reconnu (initiales, faute de lecture, début de nom) */
@@ -5986,7 +5989,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $('#iiS').textContent = ii.rows.length+' personne'+(ii.rows.length > 1 ? 's' : '')+' · vérifiez puis enregistrez. Les gardes déjà saisies ne sont jamais écrasées.';
     $('#iiBody').innerHTML = ii.rows.map((r,i)=>{ const its = iiItems(r); if (!its.length) return '';
       const lst = its.map(x=>{ const d = parse(x.k), sat = (d.getDay()+6)%7 === 5; return '<span class="iich">'+esc(fmtShort.format(d).replace(/\.$/, ''))+(x.from ? ' (Wk '+esc(x.from)+')' : '')+(sat && x.v === 'J' ? ' · astreinte' : x.v === 'J' ? '' : ' · '+IIV[x.v])+'</span>'; }).join('');
-      const tg = r.id === '?' ? 'div' : 'label'; return '<'+tg+' class="iirow"><span class="iihd"><input type="checkbox" data-iion="'+i+'"'+(r.on ? ' checked' : '')+(r.id === '?' ? ' disabled' : '')+'>'+(r.id === '?' ? '<span class="iiunk"><b>'+(r.raw ? '« '+esc(r.raw)+' » : qui est-ce ?' : 'Quelle personne ?')+'</b><span class="iisug">'+iiSuggest(r.raw).map(id=>'<button type="button" class="ghost" data-iisug="'+i+'|'+esc(id)+'">→ '+esc(dLabel(id))+'</button>').join('')+'<select data-iiwho="'+i+'"><option value="">Autre personne…</option>'+sortedDocs().map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('')+'</select><button type="button" class="ghost" data-iidrop="'+i+'">Ignorer</button></span></span>' : '<b>'+esc(dLabel(r.id))+'</b>')+'<small>'+its.length+' jour'+(its.length > 1 ? 's' : '')+'</small></span><span class="iich-w">'+lst+'</span></'+tg+'>';
+      const tg = r.id === '?' ? 'div' : 'label'; return '<'+tg+' class="iirow"><span class="iihd"><input type="checkbox" data-iion="'+i+'"'+(r.on ? ' checked' : '')+(r.id === '?' ? ' disabled' : '')+'>'+(r.id === '?' ? '<span class="iiunk"><b>'+(r.raw ? '« '+esc(r.raw)+' » : '+(r.split ? 'une personne, ou plusieurs collées ?' : 'qui est-ce ?') : 'Quelle personne ?')+'</b><span class="iisug">'+(r.split ? '<button type="button" class="primary" data-iisplit="'+i+'">✂ Séparer : '+r.split.map(x=>esc(x.id ? dLabel(x.id) : x.raw)).join(' + ')+'</button>' : '')+iiSuggest(r.raw).map(id=>'<button type="button" class="ghost" data-iisug="'+i+'|'+esc(id)+'">→ '+esc(dLabel(id))+'</button>').join('')+'<select data-iiwho="'+i+'"><option value="">Autre personne…</option>'+sortedDocs().map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('')+'</select>'+(r.raw && /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{0,30}$/.test(r.raw) ? '<button type="button" class="ghost" data-iinew="'+i+'">＋ Créer « '+esc(r.raw)+' »</button>' : '')+'<button type="button" class="ghost" data-iidrop="'+i+'">Ignorer</button></span></span>' : '<b>'+esc(dLabel(r.id))+'</b>')+'<small>'+its.length+' jour'+(its.length > 1 ? 's' : '')+'</small></span><span class="iich-w">'+lst+'</span></'+tg+'>';
     }).join('')
     + (ii.unknown.length ? '<p class="hint">Noms non reconnus (ignorés) : '+esc(ii.unknown.join(', '))+'</p>' : '')
     + (ii.rawTxt ? '<details class="iiraw"><summary>Texte lu sur l’image</summary><pre>'+esc(ii.rawTxt)+'</pre></details>' : '')
@@ -6008,12 +6011,30 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     notify(nd ? nd+' jour'+(nd > 1 ? 's' : '')+' enregistré'+(nd > 1 ? 's' : '')+' pour '+np+' personne'+(np > 1 ? 's' : '')+(skip ? ' · '+skip+' jour'+(skip > 1 ? 's' : '')+' déjà de garde ou d’astreinte conservé'+(skip > 1 ? 's' : '') : '')+'.' : 'Rien à changer : tout était déjà à jour.');
   }
   function iiAssign(i, id){ const r = ii.rows[i]; if (!r || !id) return; const o = ii.rows.find(x=>x !== r && x.id === id); if (o) { const have = new Set(o.items.map(x=>x.k+'|'+x.v)); o.items = o.items.concat(r.items.filter(x=>!have.has(x.k+'|'+x.v))).sort((a,b)=>a.k < b.k ? -1 : 1); ii.rows.splice(i, 1); } else { r.id = id; r.raw = ''; r.on = true; } renderIi(); }
+  function iiSplitRow(i){
+    const r = ii.rows[i]; if (!r || !r.split) return;
+    ii.rows.splice(i, 1);
+    r.split.forEach(p=>{
+      const t = p.id ? ii.rows.find(x=>x.id === p.id) : ii.rows.find(x=>x.id === '?' && x.raw === p.raw);
+      if (t) { const have = new Set(t.items.map(x=>x.k+'|'+x.v)); t.items = t.items.concat(r.items.filter(x=>!have.has(x.k+'|'+x.v))).sort((a,b)=>a.k < b.k ? -1 : 1); }
+      else ii.rows.push({id: p.id || '?', raw: p.id ? '' : p.raw, split: null, on: true, items: r.items.map(x=>Object.assign({}, x))});
+    });
+    ii.rows.sort((a,b)=>(a.id === '?' ? 1e6 : (doctors[a.id] || {}).order || 0) - (b.id === '?' ? 1e6 : (doctors[b.id] || {}).order || 0));
+    renderIi();
+  }
+  async function iiCreate(i){
+    const r = ii.rows[i]; if (!r || !r.raw || !db || !canWrite) return;
+    const label = PP.personLabel(r.raw), id = slug(label); if (!id) return notify('Nom non valide.', true);
+    try { const ref = db.doc('medecins/'+id), snap = await ref.get(); if (!snap.exists) { const order = Math.max(0, ...Object.values(doctors).filter(d=>d.order !== 999).map(d=>d.order)) + 1; await ref.set({label, order, days: {}}); } } catch(e) { return handleErr(e); }
+    for (let t = 0; t < 20 && !doctors[id]; t++) await new Promise(ok=>setTimeout(ok, 150));
+    iiAssign(ii.rows.indexOf(r), id); notify(label+' ajouté(e) à la liste.');
+  }
   function iiInit(){
     const sel = $('#iiMonth'); if (!sel || sel.dataset.done) return; sel.dataset.done = '1';
     const t = new Date(); sel.innerHTML = '<option value="" selected>Automatique : tous les mois du fichier</option>'+[...Array(10)].map((_,i)=>{ const m = iiMonthKey(t.getFullYear(), t.getMonth() - 1 + i); return '<option value="'+m+'">'+esc(monthLbl(m))+'</option>'; }).join('');
     [['iiFx', 'xlsx'], ['iiFp', 'pdf'], ['iiFi', 'img']].forEach(([id, kind])=>$('#'+id).addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) iiRun(kind, f); }));
     $('#iiBtns').addEventListener('click', e=>{ const b = e.target.closest('[data-iipick]'); if (b) $('#'+b.dataset.iipick).click(); });
-    $('#iiSheet').addEventListener('click', e=>{ const sg = e.target.closest('[data-iisug]'); if (sg) { const a = sg.dataset.iisug.split('|'); return iiAssign(+a[0], a[1]); } const dr = e.target.closest('[data-iidrop]'); if (dr) { ii.rows.splice(+dr.dataset.iidrop, 1); return renderIi(); } if (e.target.closest('[data-iix]')) { $('#iiSheet').hidden = true; return; } if (e.target.closest('#iiGo')) iiApply(); });
+    $('#iiSheet').addEventListener('click', e=>{ const sg = e.target.closest('[data-iisug]'); if (sg) { const a = sg.dataset.iisug.split('|'); return iiAssign(+a[0], a[1]); } const sp = e.target.closest('[data-iisplit]'); if (sp) return iiSplitRow(+sp.dataset.iisplit); const nw = e.target.closest('[data-iinew]'); if (nw) return iiCreate(+nw.dataset.iinew); const dr = e.target.closest('[data-iidrop]'); if (dr) { ii.rows.splice(+dr.dataset.iidrop, 1); return renderIi(); } if (e.target.closest('[data-iix]')) { $('#iiSheet').hidden = true; return; } if (e.target.closest('#iiGo')) iiApply(); });
     $('#iiSheet').addEventListener('change', e=>{ const c = e.target.closest('[data-iion]'); if (c) { ii.rows[+c.dataset.iion].on = c.checked; renderIi(); } else if (e.target.closest('[data-iiwho]')) { const sel = e.target.closest('[data-iiwho]'); if (sel.value) iiAssign(+sel.dataset.iiwho, sel.value); } else if (e.target.id === 'iiRepl') { ii.repl = e.target.checked; } else if (e.target.id === 'iiWant') { ii.want = e.target.checked; renderIi(); } });
   }
   iiInit();
