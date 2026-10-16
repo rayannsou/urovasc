@@ -1030,6 +1030,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <div class="f"><label for="exMonth">Mois</label><select id="exMonth"></select></div>
           <button type="button" class="primary" id="exIndisp">Indisponibilités, gardes et Off</button>
           <button type="button" class="ghost" id="exPlan">Planning des vacations</button>
+          <button type="button" class="ghost" id="exAst">Planning des astreintes</button>
+          <div class="f" style="margin-top:14px"><label for="delAstG">Supprimer les astreintes du mois</label><select id="delAstG"><option value="medecin">Seniors</option><option value="interne">Internes</option></select></div>
+          <button type="button" class="ghost danger" id="delAst">Supprimer les astreintes du mois choisi</button>
           </details>
         </div>
         <div class="card" id="teamCard">
@@ -1604,7 +1607,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '8d81bc25ee';
+  const BUILD = '15bd418680';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2981,7 +2984,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     return sr.map(id=>'<b>'+esc(dLabel(id))+'</b>').join(v.ou ? ' ou ' : ', ')+(v.ou ? ' (à confirmer)' : '');
   }
   function genAfter(r){ return genPending[r.idx[0]].after; }
-  function genRowHtml(r){ const w = genPending[r.idx[0]]; return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>'+(w.before.length && !r.sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(genNm(w.before))+' → ' : '')+'<b>'+esc(genNm(w.after))+'</b>'+(genSrTxt(w) ? ' · 🩺 '+genSrTxt(w) : '')+'</small></span>'; }
+  function genRowHtml(r){ const w = genPending[r.idx[0]]; return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>'+(w.before.length && !r.sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(genNm(w.before))+' → ' : '')+'<b>'+esc(genNm(r.sam && plGrp ? w.after.filter(inGrp) : w.after))+'</b>'+(genSrTxt(w) ? ' · 🩺 '+genSrTxt(w) : '')+'</small></span>'; }
   function genCount(){
     const n = genRows.filter(r=>genPending[r.idx[0]].on).length;
     return '<button type="button" class="primary" data-genok="1"'+(n ? '' : ' disabled')+'>✓ Confirmer '+n+' vacation'+(n > 1 ? 's' : '')+'</button>';
@@ -5521,6 +5524,43 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#goImpOther').addEventListener('click', ()=>{ const t = document.querySelector('[data-tab=plan]'); if (t) t.click(); plMode = 'week'; plStage = plGrp ? 'imp' : ''; astOn = false; renderCompose(); });
   $('#exIndisp').addEventListener('click', ()=>exportIndispos($('#exMonth').value));
   $('#exPlan').addEventListener('click', ()=>exportPlanning($('#exMonth').value));
+  async function exportAstreintes(ym){
+    const ap = trame && trame.postes.find(isSam); if (!ap) return notify('Le poste d’astreinte n’existe pas encore.', true);
+    const [y,m] = ym.split('-').map(Number), last = new Date(y, m, 0).getDate(), rows = [['Samedi','Senior','Interne','Indisponibilités']], cnt = {}, bad = [];
+    for (let d = 1; d <= last; d++) {
+      const dt = new Date(y, m-1, d); if (dt.getDay() !== 6) continue;
+      const k = key(dt), v = vacWho(ap.id, k, 'M'), who = v ? v.who : [], sen = who.filter(id=>!isIntId(id)), int = who.filter(isIntId);
+      const ko = who.map(id=>[id, reasonFor(id, k, 'M')]).filter(x=>x[1]);
+      who.forEach(id=>{ cnt[id] = (cnt[id] || 0) + 1; });
+      ko.forEach(x=>bad.push([dLabel(x[0])+' · '+fmtShort.format(dt), x[1], '']));
+      rows.push([fmtShort.format(dt), sen.map(dLabel).join(', ') || '—', int.map(dLabel).join(', ') || '—', !who.length ? '' : ko.length ? '⚠ '+ko.map(x=>dLabel(x[0])+' ('+x[1]+')').join(' ; ') : 'Respectées']);
+    }
+    if (rows.length < 2) return notify('Aucun samedi sur ce mois.', true);
+    const tot = astCounts(), ids = Object.keys(cnt), nm = id=>(doctors[id] && doctors[id].label) || id;
+    const grp = (lab, isI)=>{ const l = ids.filter(id=>!!isIntId(id) === isI).sort((a,b)=>(cnt[b]-cnt[a]) || nm(a).localeCompare(nm(b), 'fr')); return l.length ? [[lab, '', '']].concat(l.map(id=>[nm(id), cnt[id], tot[id] || 0])) : []; };
+    const bil = [['Bilan', '', ''], ['Indisponibilités', bad.length ? '⚠ '+bad.length+' non respectée'+(bad.length > 1 ? 's' : '') : '✓ Toutes respectées', '']].concat(bad, [['', '', ''], ['Personne', 'Ce mois', 'Total planning']], grp('Seniors', false), grp('Internes', true));
+    const mName = MOIS_FR[m-1]+' '+y;
+    await deliverSheets([
+      {name: 'Astreintes '+MOIS_FR[m-1].slice(0,4), title: 'Planning des astreintes · '+mName, aoa: rows, hdr: 1, cols: [{wch:14},{wch:22},{wch:22},{wch:40}]},
+      {name: 'Bilan', title: 'Bilan des astreintes · '+mName, aoa: bil, hdr: 1, cols: [{wch:46},{wch:18},{wch:18}]}
+    ], 'astreintes-'+ym);
+  }
+  $('#exAst').addEventListener('click', ()=>exportAstreintes($('#exMonth').value));
+  let delAstArm = '';
+  $('#delAst').addEventListener('click', async ()=>{
+    const ap = trame && trame.postes.find(isSam); if (!ap) return notify('Le poste d’astreinte n’existe pas encore.', true);
+    if (!canWrite) return notify('Lecture seule : modification impossible.', true);
+    const ym = $('#exMonth').value, g = $('#delAstG').value, [y,m] = ym.split('-').map(Number), btn = $('#delAst'), lbl = (g === 'interne' ? 'internes' : 'seniors')+' de '+MOIS_FR[m-1]+' '+y;
+    const ks = []; for (let d = 1, n = new Date(y, m, 0).getDate(); d <= n; d++) { const dt = new Date(y, m-1, d); if (dt.getDay() === 6) ks.push(key(dt)); }
+    const sg = plGrp; plGrp = g; const todo = ks.filter(k=>{ const v = vacWho(ap.id, k, 'M'); return v && v.who.filter(inGrp).length; }); plGrp = sg;
+    if (!todo.length) { delAstArm = ''; btn.textContent = 'Supprimer les astreintes du mois choisi'; return notify('Aucune astreinte '+lbl+'.'); }
+    if (delAstArm !== ym+g) { delAstArm = ym+g; btn.textContent = 'Confirmer : supprimer '+todo.length+' astreinte'+(todo.length > 1 ? 's' : '')+' ('+lbl+')'; return; }
+    delAstArm = ''; btn.textContent = 'Supprimer les astreintes du mois choisi';
+    let n = 0; plGrp = g;
+    try { for (const k of todo) { if (!(await setOverride(k, ap.id+'_M', {w: [], t: Date.now(), a: 0}))) break; n++; } } finally { plGrp = sg; }
+    if (n) notify(n+' astreinte'+(n > 1 ? 's supprimées' : ' supprimée')+' ('+lbl+').');
+  });
+  ['exMonth','delAstG'].forEach(i=>$('#'+i).addEventListener('change', ()=>{ delAstArm = ''; $('#delAst').textContent = 'Supprimer les astreintes du mois choisi'; }));
   $('#exIndispQuick').addEventListener('click', e=>{ const b = e.target.closest('[data-exq]'); if (!b) return; exOnce = b.dataset.exq; const d = addDays(myWeek,2); exportIndispos(d.getFullYear()+'-'+pad(d.getMonth()+1)); });
 
   /* ---------- réglages : postes du service ---------- */
@@ -5983,7 +6023,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     ii.busy = true; ii.rawTxt = ''; ii.month = $('#iiMonth').value || iiMonthKey(new Date().getFullYear(), new Date().getMonth()); iiStat(kind === 'xlsx' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
     try {
       const entries = await iiRead(kind, file, ii.month), c = iiCollect(entries);
-      ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.want = false; ii.all = false; ii.months = iiMonthsOf(entries); ii.busy = false; iiStat('');
+      ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.want = entries.some(x=>x.v === 'W'); ii.all = false; ii.months = iiMonthsOf(entries); ii.busy = false; iiStat('');
       if (!ii.rows.length) return notify('Aucune indisponibilité trouvée. Il faut un tableau avec les noms à gauche et les jours en colonnes (ex. « lun 5 », « mar 6 »…).', true);
       $('#iiSheet').hidden = false; renderIi();
     } catch(e) { ii.busy = false; iiStat(''); notify(kind === 'xlsx' ? 'Lecture du fichier impossible.' : 'Lecture impossible (connexion ?). Réessayez.', true); }
