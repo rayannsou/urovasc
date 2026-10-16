@@ -559,7 +559,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 .priol .priabs{font-size:11px;font-weight:600;color:var(--accent)}.priol button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
 .qadd,.qchip{padding-top:6px;padding-bottom:6px;line-height:1.2}.qadd{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px}.qadd small{font-size:11px;font-weight:500;color:var(--muted);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qadd.bad small{color:#C62828}.qadd small:empty{display:none}.qchip{flex-wrap:wrap;row-gap:0}.qchip small{order:3;flex-basis:100%;font-size:11px;font-weight:500;color:var(--muted)}.qchip i{order:2}
 .offstep{align-items:center;justify-content:center;gap:12px}.offstep .astbtn{width:52px;min-height:44px;flex:none}.offstep .offv{min-width:80px;text-align:center;font-size:18px}
-#dpSheet{z-index:420}#iiSheet{z-index:345}.iirow{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px}.iihd{display:flex;align-items:center;gap:10px}.iihd input{width:22px;height:22px}.iihd small{margin-left:auto;color:var(--muted)}.iich-w{display:flex;flex-wrap:wrap;gap:4px}.iich{text-transform:none;letter-spacing:0;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}.iirep{margin-top:6px;font-size:14px}.toast{z-index:600}.sheet-l,.sheet-p{overscroll-behavior:contain}.sheet-l{-webkit-overflow-scrolling:touch;min-height:0}.sheet-bg,.sheet-h{touch-action:none}html:has(.sheet:not([hidden])),body:has(.sheet:not([hidden])){overflow:hidden}
+#dpSheet{z-index:420}#iiSheet{z-index:345}.iirow{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px}.iihd{display:flex;align-items:center;gap:10px}.iihd input{width:22px;height:22px}.iihd small{margin-left:auto;color:var(--muted)}.iich-w{display:flex;flex-wrap:wrap;gap:4px}.iich{text-transform:none;letter-spacing:0;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}.iirep{margin-top:6px;font-size:14px}.iiunk{display:flex;flex-direction:column;gap:6px;flex:1}.iisug{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.iisug button{min-height:38px;padding:0 12px}.iisug select{min-height:38px;width:auto;min-width:0}.toast{z-index:600}.sheet-l,.sheet-p{overscroll-behavior:contain}.sheet-l{-webkit-overflow-scrolling:touch;min-height:0}.sheet-bg,.sheet-h{touch-action:none}html:has(.sheet:not([hidden])),body:has(.sheet:not([hidden])){overflow:hidden}
 </style>
 
 <div class="wrap">
@@ -1604,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '3f84a62ce0';
+  const BUILD = '9ddd5b294a';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5894,8 +5894,15 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   function iiCollect(entries){
     const by = {}, unk = new Set(), seen = new Set();
-    entries.forEach(e=>{ const id = e.name === '' ? '?' : iiWho(e.name); if (!id) { unk.add(e.name); return; } const sk = id+'|'+e.k+'|'+(e.v === 'W' ? 'W' : 'I'); if (seen.has(sk)) return; seen.add(sk); (by[id] || (by[id] = {id, items: []})).items.push({k: e.k, v: e.v}); });
-    return {rows: Object.values(by).map(r=>(r.items.sort((a,b)=>a.k < b.k ? -1 : 1), r.on = true, r)).sort((a,b)=>((doctors[a.id] || {}).order || 0) - ((doctors[b.id] || {}).order || 0)), unknown: [...unk]};
+    entries.forEach(e=>{ const known = e.name === '' ? '' : iiWho(e.name), id = known || '?', gk = known || '?'+normS(e.name); const sk = gk+'|'+e.k+'|'+(e.v === 'W' ? 'W' : 'I'); if (seen.has(sk)) return; seen.add(sk); (by[gk] || (by[gk] = {id, raw: known ? '' : String(e.name || '').trim(), items: []})).items.push({k: e.k, v: e.v}); });
+    return {rows: Object.values(by).map(r=>(r.items.sort((a,b)=>a.k < b.k ? -1 : 1), r.on = true, r)).sort((a,b)=>(a.id === '?' ? 1e6 : (doctors[a.id] || {}).order || 0) - (b.id === '?' ? 1e6 : (doctors[b.id] || {}).order || 0)), unknown: []};
+  }
+  /* personnes proches d'un nom non reconnu (initiales, faute de lecture, début de nom) */
+  function iiSuggest(raw){
+    const n = normS(raw).replace(/[^a-z]/g, ''); if (!n) return [];
+    return sortedDocs().map(d=>{ const l = normS(d.label).replace(/[^a-z]/g, ''); if (!l) return null; let sc = 9;
+      if (l === n) sc = 0; else if (lev(l, n) <= 1) sc = 1; else if (l.startsWith(n) || n.startsWith(l)) sc = 2; else if (lev(l, n) <= 2) sc = 3; else if (l.length >= 3 && n.length >= 2 && (l.includes(n) || n.includes(l))) sc = 4; else if (n.length <= 3 && l[0] === n[0] && (n.length === 1 || [...n].every(c=>l.includes(c)))) sc = 5;
+      return sc < 9 ? {id: d.id, sc} : null; }).filter(Boolean).sort((a,b)=>a.sc - b.sc).slice(0, 3).map(x=>x.id);
   }
   const iiStat = t => { const el = $('#iiStat'); if (el) { el.textContent = t || ''; el.hidden = !t; } };
   async function iiOcr(file){
@@ -5949,7 +5956,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     try {
       const entries = await iiRead(kind, file, ii.month), c = iiCollect(entries);
       ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.want = false; ii.busy = false; iiStat('');
-      if (!ii.rows.length) return notify(entries.length ? 'Aucun nom reconnu dans ce fichier : vérifiez que les noms sont les mêmes que dans l’app ('+c.unknown.slice(0,4).join(', ')+').' : 'Aucune indisponibilité trouvée. Il faut un tableau avec les noms à gauche et les jours en colonnes (ex. « lun 5 », « mar 6 »…).', true);
+      if (!ii.rows.length) return notify('Aucune indisponibilité trouvée. Il faut un tableau avec les noms à gauche et les jours en colonnes (ex. « lun 5 », « mar 6 »…).', true);
       $('#iiSheet').hidden = false; renderIi();
     } catch(e) { ii.busy = false; iiStat(''); notify(kind === 'xlsx' ? 'Lecture du fichier impossible.' : 'Lecture impossible (connexion ?). Réessayez.', true); }
   }
@@ -5961,7 +5968,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $('#iiS').textContent = ii.rows.length+' personne'+(ii.rows.length > 1 ? 's' : '')+' · vérifiez puis enregistrez. Les gardes déjà saisies ne sont jamais écrasées.';
     $('#iiBody').innerHTML = ii.rows.map((r,i)=>{ const its = iiItems(r); if (!its.length) return '';
       const lst = its.map(x=>{ const d = parse(x.k), sat = (d.getDay()+6)%7 === 5; return '<span class="iich">'+esc(fmtShort.format(d).replace(/\.$/, ''))+(sat && x.v === 'J' ? ' · astreinte' : x.v === 'J' ? '' : ' · '+IIV[x.v])+'</span>'; }).join('');
-      const tg = r.id === '?' ? 'div' : 'label'; return '<'+tg+' class="iirow"><span class="iihd"><input type="checkbox" data-iion="'+i+'"'+(r.on ? ' checked' : '')+(r.id === '?' ? ' disabled' : '')+'>'+(r.id === '?' ? '<select data-iiwho="'+i+'"><option value="">Quelle personne ?</option>'+sortedDocs().map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('')+'</select>' : '<b>'+esc(dLabel(r.id))+'</b>')+'<small>'+its.length+' jour'+(its.length > 1 ? 's' : '')+'</small></span><span class="iich-w">'+lst+'</span></'+tg+'>';
+      const tg = r.id === '?' ? 'div' : 'label'; return '<'+tg+' class="iirow"><span class="iihd"><input type="checkbox" data-iion="'+i+'"'+(r.on ? ' checked' : '')+(r.id === '?' ? ' disabled' : '')+'>'+(r.id === '?' ? '<span class="iiunk"><b>'+(r.raw ? '« '+esc(r.raw)+' » : qui est-ce ?' : 'Quelle personne ?')+'</b><span class="iisug">'+iiSuggest(r.raw).map(id=>'<button type="button" class="ghost" data-iisug="'+i+'|'+esc(id)+'">→ '+esc(dLabel(id))+'</button>').join('')+'<select data-iiwho="'+i+'"><option value="">Autre personne…</option>'+sortedDocs().map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('')+'</select><button type="button" class="ghost" data-iidrop="'+i+'">Ignorer</button></span></span>' : '<b>'+esc(dLabel(r.id))+'</b>')+'<small>'+its.length+' jour'+(its.length > 1 ? 's' : '')+'</small></span><span class="iich-w">'+lst+'</span></'+tg+'>';
     }).join('')
     + (ii.unknown.length ? '<p class="hint">Noms non reconnus (ignorés) : '+esc(ii.unknown.join(', '))+'</p>' : '')
     + (hasW ? '<label class="check iirep"><input type="checkbox" id="iiWant"'+(ii.want ? ' checked' : '')+'>Importer aussi les souhaits (colonne « Souhait éventuel » : « je veux l’astreinte »)</label>' : '')
@@ -5981,13 +5988,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $('#iiSheet').hidden = true;
     notify(nd ? nd+' jour'+(nd > 1 ? 's' : '')+' enregistré'+(nd > 1 ? 's' : '')+' pour '+np+' personne'+(np > 1 ? 's' : '')+(skip ? ' · '+skip+' jour'+(skip > 1 ? 's' : '')+' déjà de garde ou d’astreinte conservé'+(skip > 1 ? 's' : '') : '')+'.' : 'Rien à changer : tout était déjà à jour.');
   }
+  function iiAssign(i, id){ const r = ii.rows[i]; if (!r || !id) return; const o = ii.rows.find(x=>x !== r && x.id === id); if (o) { const have = new Set(o.items.map(x=>x.k+'|'+x.v)); o.items = o.items.concat(r.items.filter(x=>!have.has(x.k+'|'+x.v))).sort((a,b)=>a.k < b.k ? -1 : 1); ii.rows.splice(i, 1); } else { r.id = id; r.raw = ''; r.on = true; } renderIi(); }
   function iiInit(){
     const sel = $('#iiMonth'); if (!sel || sel.dataset.done) return; sel.dataset.done = '1';
     const t = new Date(); sel.innerHTML = '<option value="" selected>Automatique : tous les mois du fichier</option>'+[...Array(10)].map((_,i)=>{ const m = iiMonthKey(t.getFullYear(), t.getMonth() - 1 + i); return '<option value="'+m+'">'+esc(monthLbl(m))+'</option>'; }).join('');
     [['iiFx', 'xlsx'], ['iiFp', 'pdf'], ['iiFi', 'img']].forEach(([id, kind])=>$('#'+id).addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) iiRun(kind, f); }));
     $('#iiBtns').addEventListener('click', e=>{ const b = e.target.closest('[data-iipick]'); if (b) $('#'+b.dataset.iipick).click(); });
-    $('#iiSheet').addEventListener('click', e=>{ if (e.target.closest('[data-iix]')) { $('#iiSheet').hidden = true; return; } if (e.target.closest('#iiGo')) iiApply(); });
-    $('#iiSheet').addEventListener('change', e=>{ const c = e.target.closest('[data-iion]'); if (c) { ii.rows[+c.dataset.iion].on = c.checked; renderIi(); } else if (e.target.closest('[data-iiwho]')) { const sel = e.target.closest('[data-iiwho]'), r = ii.rows[+sel.dataset.iiwho]; if (sel.value) { const o = ii.rows.find(x=>x !== r && x.id === sel.value); if (o) { o.items = o.items.concat(r.items); ii.rows.splice(ii.rows.indexOf(r), 1); } else { r.id = sel.value; r.on = true; } } renderIi(); } else if (e.target.id === 'iiRepl') { ii.repl = e.target.checked; } else if (e.target.id === 'iiWant') { ii.want = e.target.checked; renderIi(); } });
+    $('#iiSheet').addEventListener('click', e=>{ const sg = e.target.closest('[data-iisug]'); if (sg) { const a = sg.dataset.iisug.split('|'); return iiAssign(+a[0], a[1]); } const dr = e.target.closest('[data-iidrop]'); if (dr) { ii.rows.splice(+dr.dataset.iidrop, 1); return renderIi(); } if (e.target.closest('[data-iix]')) { $('#iiSheet').hidden = true; return; } if (e.target.closest('#iiGo')) iiApply(); });
+    $('#iiSheet').addEventListener('change', e=>{ const c = e.target.closest('[data-iion]'); if (c) { ii.rows[+c.dataset.iion].on = c.checked; renderIi(); } else if (e.target.closest('[data-iiwho]')) { const sel = e.target.closest('[data-iiwho]'); if (sel.value) iiAssign(+sel.dataset.iiwho, sel.value); } else if (e.target.id === 'iiRepl') { ii.repl = e.target.checked; } else if (e.target.id === 'iiWant') { ii.want = e.target.checked; renderIi(); } });
   }
   iiInit();
   /* Réglages « à la iPhone » : menu de thèmes, puis sous-pages */
