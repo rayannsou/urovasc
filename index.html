@@ -355,6 +355,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .lview .astr{margin-top:0}
 .subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
 .subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
+body.nonadm #creerCard,body.nonadm #exportCard,body.nonadm #teamCard,body.nonadm #gaExp,body.nonadm #trameCfg,body.nonadm .gaed{display:none!important}body.nonadm .gastrow{cursor:default}
 .gastrow{padding:12px 14px;cursor:pointer}.gaed{margin-left:8px;color:var(--muted);font-size:14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
 .plstat{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;font-size:14px;font-weight:600}.plstat .ok{color:var(--grn)}.plstat .ko{color:var(--red)}.plstat .mid{color:var(--ind-ink)}.plstat small{font-weight:400;color:var(--muted)}#plDays .dok{color:var(--grn);font-weight:700}
 .swdays{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
@@ -1616,7 +1617,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'd9142a67fe';
+  const BUILD = '29cba134b2';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -4170,7 +4171,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $('#gaShF').innerHTML = '<div class="astpair"><button type="button" class="ghost astbtn" data-gaclear="1">Laisser vide</button>'+(ov ? '<button type="button" class="ghost astbtn" data-garevert="1">Rétablir la trame</button>' : '')+'</div>';
   }
   $('#gaList').addEventListener('click', e=>{
-    const r = e.target.closest('[data-gaedit]'); if (!r) return;
+    const r = e.target.closest('[data-gaedit]'); if (!r) return; if (!isRim()) return;
     if (!isRim()) return notify(NOADM_MSG, true);
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
     gaEditK = r.dataset.gaedit; gaSheetRender(); $('#gaSheet').hidden = false;
