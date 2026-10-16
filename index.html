@@ -873,13 +873,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </div>
           <div class="subtabs" id="gaGrpBar" role="group" aria-label="Afficher"><button type="button" data-ggrp="" aria-pressed="true">Tous</button><button type="button" data-ggrp="medecin" aria-pressed="false">🩺 Seniors</button><button type="button" data-ggrp="interne" aria-pressed="false">🎓 Internes</button></div>
           <div id="gaList" class="col"></div>
-          <details class="cardfold" id="gaExp" style="margin-top:12px"><summary>📄 Exporter les astreintes</summary>
+          <details class="cardfold" id="gaExp" style="margin-top:12px"><summary>📄 Exporter ou supprimer les astreintes</summary>
             <p class="hint">Choisissez la période, puis le format. Le fichier contient le planning et un bilan (indisponibilités respectées, nombre d’astreintes par personne).</p>
             <div class="f"><label for="gaExFrom">De</label><select id="gaExFrom"></select></div>
             <div class="f"><label for="gaExTo">À</label><select id="gaExTo"></select></div>
             <div class="exfmt" id="gaExPre"><button type="button" data-gapre="view">Période affichée</button><button type="button" data-gapre="m0">Ce mois</button><button type="button" data-gapre="m3">3 prochains mois</button><button type="button" data-gapre="m6">6 prochains mois</button></div>
             <div class="exfmt" id="gaExFmt" role="group" aria-label="Format"><button type="button" data-gaf="pdf" aria-pressed="true">PDF</button><button type="button" data-gaf="xlsx" aria-pressed="false">Excel</button></div>
             <button type="button" class="primary" id="gaPdf">Exporter</button>
+            <button type="button" class="ghost danger" id="gaDel" style="margin-top:8px">🗑 Supprimer les astreintes de cette période</button>
           </details>
         <div id="gaSheet" class="sheet" hidden>
           <div class="sheet-bg" data-gax></div>
@@ -1615,7 +1616,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '5d4db1b1d0';
+  const BUILD = '68a3aa6ba0';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2149,6 +2150,16 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const astSatsOf = ms => { const a = ms.slice().sort(), out = []; if (!a.length) return out; let d = new Date(+a[0].slice(0,4), +a[0].slice(5,7)-1, 1); const end = new Date(+a[a.length-1].slice(0,4), +a[a.length-1].slice(5,7), 0); while (d.getDay() !== 6) d = addDays(d,1); for (; d <= end; d = addDays(d,7)) if (a.includes(key(d).slice(0,7))) out.push(new Date(d)); return out; };
   const astSats = () => plMode === 'ast' && astOn && astSel.length ? astSatsOf(astSel) : [...Array(6)].map((_,i)=>addDays(plStart,5+7*i));
   const astMonths = () => plMode === 'ast' ? [...new Set(astSats().map(d=>key(d).slice(0,7)))] : [...new Set([0,4].map(i=>key(addDays(plStart,i)).slice(0,7)))];
+  let astPrio = new Set(), astCapP = 0, astCapO = 0;
+  const astCapOf = d => { const c = astPrio.has(d.id) ? astCapP : astCapO; return Math.min(d.astMax || 99, c || 99); };
+  function capHtml(){
+    const docs = grpDocs().filter(d=>!d.noAst), nOpt = v=>'<option value="0">—</option>'+[1,2,3,4,5,6].map(n=>'<option value="'+n+'"'+(v === n ? ' selected' : '')+'>'+n+'</option>').join('');
+    return '<div class="qcard"><p class="qt">⚖️ Répartition : prioriser certaines personnes</p><p class="qh">Touchez les personnes à faire passer en priorité, puis fixez le maximum d’astreintes pour elles et pour les autres sur la période. Laissez « — » pour ne pas limiter.</p>'
+      + '<div class="plc">'+docs.map(d=>'<button type="button" class="plsg'+(astPrio.has(d.id) ? '' : ' alt')+'" data-astprio="'+esc(d.id)+'" aria-pressed="'+astPrio.has(d.id)+'">'+esc(d.label)+'</button>').join('')+'</div>'
+      + '<div class="f" style="margin-top:10px"><label for="astCapP">Prioritaires ('+astPrio.size+') : maximum</label><select id="astCapP">'+nOpt(astCapP)+'</select></div>'
+      + '<div class="f"><label for="astCapO">Les autres : maximum</label><select id="astCapO">'+nOpt(astCapO)+'</select></div>'
+      + (astPrio.size ? '<button type="button" class="ghost" data-astprioclr="1">Vider la sélection</button>' : '')+'</div>';
+  }
   const astMissing = months => grpDocs().filter(d=>(plMode !== 'ast' || !d.noAst) && months.some(m=>!(d.conf && d.conf[m])));
   async function setDocField(id, patch){
     if (!db || !canWrite || !doctors[id]) { notify('Lecture seule : modification impossible.', true); return false; }
@@ -2411,12 +2422,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       + astMonthList().map(m=>{ const n = astMissing([m]).length; return '<label class="astrow mrow'+(astSel.includes(m) ? ' on' : '')+'"><span class="mt"><input type="checkbox" data-astm="'+m+'"'+(astSel.includes(m) ? ' checked' : '')+'><b>'+esc(monthLbl(m))+'</b></span><small class="aststat '+(n ? 'ko' : 'ok')+'">'+(n ? n+' personne'+(n > 1 ? 's n’ont' : ' n’a')+' pas renseigné' : '✓ tout le monde a renseigné')+'</small></label>'; }).join('')
       + '<button type="button" class="astbtn go" data-astmgo="1"'+(astSel.length ? '' : ' disabled')+' style="margin-top:8px">Continuer'+(astSel.length ? ' ('+astSel.length+' mois)' : '')+'</button>';
     else if (plStage === 'astask') box.innerHTML = '<button type="button" class="ghost astback" data-plstage="auto">‹ Retour</button><p class="aststat"><b>Avant de générer</b> : '+(ast ? 'y a-t-il des personnes que vous devez poser à la main ?' : 'faut-il fermer une vacation ?')+'</p><p class="hint">'+(ast ? 'Les samedis déjà pourvus sont conservés : la génération automatique complète seulement les samedis restants.' : 'Une vacation fermée reste sans personne : la génération ne la remplit pas. Vous pouvez aussi y poser quelqu’un à la main avant.')+'</p><div class="astcol">'+lb('data-astyes="1"',(ast ? '✋' : '🔒'),(ast ? 'Oui, je les pose d’abord' : 'Oui, je ferme d’abord'))+lb('data-astno="1"','⚡','Non, générer maintenant',dis)+'</div>';
-    else if (plStage === 'man') box.innerHTML = back + (ast ? (astOn ? '<button type="button" class="astbtn go" data-astassign="1"'+dis+'>⚡ Générer le reste automatiquement</button>' : '') : '<button type="button" class="astbtn go" data-wzgo="'+(wzStep+1)+'">Continuer ›</button><p class="hint" style="margin:6px 0 0">Quand vous avez terminé ici, touchez « Continuer » pour passer à l’étape suivante de la génération.</p>');
+    else if (plStage === 'man') box.innerHTML = back + (ast ? (astOn ? capHtml()+'<button type="button" class="astbtn go" data-astassign="1"'+dis+'>⚡ Générer le reste automatiquement</button>' : '') : '<button type="button" class="astbtn go" data-wzgo="'+(wzStep+1)+'">Continuer ›</button><p class="hint" style="margin:6px 0 0">Quand vous avez terminé ici, touchez « Continuer » pour passer à l’étape suivante de la génération.</p>');
     else if (!ast && plStage === 'auto') box.innerHTML = wzHtml(back, stat, allOk, miss, dis);
     else box.innerHTML = back + (plGrp === 'interne' && !ast ? '<div class="intq"><p class="aststat"><b>Échographie et scanner des urgences</b> : uniquement des internes autonomes ?</p><p class="hint">Par défaut : 1 autonome + 1 autre (autonome ou non). Il peut donc n’y avoir aucun interne « pas autonome » si les autonomes suffisent. Touchez « Que des autonomes » pour l’imposer. À l’échographie, « 2 non autonomes » est aussi possible.</p>'+[['echo','Échographie'],['scanner-urg','Scanner des urgences']].filter(q=>trame.postes.some(p=>p.id === q[0])).map(q=>'<div class="intqr"><span>'+q[1]+'</span><div class="astpair"><button type="button" class="astbtn" data-intauto="'+q[0]+'|1" aria-pressed="'+!!intOnlyAuto[q[0]]+'">Que des autonomes</button><button type="button" class="astbtn" data-intauto="'+q[0]+'|0" aria-pressed="'+(!intOnlyAuto[q[0]] && !intNon[q[0]])+'">1 autonome + 1 autre</button>'+(q[0] === 'echo' ? '<button type="button" class="astbtn" data-intauto="echo|2" aria-pressed="'+!!intNon.echo+'">2 non autonomes</button>' : '')+'</div></div>').join('')+'</div>' : '') + (plGrp === 'interne' && !ast ? intCustomBtn() : '') + (plGrp === 'interne' && !ast && intCustom ? intNeedUI() : '') + (ast || qAns === 'nopost' || qAns === 'no'
         ? '<div class="qcard"><p class="qt">'+(ast ? '✋ Faut-il poser des personnes à la main avant&nbsp;?' : '🔒 Faut-il fermer une vacation&nbsp;?')+'</p><p class="qh">'+(ast ? 'Les samedis déjà pourvus sont conservés : seuls les autres sont complétés.' : 'Une vacation fermée reste sans personne : elle ne sera pas remplie.')+'</p><div class="qbtns"><button type="button" data-astyes="1" aria-pressed="false">Oui</button><button type="button" data-astqno="1" aria-pressed="'+(qAns === 'no')+'">Non</button></div></div>'
         : '<div class="qcard"><p class="qt">✋ Faut-il poster quelqu’un à la main avant&nbsp;?</p><p class="qh">Les vacations déjà pourvues sont conservées : la génération complète seulement les autres.</p><div class="qbtns"><button type="button" data-wkpostyes="1" aria-pressed="false">Oui</button><button type="button" data-wkpostno="1" aria-pressed="false">Non</button></div></div>')
-      + '<button type="button" class="astbtn go qgo" data-astassign="1"'+(canWrite && qAns === 'no' ? '' : ' disabled')+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'+(qAns === 'no' ? '' : '<p class="qh" style="text-align:center;margin:6px 0 0">Répondez à la question pour continuer.</p>')
+      + (ast ? capHtml() : '') + '<button type="button" class="astbtn go qgo" data-astassign="1"'+(canWrite && qAns === 'no' ? '' : ' disabled')+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'+(qAns === 'no' ? '' : '<p class="qh" style="text-align:center;margin:6px 0 0">Répondez à la question pour continuer.</p>')
       + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p><p class="aststat">Vous pourrez relire et confirmer chaque vacation avant l’enregistrement.</p>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
@@ -2493,6 +2504,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     document.addEventListener('visibilitychange', fix);
     if (window.visualViewport) { window.visualViewport.addEventListener('resize', fix); window.visualViewport.addEventListener('scroll', fix); }
   })();
+  $('#astBarBox').addEventListener('click', e=>{ const p = e.target.closest('[data-astprio]'); if (p) { const id = p.dataset.astprio; astPrio.has(id) ? astPrio.delete(id) : astPrio.add(id); return renderCompose(); } if (e.target.closest('[data-astprioclr]')) { astPrio.clear(); renderCompose(); } });
+  $('#astBarBox').addEventListener('change', e=>{ if (e.target.id === 'astCapP') astCapP = +e.target.value || 0; else if (e.target.id === 'astCapO') astCapO = +e.target.value || 0; });
   $('#astBarBox').addEventListener('click', e=>{ const g = e.target.closest('[data-astgrp]'); if (!g || plGrp === g.dataset.astgrp) return; plGrp = g.dataset.astgrp; astSel = []; astOn = false; renderCompose(); });
   $('#astBarBox').addEventListener('click', async e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { qAns = ''; wzStep = 1; wzTrSub = ''; genPref = []; genAvoid = []; genPrio = null; genPrioAbs = null; genOffs = null; useTr = true; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
     const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; intNon[a[0]] = a[1] === '2'; return renderCompose(); }
@@ -2560,10 +2573,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       for (const k of sats) {
         const v = vacWho(ap.id, k, 'M');
         if (v && v.who.filter(inGrp).length) { last = v.who.filter(inGrp); continue; }
-        const free = pool.filter(d=>!reasonFor(d.id, k, 'M')), cands = free.filter(d=>!d.astMax || (per[d.id] || 0) < d.astMax);
+        const free = pool.filter(d=>!reasonFor(d.id, k, 'M')), cands = free.filter(d=>(per[d.id] || 0) < astCapOf(d));
         free.forEach(d=>{ if (!cands.includes(d)) capped.add(d.label); });
         const pr = d=>{ const x = demGet(d, k); return x && x.w === 'want' ? -1000 : x && x.w === 'avoid' ? 1000 : 0; };   /* demandes spécifiques : « je veux » d'abord, « je préfère ne pas » en dernier recours */
-        cands.sort((a,b)=>(pr(a) - pr(b)) || ((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
+        const fl = d=>{ const c = astCapOf(d); return c < 99 ? (per[d.id] || 0) / c : 1; }, useCap = astCapP || astCapO || astPrio.size;
+        cands.sort((a,b)=>(pr(a) - pr(b)) || (useCap ? (astPrio.has(b.id) ? 1 : 0) - (astPrio.has(a.id) ? 1 : 0) || fl(a) - fl(b) : 0) || ((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
         const pick = cands[0]; if (!pick) { skipped++; continue; }
         byK[k] = (byK[k] || []).concat(pick.id);
         cnt[pick.id] = (cnt[pick.id]||0) + 1; per[pick.id] = (per[pick.id] || 0) + 1; last = [pick.id];
@@ -5570,6 +5584,21 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   $('#gaExp').addEventListener('toggle', gaExFill);
   $('#gaExp').addEventListener('click', e=>{ const p = e.target.closest('[data-gapre]'); if (p) return gaExPreset(p.dataset.gapre); const g = e.target.closest('[data-gaf]'); if (g) { gaFmt = g.dataset.gaf; document.querySelectorAll('[data-gaf]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.gaf === gaFmt))); } });
+  let gaDelArm = '';
+  async function gaDelRun(){
+    const ap = trame && trame.postes.find(isSam); if (!ap) return notify('Le poste d’astreinte n’existe pas encore.', true);
+    if (!canWrite) return notify('Lecture seule : modification impossible.', true);
+    gaExFill(); let a = $('#gaExFrom').value, b = $('#gaExTo').value; if (a > b) { const x = a; a = b; b = x; }
+    const [y1,m1] = a.split('-').map(Number), [y2,m2] = b.split('-').map(Number), end = new Date(y2, m2, 0), btn = $('#gaDel'), g = gGrp, sg = plGrp, who = g === 'medecin' ? 'seniors' : g === 'interne' ? 'internes' : 'seniors et internes', lbl = who+' · '+(a === b ? monthLbl(a) : monthLbl(a)+' – '+monthLbl(b)), rst = ()=>{ gaDelArm = ''; btn.textContent = '🗑 Supprimer les astreintes de cette période'; };
+    const todo = []; for (let d = new Date(y1, m1-1, 1); d <= end; d = addDays(d, 1)) if (d.getDay() === 6) { const k = key(d), v = vacWho(ap.id, k, 'M'); if (v && v.who.filter(id=>g === 'medecin' ? !isIntId(id) : g === 'interne' ? isIntId(id) : true).length) todo.push(k); }
+    if (!todo.length) { rst(); return notify('Aucune astreinte à supprimer ('+lbl+').'); }
+    if (gaDelArm !== a+b+g) { gaDelArm = a+b+g; btn.textContent = 'Confirmer : supprimer '+todo.length+' astreinte'+(todo.length > 1 ? 's' : '')+' ('+lbl+')'; return; }
+    rst(); let n = 0;
+    try { for (const k of todo) { if (g) { plGrp = g; if (!(await setOverride(k, ap.id+'_M', {w: [], t: Date.now(), a: 0}))) break; } else { plGrp = ''; if (!(await setOverride(k, ap.id+'_M', {w: [], t: Date.now(), a: 0}))) break; } n++; } } finally { plGrp = sg; }
+    if (n) notify(n+' astreinte'+(n > 1 ? 's supprimées' : ' supprimée')+' ('+lbl+').');
+  }
+  $('#gaDel').addEventListener('click', gaDelRun);
+  ['gaExFrom','gaExTo'].forEach(i=>$('#'+i).addEventListener('change', ()=>{ gaDelArm = ''; $('#gaDel').textContent = '🗑 Supprimer les astreintes de cette période'; }));
   $('#gaPdf').addEventListener('click', ()=>{
     gaExFill(); let a = $('#gaExFrom').value, b = $('#gaExTo').value; if (a > b) { const x = a; a = b; b = x; }
     const [y1,m1] = a.split('-').map(Number), [y2,m2] = b.split('-').map(Number), sats = [], end = new Date(y2, m2, 0);
