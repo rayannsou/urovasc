@@ -559,7 +559,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 .priol .priabs{font-size:11px;font-weight:600;color:var(--accent)}.priol button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
 .qadd,.qchip{padding-top:6px;padding-bottom:6px;line-height:1.2}.qadd{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px}.qadd small{font-size:11px;font-weight:500;color:var(--muted);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qadd.bad small{color:#C62828}.qadd small:empty{display:none}.qchip{flex-wrap:wrap;row-gap:0}.qchip small{order:3;flex-basis:100%;font-size:11px;font-weight:500;color:var(--muted)}.qchip i{order:2}
 .offstep{align-items:center;justify-content:center;gap:12px}.offstep .astbtn{width:52px;min-height:44px;flex:none}.offstep .offv{min-width:80px;text-align:center;font-size:18px}
-#dpSheet{z-index:420}.toast{z-index:600}.sheet-l,.sheet-p{overscroll-behavior:contain}.sheet-l{-webkit-overflow-scrolling:touch;min-height:0}.sheet-bg,.sheet-h{touch-action:none}html:has(.sheet:not([hidden])),body:has(.sheet:not([hidden])){overflow:hidden}
+#dpSheet{z-index:420}#iiSheet{z-index:345}.iirow{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px}.iihd{display:flex;align-items:center;gap:10px}.iihd input{width:22px;height:22px}.iihd small{margin-left:auto;color:var(--muted)}.iich-w{display:flex;flex-wrap:wrap;gap:4px}.iich{text-transform:none;letter-spacing:0;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}.iirep{margin-top:6px;font-size:14px}.toast{z-index:600}.sheet-l,.sheet-p{overscroll-behavior:contain}.sheet-l{-webkit-overflow-scrolling:touch;min-height:0}.sheet-bg,.sheet-h{touch-action:none}html:has(.sheet:not([hidden])),body:has(.sheet:not([hidden])){overflow:hidden}
 </style>
 
 <div class="wrap">
@@ -789,6 +789,15 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
             <p class="hint">Un fichier avec les indisponibilités, gardes et Off de toute l'équipe pour le mois affiché.</p>
             <p class="hint">Sous quelle forme ?</p>
             <div class="exfmt" id="exIndispQuick"><button type="button" class="primary" data-exq="xlsx">📊 Excel</button><button type="button" class="primary" data-exq="pdf">📄 PDF</button><button type="button" class="primary" data-exq="png">📷 Photo</button></div>
+            </details>
+          </div>
+          <div class="card" id="inImpCard" hidden>
+            <details class="cardfold" id="inFold4"><summary>4) Importer des indisponibilités</summary>
+            <p class="hint">Importez un tableau d’indisponibilités (vacations en semaine, samedis pour l’astreinte, gardes) depuis un fichier ou une photo. Noms à gauche, jours en colonnes. Vous vérifiez avant d’enregistrer.</p>
+            <div class="f"><label for="iiMonth">Mois du tableau</label><select id="iiMonth"></select></div>
+            <div class="exfmt" id="iiBtns"><button type="button" class="primary" data-iipick="iiFx">📊 Excel</button><button type="button" class="primary" data-iipick="iiFp">📄 PDF</button><button type="button" class="primary" data-iipick="iiFi">📷 Photo</button></div>
+            <input type="file" id="iiFx" accept=".xlsx,.xls,.csv" hidden><input type="file" id="iiFp" accept="application/pdf,.pdf" hidden><input type="file" id="iiFi" accept="image/*" hidden>
+            <p class="hint" id="iiStat" hidden></p>
             </details>
           </div>
         </div>
@@ -1092,6 +1101,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
             <div class="astcol"><button type="button" class="astbtn big" id="dpMove" data-dpmove="1"></button><button type="button" class="astbtn big" data-dpdup="1">Double poste (garder les deux)</button><button type="button" class="ghost" data-dpx>Annuler</button></div>
           </div>
         </div>
+<div id="iiSheet" class="sheet" hidden>
+  <div class="sheet-bg" data-iix></div>
+  <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="iiT">
+    <div class="sheet-h"><div><h3 id="iiT">Indisponibilités lues</h3><p class="hint" id="iiS"></p></div><button type="button" class="ghost" data-iix aria-label="Fermer">✕</button></div>
+    <div id="iiBody" class="sheet-l"></div>
+    <button type="button" class="astbtn go" id="iiGo">Enregistrer</button>
+  </div>
+</div>
 <div id="qeSheet" class="sheet" hidden>
   <div class="sheet-bg" data-qeclose></div>
   <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="qeT">
@@ -1587,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'eca3f8cafc';
+  const BUILD = 'a4b625b305';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2368,17 +2385,18 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const stat = allOk ? 'Tout le monde a renseigné ses indisponibilités' : miss.length+' personne'+(miss.length > 1 ? 's n’ont pas encore renseigné leurs' : ' n’a pas encore renseigné ses')+' indisponibilités';
     const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' || plStage === 'impm' ? '' : plStage === 'astm' ? 'how' : plStage === 'auto' && ast && astOn ? 'astm' : plStage === 'imp' ? 'impm' : (plStage === 'impx' || plStage === 'impg' || plStage === 'shot' || plStage === 'pdf') ? 'imp' : 'how')+'">‹ Retour</button>';
     const lb = (a, ic, t, x)=>'<button type="button" class="astbtn big lrow" '+a+(x || '')+'><span class="ai">'+ic+'</span><span class="at">'+t+'</span><span class="ac">›</span></button>';
+    const astG = '<div class="exfmt astgrp" role="group" aria-label="Pour qui"><button type="button" data-astgrp="medecin" aria-pressed="'+(plGrp === 'medecin')+'">🩺 Seniors</button><button type="button" data-astgrp="interne" aria-pressed="'+(plGrp === 'interne')+'">🎓 Internes</button></div>';
     if (!plGrp) box.innerHTML = '<p class="aststat"><b>Pour qui créer le planning ?</b></p><p class="hint">Les médecins et les internes se créent séparément : l’un ne modifie pas l’autre.</p><div class="astcol">'+lb('data-plgrp="medecin"','🩺','Médecins')+lb('data-plgrp="interne"','🎓','Internes')+'</div>';
     else if (!plStage) { const bt = (k, ic, t)=>'<button type="button" class="astbtn big lrow" data-plpick="'+k+'"><span class="ai">'+ic+'</span><span class="at">'+t+'</span><span class="ac">›</span></button>'; box.innerHTML = '<div class="asthead"><span>Planning des <b>'+(plGrp === 'interne' ? 'internes' : 'médecins')+'</b></span><button type="button" class="ghost" data-plgrp="">Changer</button></div><div class="astcol">'+bt('imp','📥','Importer un planning')+bt('week','📅','Créer un planning de semaine')+bt('ast','🔔','Créer un planning d’astreinte')+'</div>'; }
     else if (plStage === 'impm') box.innerHTML = back + '<p class="aststat">Importer un planning…</p><div class="astcol">'+lb('data-implmode="week"','📅','Planning de semaine')+lb('data-implmode="ast"','🔔','Planning d’astreinte')+'</div>';
     else if (plStage === 'auto' && !ast && delAsk) box.innerHTML = back + '<div class="redoq"><p class="aststat"><b>Supprimer le planning de la semaine du '+esc(fmtDM.format(plStart))+' ?</b></p><p class="hint">Toutes les vacations de cette semaine ('+(plGrp === 'interne' ? 'internes' : plGrp ? 'seniors' : 'tout le monde')+') seront vidées. Vous pourrez ensuite en créer un nouveau.</p><div class="astpair"><button type="button" class="astbtn" data-delno="1">Annuler</button><button type="button" class="astbtn dangerbtn" data-delyes="1"'+(canWrite ? '' : ' disabled')+'>Oui, supprimer</button></div></div>';
     else if (plStage === 'auto' && !ast && weekDone() && redoOk !== key(plStart)) box.innerHTML = back + wkRecap() + '<div class="redoq"><p class="aststat"><b>Le planning de cette semaine est déjà fait.</b></p><p class="hint">Voulez-vous le refaire (le nouveau remplacera celui-ci une fois enregistré) ou le supprimer ?</p>'+'<button type="button" class="astbtn" data-redotr="1" style="margin-bottom:8px">🗓 Ouvrir la trame enregistrée · modifier et appliquer</button><div class="astpair"><button type="button" class="astbtn" data-redono="1">Non</button><button type="button" class="astbtn" data-redoyes="1">Refaire</button><button type="button" class="astbtn dangerbtn" data-delask="1">🗑 Supprimer</button></div></div>'+wkTools(true);
-    else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Planning d’astreinte' : 'Planning de semaine')+'</b> · comment la créer ?</p><div class="astcol">'+lb('data-plstage="auto"','⚡','Création automatique')+lb('data-plstage="man"','✋','Création manuelle')+'</div>';
+    else if (plStage === 'how') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Planning d’astreinte' : 'Planning de semaine')+'</b> · comment la créer ?</p>'+(ast ? astG : '')+'<div class="astcol">'+lb('data-plstage="auto"','⚡','Création automatique')+lb('data-plstage="man"','✋','Création manuelle')+'</div>';
     else if (plStage === 'imp') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis…</p><div class="astcol">'+lb('data-plstage="impx"','📗','Fichier Excel')+lb('data-plstage="impg"','🔗','Google Sheet')+lb('data-plstage="pdf"','📄','PDF')+lb('data-plstage="shot"','📷','Photo ou capture')+'</div>';
     else if (plStage === 'impx' || plStage === 'impg') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · '+(plStage === 'impx' ? 'fichier Excel' : 'Google Sheet')+'. '+(ast ? 'Seules les astreintes (samedis) du fichier seront importées.' : 'Seules les vacations de la semaine (lundi à vendredi) seront importées.')+'</p>';
     else if (plStage === 'pdf') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis un PDF</p><div class="f" style="max-width:140px;margin-bottom:8px"><label for="pdfPage">Page à lire</label><input type="number" id="pdfPage" min="1" value="1" inputmode="numeric"></div><label class="astbtn go filebtn" for="pdfFile" style="cursor:pointer">📄 Choisir le PDF</label><input type="file" id="pdfFile" accept="application/pdf,.pdf" class="visually-hidden"><p class="aststat" id="shotStat" role="status">'+(shotMsg ? esc(shotMsg) : 'Un PDF du planning (jours en colonnes, postes en lignes). Choisissez la page à lire ; vous relirez tout avant d’enregistrer.')+'</p>';
     else if (plStage === 'shot') box.innerHTML = back + '<p class="aststat"><b>'+(ast ? 'Astreinte' : 'Semaine')+'</b> · importer depuis une capture d’écran</p><label class="astbtn go filebtn" for="shotFile" style="cursor:pointer">📷 Choisir la capture</label><input type="file" id="shotFile" accept="image/*" class="visually-hidden"><p class="aststat" id="shotStat" role="status">'+(shotMsg ? esc(shotMsg) : 'Une capture nette du tableau (jours en colonnes, postes en lignes) donne le meilleur résultat. Le texte est lu sur votre téléphone ; vous relirez tout avant d’enregistrer.')+'</p>';
-    else if (plStage === 'astm') box.innerHTML = back + '<p class="aststat"><b>Planning d’astreinte</b> · quels mois voulez-vous faire ?</p>'
+    else if (plStage === 'astm') box.innerHTML = back + '<p class="aststat"><b>Planning d’astreinte</b> · pour qui, et quels mois ?</p>'+astG
       + astMonthList().map(m=>{ const n = astMissing([m]).length; return '<label class="astrow mrow'+(astSel.includes(m) ? ' on' : '')+'"><span class="mt"><input type="checkbox" data-astm="'+m+'"'+(astSel.includes(m) ? ' checked' : '')+'><b>'+esc(monthLbl(m))+'</b></span><small class="aststat '+(n ? 'ko' : 'ok')+'">'+(n ? n+' personne'+(n > 1 ? 's n’ont' : ' n’a')+' pas renseigné' : '✓ tout le monde a renseigné')+'</small></label>'; }).join('')
       + '<button type="button" class="astbtn go" data-astmgo="1"'+(astSel.length ? '' : ' disabled')+' style="margin-top:8px">Continuer'+(astSel.length ? ' ('+astSel.length+' mois)' : '')+'</button>';
     else if (plStage === 'astask') box.innerHTML = '<button type="button" class="ghost astback" data-plstage="auto">‹ Retour</button><p class="aststat"><b>Avant de générer</b> : '+(ast ? 'y a-t-il des personnes que vous devez poser à la main ?' : 'faut-il fermer une vacation ?')+'</p><p class="hint">'+(ast ? 'Les samedis déjà pourvus sont conservés : la génération automatique complète seulement les samedis restants.' : 'Une vacation fermée reste sans personne : la génération ne la remplit pas. Vous pouvez aussi y poser quelqu’un à la main avant.')+'</p><div class="astcol">'+lb('data-astyes="1"',(ast ? '✋' : '🔒'),(ast ? 'Oui, je les pose d’abord' : 'Oui, je ferme d’abord'))+lb('data-astno="1"','⚡','Non, générer maintenant',dis)+'</div>';
@@ -2463,6 +2481,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     document.addEventListener('visibilitychange', fix);
     if (window.visualViewport) { window.visualViewport.addEventListener('resize', fix); window.visualViewport.addEventListener('scroll', fix); }
   })();
+  $('#astBarBox').addEventListener('click', e=>{ const g = e.target.closest('[data-astgrp]'); if (!g || plGrp === g.dataset.astgrp) return; plGrp = g.dataset.astgrp; astSel = []; astOn = false; renderCompose(); });
   $('#astBarBox').addEventListener('click', async e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { qAns = ''; wzStep = 1; wzTrSub = ''; genPref = []; genAvoid = []; genPrio = null; genPrioAbs = null; genOffs = null; useTr = true; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
     const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; intNon[a[0]] = a[1] === '2'; return renderCompose(); }
     const nb = e.target.closest('[data-intn]'); if (nb) { const a = nb.dataset.intn.split('|'), cur = intNeed[a[0]] != null ? intNeed[a[0]] : (INT_RULES.need[a[0]] != null ? INT_RULES.need[a[0]] : INT_RULES.defaut); intNeed[a[0]] = Math.max(0, Math.min(4, cur + Number(a[1]))); Object.keys(intNeedHP).forEach(k=>{ if (k.startsWith(a[0]+'|')) delete intNeedHP[k]; }); return renderCompose(); }
@@ -2519,8 +2538,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const months = astMonths(), miss = astMissing(months);
     if (miss.length && !force) return openMiss(true);
     const sats = astSats().map(key), cnt = astCounts(), sgrp = plGrp, writes = [], capped = new Set(), byK = {}; let skipped = 0;
-    /* un senior ET un interne en même temps chaque samedi : on tire les deux dans la même opération */
-    for (const g of ['medecin', 'interne']) {
+    /* le groupe choisi (médecins OU internes) est tiré, jamais les deux à la fois */
+    for (const g of (sgrp ? [sgrp] : ['medecin', 'interne'])) {   /* seul le groupe choisi (médecins ou internes) est généré */
       plGrp = g; const pool = grpDocs().filter(d=>!d.noAst);
       let last = (vacWho(ap.id, key(addDays(parse(sats[0]),-7)), 'M') || {who:[]}).who.filter(inGrp);
       const per = {};
@@ -3353,7 +3372,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }).join('');
     out.innerHTML = h || '<p class="empty">Rien de prévu ce jour-là'+(wk > 4 ? ' (week-end)' : '')+'.</p>';
   }
-  function renderAdminTabs(){ document.body.classList.toggle('nonadm', !isRim()); const b = $('#tab-plan'); if (b) b.style.setProperty('display', isRim() ? '' : 'none', 'important'); if (!isRim() && $('#view-plan') && !$('#view-plan').hidden) showTab('auj'); }   /* « Créer un planning » : Rim et Rayann seulement */
+  function renderAdminTabs(){ document.body.classList.toggle('nonadm', !isRim()); { const ic = $('#inImpCard'); if (ic) ic.hidden = !isRim(); } const b = $('#tab-plan'); if (b) b.style.setProperty('display', isRim() ? '' : 'none', 'important'); if (!isRim() && $('#view-plan') && !$('#view-plan').hidden) showTab('auj'); }   /* « Créer un planning » : Rim et Rayann seulement */
   function showTab(t){
     if (t !== 'general') gUnf = null;
     if (t === 'plan' && !isRim()) t = 'auj';
@@ -5702,6 +5721,191 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     let n = e.target; while (n && n !== document.body) { if (n.nodeType === 1 && n.closest && n.closest('.sheet-p') && n.scrollHeight > n.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowY)) return; n = n.parentNode; }
     e.preventDefault();
   }, {passive: false});
+  /* ---------- import des indisponibilités (Excel, PDF, photo) ---------- */
+  const II_DOW = ['lun','mar','mer','jeu','ven','sam','dim'];
+  let ii = {rows: [], unknown: [], month: '', busy: false, repl: false, skipG: 0};
+  /* en-tête de colonne : « 12 », « lun 12 », « lundi 12 », « 12/10 », « 12/10/2026 » */
+  function iiHdr(t){
+    const s = normS(t).replace(/[,;]/g, ' ').replace(/\s+/g, ' ').trim(); if (!s) return null;
+    const m = s.match(/^(?:(lun|mar|mer|jeu|ven|sam|dim)[a-z]*\.?\s*)?(\d{1,2})(?:[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?)?$/);
+    if (!m) return null;
+    const d = +m[2]; if (d < 1 || d > 31) return null;
+    const o = {d, dow: m[1] ? II_DOW.indexOf(m[1]) : -1};
+    if (m[3]) { if (+m[3] < 1 || +m[3] > 12) return null; o.m = +m[3]; if (m[4]) o.y = m[4].length === 2 ? 2000 + (+m[4]) : +m[4]; }
+    return o;
+  }
+  /* contenu d'une case -> 'J' | 'M' | 'AM' | 'G' | undefined (rien, ou off / astreinte déjà posée : pas une indisponibilité) */
+  function iiCode(t, sat){
+    const s = normS(t).replace(/[—–_]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!s || /^[-.0]$/.test(s) || /^(dispo|disponible|ok|present|presente|oui)$/.test(s)) return undefined;
+    if (/repos|^off\b|lendemain/.test(s) || /^astreinte/.test(s)) return undefined;
+    if (/garde/.test(s)) return 'G';
+    if (sat) return 'J';
+    const m = /matin|^m$/.test(s), a = /apres|aprem|\bpm\b|^am$|\bam\b/.test(s);
+    return m && a ? 'J' : m ? 'M' : a ? 'AM' : 'J';
+  }
+  function iiWho(name){
+    let n = normS(name).replace(/[^a-z' -]/g, ' ').replace(/^(dr|pr|docteur|interne|mme|mr|m)\.?\s+/, '').replace(/\s+/g, ' ').trim();
+    if (n.length < 2) return '';
+    const docs = sortedDocs().map(d=>({id: d.id, n: normS(d.label).replace(/[^a-z' -]/g, ' ').replace(/\s+/g, ' ').trim()})).filter(d=>d.n);
+    const ex = docs.filter(d=>d.n === n || normS(d.id) === n); if (ex.length === 1) return ex[0].id;
+    const pf = docs.filter(d=>(d.n.length >= 3 && n.startsWith(d.n+' ')) || (n.length >= 3 && d.n.startsWith(n+' ')) || n.split(' ').includes(d.n) && d.n.length >= 3);
+    return pf.length === 1 ? pf[0].id : '';
+  }
+  const iiMonthKey = (y, m) => { const d = new Date(y, m, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); };
+  /* tableau (une ligne par personne, une colonne par jour) */
+  function iiMatrix(aoa, selM){
+    const out = []; let cols = null, hdrIdx = -1;
+    const hdrOf = row => (row || []).map((c, i)=>({c: i, h: iiHdr(c)})).filter(x=>x.h);
+    for (let r = 0; r < aoa.length; r++) { const hs = hdrOf(aoa[r]); if (hs.length >= 4) { hdrIdx = r; cols = hs; break; } }
+    if (!cols) return out;
+    const title = aoa.slice(0, hdrIdx).map(r=>(r || []).join(' ')).join(' ');
+    const [sy, sm] = selM.split('-').map(Number);
+    let y0 = sy, m0 = sm - 1;
+    const withDow = cols.filter(x=>x.h.dow >= 0);
+    const fit = (yy, mm)=>withDow.filter(x=>{ const dt = new Date(yy, mm, x.h.d); return dt.getMonth() === ((mm % 12) + 12) % 12 && (dt.getDay()+6)%7 === x.h.dow; }).length;
+    if (cols.some(x=>x.h.m)) { const x = cols.find(z=>z.h.m); m0 = x.h.m - 1; if (x.h.y) y0 = x.h.y; }
+    else {
+      const tn = normS(title); const mi = MOIS_FR.findIndex(mn=>tn.includes(normS(mn)));
+      if (withDow.length >= 3) {
+        let best = null; for (let k = -3; k <= 6; k++) { const dd = new Date(sy, sm - 1 + k, 1), f = fit(dd.getFullYear(), dd.getMonth()); if (!best || f > best.f || (f === best.f && Math.abs(k) < Math.abs(best.k))) best = {f, k, y: dd.getFullYear(), m: dd.getMonth()}; }
+        if (best.f >= Math.ceil(withDow.length * 0.6)) { y0 = best.y; m0 = best.m; }
+      } else if (mi >= 0) { m0 = mi; const ym = tn.match(/20\d\d/); if (ym) y0 = +ym[0]; }
+    }
+    const mapCols = cs => { let y = y0, m = m0, prev = 0; return cs.map(x=>{ if (x.h.m) { m = x.h.m - 1; if (x.h.y) y = x.h.y; } else if (x.h.d < prev) { m++; } prev = x.h.d; const dt = new Date(y, m, x.h.d); return {c: x.c, dt, ok: dt.getDate() === x.h.d}; }); };
+    let cm = mapCols(cols);
+    for (let r = hdrIdx + 1; r < aoa.length; r++) {
+      const row = aoa[r] || []; const hs = hdrOf(row);
+      if (hs.length >= 4) { cols = hs; cm = mapCols(cols); continue; }
+      const first = cm[0].c; let name = '';
+      for (let c = 0; c < first; c++) { const t = String(row[c] == null ? '' : row[c]).trim(); if (/[A-Za-zÀ-ÿ]{2}/.test(t) && !name) name = t; }
+      if (!name) continue;
+      cm.forEach(x=>{ if (!x.ok) return; const wd = (x.dt.getDay()+6)%7; const v = iiCode(row[x.c], wd >= 5); if (!v) return; if (wd === 6 && v !== 'G') return; out.push({name, k: key(x.dt), v}); });
+    }
+    return out;
+  }
+  /* feuille « détail » : une ligne par jour (Personne, Fonction, Date, Jour, Statut, Créneau) */
+  function iiDetail(aoa){
+    const out = []; let hi = -1, ci = {};
+    for (let r = 0; r < aoa.length; r++) { const t = (aoa[r] || []).map(normS); if (t.includes('personne') && t.includes('date') && (t.includes('statut') || t.includes('creneau'))) { hi = r; t.forEach((x, i)=>{ if (!(x in ci)) ci[x] = i; }); break; } }
+    if (hi < 0) return out;
+    for (let r = hi + 1; r < aoa.length; r++) {
+      const row = aoa[r] || [], name = String(row[ci.personne] || '').trim(), dm = String(row[ci.date] || '').match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);
+      if (!name || !dm) continue;
+      const dt = new Date(+dm[3] < 100 ? 2000 + (+dm[3]) : +dm[3], +dm[2] - 1, +dm[1]), wd = (dt.getDay()+6)%7;
+      const v = iiCode([row[ci.statut], row[ci.creneau]].filter(Boolean).join(' '), wd >= 5); if (!v) continue;
+      if (wd === 6 && v !== 'G') continue;
+      out.push({name, k: key(dt), v});
+    }
+    return out;
+  }
+  /* mots avec position (photo, PDF) -> tableau */
+  function iiFromWords(words){
+    let W = (words || []).filter(w=>w && w.t && String(w.t).trim()).map(w=>({t: String(w.t).trim(), x0: w.x0, x1: w.x1, y0: w.y0, y1: w.y1, cx: (w.x0+w.x1)/2, cy: (w.y0+w.y1)/2}));
+    if (W.length < 8) return [];
+    const hs = W.map(w=>w.y1-w.y0).sort((a,b)=>a-b), mh = hs[Math.floor(hs.length/2)] || 10;
+    W.sort((a,b)=>a.cy-b.cy);
+    const lines = [];
+    W.forEach(w=>{ const l = lines[lines.length-1]; if (l && Math.abs(w.cy - l.cy) < mh*0.6) { l.w.push(w); l.cy = l.w.reduce((n,x)=>n+x.cy,0)/l.w.length; } else lines.push({cy: w.cy, w: [w]}); });
+    lines.forEach(l=>{
+      l.w.sort((a,b)=>a.x0-b.x0);
+      const m = []; for (let i = 0; i < l.w.length; i++) { const a = l.w[i], b = l.w[i+1]; if (b && II_DOW.includes(normS(a.t).replace(/[^a-z]/g, '').slice(0,3)) && /^[a-zé]*\.?$/i.test(a.t) && iiHdr(b.t) && b.x0 - a.x1 < mh*2.5) { m.push({t: a.t+' '+b.t, x0: a.x0, x1: b.x1, cx: (a.x0+b.x1)/2}); i++; } else m.push(a); }
+      l.w = m; l.hd = m.filter(w=>iiHdr(w.t));
+    });
+    const aoa = []; let cols = null, step = 0;
+    lines.forEach(l=>{
+      if (l.hd.length >= 4) { cols = l.hd; const d = cols.slice(1).map((c,i)=>c.cx - cols[i].cx).sort((a,b)=>a-b); step = d[Math.floor(d.length/2)] || 40; aoa.push([''].concat(cols.map(c=>c.t))); return; }
+      if (!cols) return;
+      const row = [''].concat(cols.map(()=>'')), left = cols[0].cx - step*0.6;
+      l.w.forEach(w=>{ if (w.cx < left) { row[0] = (row[0] ? row[0]+' ' : '')+w.t; return; } let bi = -1, bd = 1e9; cols.forEach((c,i)=>{ const d = Math.abs(c.cx - w.cx); if (d < bd) { bd = d; bi = i; } }); if (bi >= 0 && bd < step*0.6) row[bi+1] = (row[bi+1] ? row[bi+1]+' ' : '')+w.t; });
+      aoa.push(row);
+    });
+    return aoa;
+  }
+  function iiCollect(entries){
+    const by = {}, unk = new Set(), seen = new Set();
+    entries.forEach(e=>{ const id = iiWho(e.name); if (!id) { unk.add(e.name); return; } const sk = id+'|'+e.k; if (seen.has(sk)) return; seen.add(sk); (by[id] || (by[id] = {id, items: []})).items.push({k: e.k, v: e.v}); });
+    return {rows: Object.values(by).map(r=>(r.items.sort((a,b)=>a.k < b.k ? -1 : 1), r.on = true, r)).sort((a,b)=>((doctors[a.id] || {}).order || 0) - ((doctors[b.id] || {}).order || 0)), unknown: [...unk]};
+  }
+  const iiStat = t => { const el = $('#iiStat'); if (el) { el.textContent = t || ''; el.hidden = !t; } };
+  async function iiOcr(file){
+    const T = await loadTess(), pre = await shotPrep(file);
+    const wk = await T.createWorker('fra', 1, {logger: m=>{ if (m && m.status === 'recognizing text') iiStat('Lecture de l’image… '+Math.round((m.progress||0)*100)+' %'); }});
+    let r; try { await wk.setParameters({tessedit_pageseg_mode: '11', preserve_interword_spaces: '1'}); r = await wk.recognize(pre.blob); } finally { try { await wk.terminate(); } catch(e) {} }
+    let words = r && r.data && r.data.words;
+    if (!words || !words.length) words = ((r && r.data && r.data.blocks) || []).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[])));
+    return (words || []).filter(w=>w && w.bbox).map(w=>({t: w.text, x0: w.bbox.x0, x1: w.bbox.x1, y0: w.bbox.y0, y1: w.bbox.y1}));
+  }
+  async function iiRead(kind, file, selM){
+    if (kind === 'xlsx') {
+      if (!window.XLSX) throw new Error('xlsx');
+      const wb = XLSX.read(await file.arrayBuffer(), {type: 'array', cellDates: true, dateNF: 'dd/mm/yyyy'});
+      let all = []; wb.SheetNames.forEach(n=>{ const aoa = XLSX.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: false, defval: '', dateNF: 'dd/mm/yyyy'}); all = all.concat(iiMatrix(aoa, selM), iiDetail(aoa)); });
+      return all;
+    }
+    if (kind === 'img') return iiMatrix(iiFromWords(await iiOcr(file)), selM);
+    const lib = await loadPdfJs(), doc = await lib.getDocument({data: await file.arrayBuffer()}).promise; let all = [];
+    for (let p = 1; p <= Math.min(doc.numPages, 12); p++) {
+      iiStat('Lecture du PDF… page '+p+' / '+doc.numPages);
+      const page = await doc.getPage(p), tc = await page.getTextContent();
+      let words = tc.items.filter(it=>it.str && it.str.trim()).map(it=>({t: it.str.trim(), x0: it.transform[4], x1: it.transform[4] + (it.width || 0), y0: -(it.transform[5] + (it.height || 8)), y1: -it.transform[5]}));
+      let got = words.length >= 15 ? iiMatrix(iiFromWords(words), selM) : [];
+      if (!got.length) {
+        const v0 = page.getViewport({scale: 1}), sc = Math.min(3, 2400 / v0.width), vp = page.getViewport({scale: sc});
+        const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+        const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); await page.render({canvasContext: cx, viewport: vp}).promise;
+        const blob = await new Promise(r=>cv.toBlob(r, 'image/png'));
+        got = iiMatrix(iiFromWords(await iiOcr(new File([blob], 'p'+p+'.png', {type: 'image/png'}))), selM);
+      }
+      all = all.concat(got);
+    }
+    return all;
+  }
+  async function iiRun(kind, file){
+    if (ii.busy || !file) return;
+    if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
+    ii.busy = true; ii.month = $('#iiMonth').value; iiStat(kind === 'xlsx' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
+    try {
+      const entries = await iiRead(kind, file, ii.month), c = iiCollect(entries);
+      ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.busy = false; iiStat('');
+      if (!ii.rows.length) return notify(entries.length ? 'Aucun nom reconnu dans ce fichier : vérifiez que les noms sont les mêmes que dans l’app ('+c.unknown.slice(0,4).join(', ')+').' : 'Aucune indisponibilité trouvée. Il faut un tableau avec les noms à gauche et les jours en colonnes (ex. « lun 5 », « mar 6 »…).', true);
+      $('#iiSheet').hidden = false; renderIi();
+    } catch(e) { ii.busy = false; iiStat(''); notify(kind === 'xlsx' ? 'Lecture du fichier impossible.' : 'Lecture impossible (connexion ?). Réessayez.', true); }
+  }
+  const IIV = {J: 'indispo', M: 'matin', AM: 'après-midi', G: 'garde'};
+  function renderIi(){
+    const n = ii.rows.filter(r=>r.on).reduce((a,r)=>a + r.items.length, 0);
+    $('#iiT').textContent = 'Indisponibilités lues';
+    $('#iiS').textContent = ii.rows.length+' personne'+(ii.rows.length > 1 ? 's' : '')+' · vérifiez puis enregistrez. Les gardes déjà saisies ne sont jamais écrasées.';
+    $('#iiBody').innerHTML = ii.rows.map((r,i)=>{
+      const lst = r.items.map(x=>{ const d = parse(x.k), sat = (d.getDay()+6)%7 === 5; return '<span class="iich">'+esc(fmtShort.format(d).replace(/\.$/, ''))+(sat && x.v !== 'G' ? ' · astreinte' : x.v === 'J' ? '' : ' · '+IIV[x.v])+'</span>'; }).join('');
+      return '<label class="iirow"><span class="iihd"><input type="checkbox" data-iion="'+i+'"'+(r.on ? ' checked' : '')+'><b>'+esc(dLabel(r.id))+'</b><small>'+r.items.length+' jour'+(r.items.length > 1 ? 's' : '')+'</small></span><span class="iich-w">'+lst+'</span></label>';
+    }).join('')
+    + (ii.unknown.length ? '<p class="hint">Noms non reconnus (ignorés) : '+esc(ii.unknown.join(', '))+'</p>' : '')
+    + '<label class="check iirep"><input type="checkbox" id="iiRepl"'+(ii.repl ? ' checked' : '')+'>Remplacer : retirer aussi les autres indispos du mois de ces personnes</label>';
+    const go = $('#iiGo'); go.textContent = 'Enregistrer ('+n+' jour'+(n > 1 ? 's' : '')+')'; go.disabled = !n || !canWrite;
+  }
+  async function iiApply(){
+    const go = $('#iiGo'); go.disabled = true; let nd = 0, np = 0, skip = 0;
+    for (const r of ii.rows.filter(x=>x.on)) {
+      const doc = doctors[r.id]; if (!doc) continue; const days = doc.days || {}, patch = {}, months = new Set(r.items.map(x=>x.k.slice(0,7))), inFile = new Set(r.items.map(x=>x.k));
+      r.items.forEach(x=>{ const cur = days[x.k]; if ((cur === 'G' && x.v !== 'G') || cur === 'A') { skip++; return; } if (cur !== x.v) patch[x.k] = x.v; });
+      if (ii.repl) Object.keys(days).forEach(k=>{ if (months.has(k.slice(0,7)) && !inFile.has(k) && (days[k] === 'J' || days[k] === 'M' || days[k] === 'AM')) patch[k] = null; });
+      if (!Object.keys(patch).length) continue;
+      if (await setDays(r.id, patch)) { nd += Object.keys(patch).length; np++; } else { go.disabled = false; return; }
+    }
+    $('#iiSheet').hidden = true;
+    notify(nd ? nd+' jour'+(nd > 1 ? 's' : '')+' enregistré'+(nd > 1 ? 's' : '')+' pour '+np+' personne'+(np > 1 ? 's' : '')+(skip ? ' · '+skip+' jour'+(skip > 1 ? 's' : '')+' déjà de garde ou d’astreinte conservé'+(skip > 1 ? 's' : '') : '')+'.' : 'Rien à changer : tout était déjà à jour.');
+  }
+  function iiInit(){
+    const sel = $('#iiMonth'); if (!sel || sel.dataset.done) return; sel.dataset.done = '1';
+    const t = new Date(); sel.innerHTML = [...Array(10)].map((_,i)=>{ const m = iiMonthKey(t.getFullYear(), t.getMonth() - 1 + i); return '<option value="'+m+'"'+(i === 1 ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>'; }).join('');
+    [['iiFx', 'xlsx'], ['iiFp', 'pdf'], ['iiFi', 'img']].forEach(([id, kind])=>$('#'+id).addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) iiRun(kind, f); }));
+    $('#iiBtns').addEventListener('click', e=>{ const b = e.target.closest('[data-iipick]'); if (b) $('#'+b.dataset.iipick).click(); });
+    $('#iiSheet').addEventListener('click', e=>{ if (e.target.closest('[data-iix]')) { $('#iiSheet').hidden = true; return; } if (e.target.closest('#iiGo')) iiApply(); });
+    $('#iiSheet').addEventListener('change', e=>{ const c = e.target.closest('[data-iion]'); if (c) { ii.rows[+c.dataset.iion].on = c.checked; renderIi(); } else if (e.target.id === 'iiRepl') { ii.repl = e.target.checked; } });
+  }
+  iiInit();
   /* Réglages « à la iPhone » : menu de thèmes, puis sous-pages */
   const SET_GRPS = [
     {id:'compte', ic:'👤', bg:'#3B82F6', t:'Mon compte', sub:'Profil, apparence, calendrier, rappels, administrateurs', sel:['#fMp','#fApp','#instBtn','#remCard','#fCal','#admCard']},
