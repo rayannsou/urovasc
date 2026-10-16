@@ -1616,7 +1616,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '68a3aa6ba0';
+  const BUILD = 'd390f4de0e';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2151,13 +2151,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const astSats = () => plMode === 'ast' && astOn && astSel.length ? astSatsOf(astSel) : [...Array(6)].map((_,i)=>addDays(plStart,5+7*i));
   const astMonths = () => plMode === 'ast' ? [...new Set(astSats().map(d=>key(d).slice(0,7)))] : [...new Set([0,4].map(i=>key(addDays(plStart,i)).slice(0,7)))];
   let astPrio = new Set(), astCapP = 0, astCapO = 0;
-  const astCapOf = d => { const c = astPrio.has(d.id) ? astCapP : astCapO; return Math.min(d.astMax || 99, c || 99); };
+  const astCapOf = d => d.astMax || 99, astW = d => (astPrio.has(d.id) ? astCapP : astCapO) || 1;
   function capHtml(){
     const docs = grpDocs().filter(d=>!d.noAst), nOpt = v=>'<option value="0">—</option>'+[1,2,3,4,5,6].map(n=>'<option value="'+n+'"'+(v === n ? ' selected' : '')+'>'+n+'</option>').join('');
-    return '<div class="qcard"><p class="qt">⚖️ Répartition : prioriser certaines personnes</p><p class="qh">Touchez les personnes à faire passer en priorité, puis fixez le maximum d’astreintes pour elles et pour les autres sur la période. Laissez « — » pour ne pas limiter.</p>'
+    return '<div class="qcard"><p class="qt">⚖️ Répartition : prioriser certaines personnes</p><p class="qh">Touchez les personnes à favoriser. Quand il faut départager, elles reçoivent plus d’astreintes que les autres, dans la proportion indiquée (ex. 3 pour les prioritaires et 2 pour les autres : sur 5 astreintes, 3 et 2). Les autres sont servies aussi.</p>'
       + '<div class="plc">'+docs.map(d=>'<button type="button" class="plsg'+(astPrio.has(d.id) ? '' : ' alt')+'" data-astprio="'+esc(d.id)+'" aria-pressed="'+astPrio.has(d.id)+'">'+esc(d.label)+'</button>').join('')+'</div>'
-      + '<div class="f" style="margin-top:10px"><label for="astCapP">Prioritaires ('+astPrio.size+') : maximum</label><select id="astCapP">'+nOpt(astCapP)+'</select></div>'
-      + '<div class="f"><label for="astCapO">Les autres : maximum</label><select id="astCapO">'+nOpt(astCapO)+'</select></div>'
+      + '<div class="f" style="margin-top:10px"><label for="astCapP">Prioritaires ('+astPrio.size+') : part</label><select id="astCapP">'+nOpt(astCapP)+'</select></div>'
+      + '<div class="f"><label for="astCapO">Les autres : part</label><select id="astCapO">'+nOpt(astCapO)+'</select></div>'
       + (astPrio.size ? '<button type="button" class="ghost" data-astprioclr="1">Vider la sélection</button>' : '')+'</div>';
   }
   const astMissing = months => grpDocs().filter(d=>(plMode !== 'ast' || !d.noAst) && months.some(m=>!(d.conf && d.conf[m])));
@@ -2576,8 +2576,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         const free = pool.filter(d=>!reasonFor(d.id, k, 'M')), cands = free.filter(d=>(per[d.id] || 0) < astCapOf(d));
         free.forEach(d=>{ if (!cands.includes(d)) capped.add(d.label); });
         const pr = d=>{ const x = demGet(d, k); return x && x.w === 'want' ? -1000 : x && x.w === 'avoid' ? 1000 : 0; };   /* demandes spécifiques : « je veux » d'abord, « je préfère ne pas » en dernier recours */
-        const fl = d=>{ const c = astCapOf(d); return c < 99 ? (per[d.id] || 0) / c : 1; }, useCap = astCapP || astCapO || astPrio.size;
-        cands.sort((a,b)=>(pr(a) - pr(b)) || (useCap ? (astPrio.has(b.id) ? 1 : 0) - (astPrio.has(a.id) ? 1 : 0) || fl(a) - fl(b) : 0) || ((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
+        const fl = d=>(per[d.id] || 0) / astW(d), useCap = astCapP || astCapO || astPrio.size;
+        cands.sort((a,b)=>(pr(a) - pr(b)) || (useCap ? (fl(a) - fl(b) || (astPrio.has(b.id) ? 1 : 0) - (astPrio.has(a.id) ? 1 : 0)) : 0) || ((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
         const pick = cands[0]; if (!pick) { skipped++; continue; }
         byK[k] = (byK[k] || []).concat(pick.id);
         cnt[pick.id] = (cnt[pick.id]||0) + 1; per[pick.id] = (per[pick.id] || 0) + 1; last = [pick.id];
