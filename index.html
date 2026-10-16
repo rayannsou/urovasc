@@ -1604,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '59699beace';
+  const BUILD = '0906b0ef0a';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5892,7 +5892,15 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const rowOf = l=>{ const row = starts.map(()=>''); l.w.forEach(w=>{ const c = colOf(w); row[c] = (row[c] ? row[c]+' ' : '')+w.t; }); return row; };
     return [rowOf(hl)].concat(lines.filter(l=>l.cy > hl.cy).map(rowOf));
   }
+  /* noms collés par la lecture (« HRRM » = HR + RM) : découpés en personnes connues si c'est possible */
+  function iiSplit(name){
+    const n = normS(name).replace(/[^a-z]/g, ''); if (n.length < 3) return null;
+    const labs = {}; sortedDocs().forEach(d=>{ const l = normS(d.label).replace(/[^a-z]/g, ''); if (l.length >= 2 && !labs[l]) labs[l] = d.id; });
+    const memo = {}, best = i=>{ if (i === n.length) return []; if (i in memo) return memo[i]; let b = null; for (let j = i + 2; j <= n.length; j++) { const id = labs[n.slice(i, j)]; if (!id) continue; const r = best(j); if (r && (!b || r.length + 1 < b.length)) b = [id].concat(r); } return memo[i] = b; };
+    const r = best(0); return r && r.length >= 2 ? r : null;
+  }
   function iiCollect(entries){
+    entries = entries.flatMap(e=>{ if (e.name === '' || iiWho(e.name)) return [e]; const sp = iiSplit(e.name); return sp ? sp.map(id=>Object.assign({}, e, {name: doctors[id].label})) : [e]; });
     const by = {}, unk = new Set(), seen = new Set();
     entries.forEach(e=>{ const known = e.name === '' ? '' : iiWho(e.name), id = known || '?', gk = known || '?'+normS(e.name); const sk = gk+'|'+e.k+'|'+(e.v === 'W' ? 'W' : 'I'); if (seen.has(sk)) return; seen.add(sk); (by[gk] || (by[gk] = {id, raw: known ? '' : String(e.name || '').trim(), items: []})).items.push({k: e.k, v: e.v}); });
     return {rows: Object.values(by).map(r=>(r.items.sort((a,b)=>a.k < b.k ? -1 : 1), r.on = true, r)).sort((a,b)=>(a.id === '?' ? 1e6 : (doctors[a.id] || {}).order || 0) - (b.id === '?' ? 1e6 : (doctors[b.id] || {}).order || 0)), unknown: []};
