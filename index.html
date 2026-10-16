@@ -1604,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '5692a9c269';
+  const BUILD = '8d81bc25ee';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2461,7 +2461,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     } else if (miss.length) {
       const allSent = miss.every(d=>remSent.has(d.id)), can = canWrite ? '' : ' disabled';
       h += '<div class="mhead"><h4 class="asth ko">À relancer ('+miss.length+')</h4>'+(canWrite ? '<button type="button" class="primary mall" data-remind="1"'+(allSent ? ' disabled' : '')+'>'+(allSent ? '✓ Rappel envoyé à tous' : (()=>{ const k = miss.filter(d=>!remSent.has(d.id)).length; return '🔔 Rappeler '+(k > 1 ? 'les '+k+' personnes' : 'la personne restante'); })())+'</button>' : '')+'</div>'
-        + miss.map(d=>'<div class="mrow"><span class="mav" aria-hidden="true">'+esc((d.label || '?').trim().charAt(0).toUpperCase())+'</span><div class="mi"><b>'+esc(d.label)+'</b><small>manque : '+months.filter(m=>!(d.conf && d.conf[m])).map(monthLbl).join(', ')+'</small></div><div class="ma">'+(plMode === 'ast' ? mxSel(d)+'<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+can+'>Pas d’astreinte</button>' : '')+'<button type="button" class="ghost mrem'+(remSent.has(d.id) ? ' sent' : '')+'" data-remindid="'+esc(d.id)+'"'+can+(remSent.has(d.id) ? ' disabled' : '')+'>'+(remSent.has(d.id) ? '✓ Envoyé' : '🔔 Rappel')+'</button></div></div>').join('');
+        + miss.map(d=>'<div class="mrow"><span class="mav" aria-hidden="true">'+esc((d.label || '?').trim().charAt(0).toUpperCase())+'</span><div class="mi"><b>'+esc(d.label)+'</b><small>manque : '+months.filter(m=>!(d.conf && d.conf[m])).map(monthLbl).join(', ')+'</small></div><div class="ma">'+(plMode === 'ast' ? mxSel(d)+'<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+can+'>Pas d’astreinte</button>' : '')+'<button type="button" class="ghost" data-astdone="'+esc(d.id)+'"'+can+'>✓ A renseigné</button><button type="button" class="ghost mrem'+(remSent.has(d.id) ? ' sent' : '')+'" data-remindid="'+esc(d.id)+'"'+can+(remSent.has(d.id) ? ' disabled' : '')+'>'+(remSent.has(d.id) ? '✓ Envoyé' : '🔔 Rappel')+'</button></div></div>').join('');
+      if (canWrite) h += '<button type="button" class="ghost" data-astdoneall="1">✓ Marquer les '+miss.length+' comme « ont renseigné » (aucune indispo à ajouter)</button>';
       h += '<button type="button" class="ghost astcopy" data-astcopy="1">📋 Copier un message de rappel</button>';
     } else h += '<p class="empty" style="border:0">✓ Tout le monde a renseigné ses indisponibilités.</p>';
     if (canSeeMiss() && done.length) h += '<h4 class="asth ok">Ont renseigné ('+done.length+')</h4>'+(plMode === 'ast' ? done.map(d=>row(d, '', mxSel(d)+'<button type="button" class="ghost" data-astexcl="'+esc(d.id)+'"'+(canWrite ? '' : ' disabled')+'>Pas d’astreinte</button>')).join('') : '<p class="hint">'+done.map(d=>esc(d.label)).join(', ')+'</p>');
@@ -2520,6 +2521,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#astSheet').addEventListener('change', async e=>{ const mx = e.target.closest && e.target.closest('[data-astmax]'); if (!mx) return; const n = +mx.value || 0; if (await setDocField(mx.dataset.astmax, {astMax: n || null})) notify(n ? 'Maximum : '+n+' astreinte'+(n > 1 ? 's' : '')+' sur la période.' : 'Plus de maximum.'); renderMiss(); });
   $('#astSheet').addEventListener('click', async e=>{
     if (e.target.closest('[data-astx]')) return closeMiss();
+    const dn = e.target.closest('[data-astdone],[data-astdoneall]'); if (dn) { const ms = astMonths(), ids = dn.dataset.astdone ? [dn.dataset.astdone] : astMissing(ms).map(d=>d.id); let n = 0; for (const id of ids) { const d = doctors[id], patch = {}; if (!d) continue; ms.forEach(m=>{ if (!(d.conf && d.conf[m])) patch[m] = true; }); if (!Object.keys(patch).length) continue; if (!(await setDocField(id, {conf: patch}))) break; d.conf = Object.assign({}, d.conf || {}, patch); n++; } if (n) notify(n+' personne'+(n > 1 ? 's marquées' : ' marquée')+' « ont renseigné ».'); renderMiss(); renderCompose(); return; }
     const ex = e.target.closest('[data-astexcl]'); if (ex) { if (await setDocField(ex.dataset.astexcl, {noAst: true})) renderMiss(); return; }
     const inc = e.target.closest('[data-astincl]'); if (inc) { if (await setDocField(inc.dataset.astincl, {noAst: null})) renderMiss(); return; }
     if (e.target.closest('[data-astforce]')) { $('#astSheet').hidden = true; missForce = false; return plAssign(true); }
