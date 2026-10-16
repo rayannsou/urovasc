@@ -1615,7 +1615,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'f338b09cf3';
+  const BUILD = '5d4db1b1d0';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3050,7 +3050,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const ws = genPending.filter(w=>w.on), imp = genImp; genImp = null; genClose();
     let ok = true;
     if (imp) ok = await applyWeeks(imp, {extrasOnly: true});     /* nouvelles personnes, absences */
-    for (const w of ws) { if (!ok) break; w.val.t = Date.now(); const sg0 = plGrp; if (w.both) plGrp = ''; try { ok = (await setOverride(w.k, w.kk, w.val)) && ok; } finally { plGrp = sg0; } if (!ok) break; }
+    const failK = [];
+    for (const w of ws) { if (!ok) break; w.val.t = Date.now(); const sg0 = plGrp; if (w.both) plGrp = ''; let r = false; try { r = await setOverride(w.k, w.kk, w.val); } finally { plGrp = sg0; } if (!r) { failK.push(w.k); if (!imp && plMode === 'ast' && Date.now() < codeUntil) continue; ok = false; } }
+    if (failK.length && !imp && plMode === 'ast') { ok = false; notify('⚠ '+(ws.length - failK.length)+' astreinte'+(ws.length - failK.length > 1 ? 's enregistrées' : ' enregistrée')+', '+failK.length+' non enregistrée'+(failK.length > 1 ? 's' : '')+' : '+failK.slice(0, 6).map(k=>fmtShort.format(parse(k))).join(', ')+(failK.length > 6 ? '…' : '')+'. Recommencez la création : seuls les samedis vides seront complétés.', true); }
     if (ok && plMode !== 'ast') plPdfNew = true;
     plStage = 'man'; renderCompose();
     if (ok && !imp && plMode !== 'ast' && plGrp === 'interne') setTimeout(offOpen, 1200);
