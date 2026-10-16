@@ -1604,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '9ddd5b294a';
+  const BUILD = '59699beace';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5834,10 +5834,10 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   /* messages « Wk 7 - 20 - 27 nov / Wk 5 février (sauf si personne dispo) » : week-ends où la personne ne peut pas faire l'astreinte */
   function iiText(lines, who){
-    const out = [], monIdx = w=>II_MOIS.findIndex(n=>w.length >= 3 && w !== 'jui' && n.startsWith(w));
+    const out = [], monIdx = w=>{ let i = II_MOIS.findIndex(n=>w.length >= 3 && w !== 'jui' && n.startsWith(w)); if (i < 0 && w.length >= 5) i = II_MOIS.findIndex(n=>lev(w, n) <= 1); return i; };
     (lines || []).forEach(line=>{
-      const m = normS(line).match(/^\W*(?:w[kli]{1,2}|we|w-e|week-?end)\b\.?\s*(.*)$/); if (!m) return;
-      const soft = /sauf|si possible|eviter|plutot pas|prefere/.test(m[1]), rest = m[1].replace(/\([^)]*\)/g, ' ').replace(/(^|[^a-z0-9])s(?=[^a-z0-9]|$)/g, '$15').replace(/(^|[^a-z0-9])[li](?=[^a-z0-9]|$)/g, '$11');   /* lecture d'image : « S » pour 5, « l » pour 1 */
+      const m = normS(line).match(/^\W*(?:w[kli]{1,2}|vv[kli]|wx|we|w-e|week-?end)\b\.?\s*(.*)$/); if (!m) return;
+      const soft = /sauf|si possible|eviter|plutot pas|prefere/.test(m[1]), rest = m[1].replace(/\([^)]*\)/g, ' ').replace(/\d+\s*(?:%|°|h\b|:\d+)/g, ' ').replace(/(^|[^a-z0-9])s(?=[^a-z0-9]|$)/g, '$15').replace(/(^|[^a-z0-9])[li](?=[^a-z0-9]|$)/g, '$11');   /* lecture d'image : « S » pour 5, « l » pour 1 */
       const toks = rest.match(/\d{1,2}|[a-z]{3,9}/g) || [], res = []; let pend = [], last = -1;
       toks.forEach(t=>{ if (/^\d/.test(t)) { pend.push(+t); return; } const mi = monIdx(t); if (mi < 0) return; pend.forEach(d=>res.push([mi, d])); pend = []; last = mi; });
       if (pend.length && last >= 0) pend.forEach(d=>res.push([last, d]));
