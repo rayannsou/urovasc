@@ -1604,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'da6b9175ff';
+  const BUILD = '5692a9c269';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5723,7 +5723,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }, {passive: false});
   /* ---------- import des indisponibilités (Excel, PDF, photo) ---------- */
   const II_DOW = ['lun','mar','mer','jeu','ven','sam','dim'];
-  let ii = {rows: [], unknown: [], month: '', busy: false, repl: false, want: false};
+  let ii = {rows: [], unknown: [], month: '', busy: false, repl: false, want: false, all: false, months: []};
+  /* mois couverts par le fichier : du premier au dernier jour lu */
+  function iiMonthsOf(entries){ const ks = entries.map(e=>e.k).sort(); if (!ks.length) return []; const out = []; let [y, m] = ks[0].slice(0,7).split('-').map(Number); const end = ks[ks.length-1].slice(0,7); for (let n = 0; n < 24; n++) { const mk = y+'-'+pad(m); out.push(mk); if (mk >= end) break; m++; if (m > 12) { m = 1; y++; } } return out; }
   /* en-tête de colonne : « 12 », « lun 12 », « lundi 12 », « 12/10 », « 12/10/2026 » */
   function iiHdr(t){
     const s = normS(t).replace(/[,;]/g, ' ').replace(/\s+/g, ' ').trim(); if (!s) return null;
@@ -5979,7 +5981,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     ii.busy = true; ii.rawTxt = ''; ii.month = $('#iiMonth').value || iiMonthKey(new Date().getFullYear(), new Date().getMonth()); iiStat(kind === 'xlsx' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
     try {
       const entries = await iiRead(kind, file, ii.month), c = iiCollect(entries);
-      ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.want = false; ii.busy = false; iiStat('');
+      ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.want = false; ii.all = false; ii.months = iiMonthsOf(entries); ii.busy = false; iiStat('');
       if (!ii.rows.length) return notify('Aucune indisponibilité trouvée. Il faut un tableau avec les noms à gauche et les jours en colonnes (ex. « lun 5 », « mar 6 »…).', true);
       $('#iiSheet').hidden = false; renderIi();
     } catch(e) { ii.busy = false; iiStat(''); notify(kind === 'xlsx' ? 'Lecture du fichier impossible.' : 'Lecture impossible (connexion ?). Réessayez.', true); }
@@ -5997,6 +5999,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     + (ii.unknown.length ? '<p class="hint">Noms non reconnus (ignorés) : '+esc(ii.unknown.join(', '))+'</p>' : '')
     + (ii.rawTxt ? '<details class="iiraw"><summary>Texte lu sur l’image</summary><pre>'+esc(ii.rawTxt)+'</pre></details>' : '')
     + (hasW ? '<label class="check iirep"><input type="checkbox" id="iiWant"'+(ii.want ? ' checked' : '')+'>Importer aussi les souhaits (colonne « Souhait éventuel » : « je veux l’astreinte »)</label>' : '')
+    + (ii.months.length ? '<p class="hint">Les personnes importées seront marquées « ont renseigné » pour : '+esc(ii.months.map(monthLbl).join(', '))+'.</p><label class="check iirep"><input type="checkbox" id="iiAll"'+(ii.all ? ' checked' : '')+'>Le tableau est complet : marquer aussi toutes les autres personnes du même groupe comme « ont renseigné »</label>' : '')
     + '<label class="check iirep"><input type="checkbox" id="iiRepl"'+(ii.repl ? ' checked' : '')+'>Remplacer : retirer aussi les autres indispos du mois de ces personnes</label>';
     const go = $('#iiGo'); go.textContent = 'Enregistrer ('+n+' jour'+(n > 1 ? 's' : '')+')'; go.disabled = !n || !canWrite;
   }
@@ -6010,8 +6013,16 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       if (!Object.keys(patch).length) continue;
       if (await setDays(r.id, patch)) { nd += Object.keys(patch).length; if (!wants.length) np++; } else { go.disabled = false; return; }
     }
+    /* « a renseigné ses indispos » pour les mois du fichier */
+    let nc = 0;
+    if (ii.months.length) {
+      const sel = ii.rows.filter(x=>x.on && x.id !== '?').map(x=>x.id), grpInt = sel.length ? (doctors[sel[0]] || {}).role === 'Interne' : null;
+      const ids = new Set(sel); if (ii.all && grpInt !== null) sortedDocs().forEach(d=>{ if ((d.role === 'Interne') === grpInt) ids.add(d.id); });
+      for (const id of ids) { const d = doctors[id]; if (!d) continue; const patch = {}; ii.months.forEach(m=>{ if (!(d.conf && d.conf[m])) patch[m] = true; }); if (!Object.keys(patch).length) continue; try { await db.doc('medecins/'+id).update({conf: patch}); nc++; } catch(e) { handleErr(e); break; } }
+    }
     $('#iiSheet').hidden = true;
     notify(nd ? nd+' jour'+(nd > 1 ? 's' : '')+' enregistré'+(nd > 1 ? 's' : '')+' pour '+np+' personne'+(np > 1 ? 's' : '')+(skip ? ' · '+skip+' jour'+(skip > 1 ? 's' : '')+' déjà de garde ou d’astreinte conservé'+(skip > 1 ? 's' : '') : '')+'.' : 'Rien à changer : tout était déjà à jour.');
+    if (nc) setTimeout(()=>notify(nc+' personne'+(nc > 1 ? 's' : '')+' marquée'+(nc > 1 ? 's' : '')+' « ont renseigné ».'), 1800);
   }
   function iiLearn(raw, id){ const a = normS(raw).replace(/[^a-z]/g, ''), d = doctors[id]; if (!a || a.length < 2 || a.length > 8 || !d || !db || !canWrite || a === normS(d.label).replace(/[^a-z]/g, '') || (d.alias && d.alias[a])) return; try { db.doc('medecins/'+id).update({alias: {[a]: true}}).catch(()=>{}); } catch(e) {} }
   function iiAssign(i, id){ const r = ii.rows[i]; if (!r || !id) return; if (r.raw) iiLearn(r.raw, id); const o = ii.rows.find(x=>x !== r && x.id === id); if (o) { const have = new Set(o.items.map(x=>x.k+'|'+x.v)); o.items = o.items.concat(r.items.filter(x=>!have.has(x.k+'|'+x.v))).sort((a,b)=>a.k < b.k ? -1 : 1); ii.rows.splice(i, 1); } else { r.id = id; r.raw = ''; r.on = true; } renderIi(); }
@@ -6045,7 +6056,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     [['iiFx', 'xlsx'], ['iiFp', 'pdf'], ['iiFi', 'img']].forEach(([id, kind])=>$('#'+id).addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) iiRun(kind, f); }));
     $('#iiBtns').addEventListener('click', e=>{ const b = e.target.closest('[data-iipick]'); if (b) $('#'+b.dataset.iipick).click(); });
     $('#iiSheet').addEventListener('click', e=>{ const sg = e.target.closest('[data-iisug]'); if (sg) { const a = sg.dataset.iisug.split('|'); return iiAssign(+a[0], a[1]); } const cm = e.target.closest('[data-iicutmode]'); if (cm) { const r = ii.rows[+cm.dataset.iicutmode]; r.manual = true; r.cuts = []; return renderIi(); } const ct = e.target.closest('[data-iicut]'); if (ct) { const a = ct.dataset.iicut.split('|'), r = ii.rows[+a[0]], p = +a[1]; r.cuts = (r.cuts || []).includes(p) ? r.cuts.filter(x=>x !== p) : (r.cuts || []).concat([p]).sort((x, y)=>x - y); return renderIi(); } const cn = e.target.closest('[data-iicutno]'); if (cn) { const r = ii.rows[+cn.dataset.iicutno]; r.manual = false; r.cuts = []; return renderIi(); } const cg = e.target.closest('[data-iicutgo]'); if (cg) return iiCutGo(+cg.dataset.iicutgo); const sp = e.target.closest('[data-iisplit]'); if (sp) return iiSplitRow(+sp.dataset.iisplit); const nw = e.target.closest('[data-iinew]'); if (nw) return iiCreate(+nw.dataset.iinew); const dr = e.target.closest('[data-iidrop]'); if (dr) { ii.rows.splice(+dr.dataset.iidrop, 1); return renderIi(); } if (e.target.closest('[data-iix]')) { $('#iiSheet').hidden = true; return; } if (e.target.closest('#iiGo')) iiApply(); });
-    $('#iiSheet').addEventListener('change', e=>{ const c = e.target.closest('[data-iion]'); if (c) { ii.rows[+c.dataset.iion].on = c.checked; renderIi(); } else if (e.target.closest('[data-iiwho]')) { const sel = e.target.closest('[data-iiwho]'); if (sel.value) iiAssign(+sel.dataset.iiwho, sel.value); } else if (e.target.id === 'iiRepl') { ii.repl = e.target.checked; } else if (e.target.id === 'iiWant') { ii.want = e.target.checked; renderIi(); } });
+    $('#iiSheet').addEventListener('change', e=>{ const c = e.target.closest('[data-iion]'); if (c) { ii.rows[+c.dataset.iion].on = c.checked; renderIi(); } else if (e.target.closest('[data-iiwho]')) { const sel = e.target.closest('[data-iiwho]'); if (sel.value) iiAssign(+sel.dataset.iiwho, sel.value); } else if (e.target.id === 'iiRepl') { ii.repl = e.target.checked; } else if (e.target.id === 'iiAll') { ii.all = e.target.checked; } else if (e.target.id === 'iiWant') { ii.want = e.target.checked; renderIi(); } });
   }
   iiInit();
   /* Réglages « à la iPhone » : menu de thèmes, puis sous-pages */
