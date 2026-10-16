@@ -793,7 +793,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </div>
           <div class="card" id="inImpCard" hidden>
             <details class="cardfold" id="inFold4"><summary>4) Importer des indisponibilités</summary>
-            <p class="hint">Importez un tableau d’indisponibilités (vacations en semaine, samedis pour l’astreinte, gardes) depuis un fichier ou une photo. Noms à gauche, jours en colonnes. Vous vérifiez avant d’enregistrer.</p>
+            <p class="hint">Importez un tableau d’indisponibilités (vacations en semaine, samedis pour l’astreinte, gardes) depuis un fichier ou une photo. Plusieurs mois d’un coup possibles. Le mois est lu dans le fichier ; ne le choisissez ici que si le tableau n’a que des numéros de jours. Vous vérifiez avant d’enregistrer.</p>
             <div class="f"><label for="iiMonth">Mois du tableau</label><select id="iiMonth"></select></div>
             <div class="exfmt" id="iiBtns"><button type="button" class="primary" data-iipick="iiFx">📊 Excel</button><button type="button" class="primary" data-iipick="iiFp">📄 PDF</button><button type="button" class="primary" data-iipick="iiFi">📷 Photo</button></div>
             <input type="file" id="iiFx" accept=".xlsx,.xls,.csv" hidden><input type="file" id="iiFp" accept="application/pdf,.pdf" hidden><input type="file" id="iiFi" accept="image/*" hidden>
@@ -1604,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '40751e27cd';
+  const BUILD = '3f84a62ce0';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5754,16 +5754,16 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   const iiMonthKey = (y, m) => { const d = new Date(y, m, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); };
   /* tableau (une ligne par personne, une colonne par jour) */
-  function iiMatrix(aoa, selM){
+  function iiMatrix(aoa, selM, hint){
     const out = []; let cols = null, hdrIdx = -1;
     const hdrOf = row => (row || []).map((c, i)=>({c: i, h: iiHdr(c)})).filter(x=>x.h);
     for (let r = 0; r < aoa.length; r++) { const hs = hdrOf(aoa[r]); if (hs.length >= 4) { hdrIdx = r; cols = hs; break; } }
     if (!cols) return out;
-    const title = aoa.slice(0, hdrIdx).map(r=>(r || []).join(' ')).join(' ');
+    const title = (hint || '')+' '+aoa.slice(0, hdrIdx).map(r=>(r || []).join(' ')).join(' ');
     const [sy, sm] = selM.split('-').map(Number);
     let y0 = sy, m0 = sm - 1;
     const withDow = cols.filter(x=>x.h.dow >= 0);
-    const fit = (yy, mm)=>withDow.filter(x=>{ const dt = new Date(yy, mm, x.h.d); return dt.getMonth() === ((mm % 12) + 12) % 12 && (dt.getDay()+6)%7 === x.h.dow; }).length;
+    const fit = (yy, mm)=>{ let y = yy, m = mm, prev = 0, n = 0; cols.forEach(x=>{ if (x.h.d < prev) m++; prev = x.h.d; if (x.h.dow >= 0) { const dt = new Date(y, m, x.h.d); if (dt.getDate() === x.h.d && (dt.getDay()+6)%7 === x.h.dow) n++; } }); return n; };
     if (cols.some(x=>x.h.m)) { const x = cols.find(z=>z.h.m); m0 = x.h.m - 1; if (x.h.y) y0 = x.h.y; }
     else {
       const tn = normS(title); const mi = MOIS_FR.findIndex(mn=>tn.includes(normS(mn)));
@@ -5921,7 +5921,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (kind === 'xlsx') {
       if (!window.XLSX) throw new Error('xlsx');
       const wb = XLSX.read(await file.arrayBuffer(), {type: 'array', cellDates: true, dateNF: 'dd/mm/yyyy'});
-      let all = []; wb.SheetNames.forEach(n=>{ const aoa = XLSX.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: false, defval: '', dateNF: 'dd/mm/yyyy'}); all = all.concat(iiMatrix(aoa, selM), iiDetail(aoa), iiList(aoa), iiText(aoa.map(r=>(r || []).join(' ')), '')); });
+      let all = []; wb.SheetNames.forEach(n=>{ const aoa = XLSX.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: false, defval: '', dateNF: 'dd/mm/yyyy'}); all = all.concat(iiMatrix(aoa, selM, n), iiDetail(aoa), iiList(aoa), iiText(aoa.map(r=>(r || []).join(' ')), '')); });
       return all;
     }
     if (kind === 'img') return iiWordsEntries(await iiOcr(file), selM);
@@ -5945,7 +5945,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   async function iiRun(kind, file){
     if (ii.busy || !file) return;
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
-    ii.busy = true; ii.month = $('#iiMonth').value; iiStat(kind === 'xlsx' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
+    ii.busy = true; ii.month = $('#iiMonth').value || iiMonthKey(new Date().getFullYear(), new Date().getMonth()); iiStat(kind === 'xlsx' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
     try {
       const entries = await iiRead(kind, file, ii.month), c = iiCollect(entries);
       ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.want = false; ii.busy = false; iiStat('');
@@ -5983,7 +5983,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   function iiInit(){
     const sel = $('#iiMonth'); if (!sel || sel.dataset.done) return; sel.dataset.done = '1';
-    const t = new Date(); sel.innerHTML = [...Array(10)].map((_,i)=>{ const m = iiMonthKey(t.getFullYear(), t.getMonth() - 1 + i); return '<option value="'+m+'"'+(i === 1 ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>'; }).join('');
+    const t = new Date(); sel.innerHTML = '<option value="" selected>Automatique : tous les mois du fichier</option>'+[...Array(10)].map((_,i)=>{ const m = iiMonthKey(t.getFullYear(), t.getMonth() - 1 + i); return '<option value="'+m+'">'+esc(monthLbl(m))+'</option>'; }).join('');
     [['iiFx', 'xlsx'], ['iiFp', 'pdf'], ['iiFi', 'img']].forEach(([id, kind])=>$('#'+id).addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) iiRun(kind, f); }));
     $('#iiBtns').addEventListener('click', e=>{ const b = e.target.closest('[data-iipick]'); if (b) $('#'+b.dataset.iipick).click(); });
     $('#iiSheet').addEventListener('click', e=>{ if (e.target.closest('[data-iix]')) { $('#iiSheet').hidden = true; return; } if (e.target.closest('#iiGo')) iiApply(); });
