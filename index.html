@@ -559,7 +559,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 .priol .priabs{font-size:11px;font-weight:600;color:var(--accent)}.priol button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
 .qadd,.qchip{padding-top:6px;padding-bottom:6px;line-height:1.2}.qadd{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px}.qadd small{font-size:11px;font-weight:500;color:var(--muted);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qadd.bad small{color:#C62828}.qadd small:empty{display:none}.qchip{flex-wrap:wrap;row-gap:0}.qchip small{order:3;flex-basis:100%;font-size:11px;font-weight:500;color:var(--muted)}.qchip i{order:2}
 .offstep{align-items:center;justify-content:center;gap:12px}.offstep .astbtn{width:52px;min-height:44px;flex:none}.offstep .offv{min-width:80px;text-align:center;font-size:18px}
-#dpSheet{z-index:420}#iiSheet{z-index:345}.iirow{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px}.iihd{display:flex;align-items:center;gap:10px}.iihd input{width:22px;height:22px}.iihd small{margin-left:auto;color:var(--muted)}.iich-w{display:flex;flex-wrap:wrap;gap:4px}.iich{text-transform:none;letter-spacing:0;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}.iirep{margin-top:6px;font-size:14px}.iiunk{display:flex;flex-direction:column;gap:6px;flex:1}.iisug{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.iisug button{min-height:38px;padding:0 12px}.iisug select{min-height:38px;width:auto;min-width:0}.toast{z-index:600}.sheet-l,.sheet-p{overscroll-behavior:contain}.sheet-l{-webkit-overflow-scrolling:touch;min-height:0}.sheet-bg,.sheet-h{touch-action:none}html:has(.sheet:not([hidden])),body:has(.sheet:not([hidden])){overflow:hidden}
+#dpSheet{z-index:420}#iiSheet{z-index:345}.iirow{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px}.iihd{display:flex;align-items:center;gap:10px}.iihd input{width:22px;height:22px}.iihd small{margin-left:auto;color:var(--muted)}.iich-w{display:flex;flex-wrap:wrap;gap:4px}.iich{text-transform:none;letter-spacing:0;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}.iirep{margin-top:6px;font-size:14px}.iiraw{font-size:13px;color:var(--muted)}.iiraw pre{white-space:pre-wrap;margin:6px 0 0;font:12px var(--font-mono,monospace)}.iiunk{display:flex;flex-direction:column;gap:6px;flex:1}.iisug{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.iisug button{min-height:38px;padding:0 12px}.iisug select{min-height:38px;width:auto;min-width:0}.toast{z-index:600}.sheet-l,.sheet-p{overscroll-behavior:contain}.sheet-l{-webkit-overflow-scrolling:touch;min-height:0}.sheet-bg,.sheet-h{touch-action:none}html:has(.sheet:not([hidden])),body:has(.sheet:not([hidden])){overflow:hidden}
 </style>
 
 <div class="wrap">
@@ -1604,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '0906b0ef0a';
+  const BUILD = '6cfdff907d';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5844,7 +5844,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       res.forEach(([mi, d])=>{
         let dt = iiYearFor(mi, d, null, [4, 5, 6]); if (dt.getMonth() !== mi) return;
         const wd = (dt.getDay()+6)%7; dt = addDays(dt, wd === 4 ? 1 : wd === 6 ? -1 : wd < 4 ? 5 - wd : 0);
-        out.push({name: who || '', k: key(dt), v: soft ? 'AV' : 'J'});
+        out.push({name: who || '', k: key(dt), v: soft ? 'AV' : 'J', from: d+' '+['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'][mi]});
       });
     });
     return out;
@@ -5902,7 +5902,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   function iiCollect(entries){
     entries = entries.flatMap(e=>{ if (e.name === '' || iiWho(e.name)) return [e]; const sp = iiSplit(e.name); return sp ? sp.map(id=>Object.assign({}, e, {name: doctors[id].label})) : [e]; });
     const by = {}, unk = new Set(), seen = new Set();
-    entries.forEach(e=>{ const known = e.name === '' ? '' : iiWho(e.name), id = known || '?', gk = known || '?'+normS(e.name); const sk = gk+'|'+e.k+'|'+(e.v === 'W' ? 'W' : 'I'); if (seen.has(sk)) return; seen.add(sk); (by[gk] || (by[gk] = {id, raw: known ? '' : String(e.name || '').trim(), items: []})).items.push({k: e.k, v: e.v}); });
+    entries.forEach(e=>{ const known = e.name === '' ? '' : iiWho(e.name), id = known || '?', gk = known || '?'+normS(e.name); const sk = gk+'|'+e.k+'|'+(e.v === 'W' ? 'W' : 'I'); if (seen.has(sk)) return; seen.add(sk); (by[gk] || (by[gk] = {id, raw: known ? '' : String(e.name || '').trim(), items: []})).items.push({k: e.k, v: e.v, from: e.from || ''}); });
     return {rows: Object.values(by).map(r=>(r.items.sort((a,b)=>a.k < b.k ? -1 : 1), r.on = true, r)).sort((a,b)=>(a.id === '?' ? 1e6 : (doctors[a.id] || {}).order || 0) - (b.id === '?' ? 1e6 : (doctors[b.id] || {}).order || 0)), unknown: []};
   }
   /* personnes proches d'un nom non reconnu (initiales, faute de lecture, début de nom) */
@@ -5930,7 +5930,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const ls = []; W.forEach(w=>{ const q = ls[ls.length-1]; if (q && Math.abs(w.cy - q.cy) < mh*0.6) { q.w.push(w); q.cy = q.w.reduce((n,x)=>n+x.cy,0)/q.w.length; } else ls.push({cy: w.cy, w: [w]}); });
     const txt = ls.map(q=>q.w.sort((x,y)=>x.x0-y.x0).map(w=>w.t).join(' '));
     let who = ''; for (const q of ls.slice(0, 6)) { for (const w of q.w) { if (iiWho(w.t)) { who = w.t; break; } } if (who) break; }
-    return iiText(txt, who);
+    ii.rawTxt = txt.join('\n'); return iiText(txt, who);
   }
   async function iiRead(kind, file, selM){
     if (kind === 'xlsx') {
@@ -5960,7 +5960,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   async function iiRun(kind, file){
     if (ii.busy || !file) return;
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
-    ii.busy = true; ii.month = $('#iiMonth').value || iiMonthKey(new Date().getFullYear(), new Date().getMonth()); iiStat(kind === 'xlsx' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
+    ii.busy = true; ii.rawTxt = ''; ii.month = $('#iiMonth').value || iiMonthKey(new Date().getFullYear(), new Date().getMonth()); iiStat(kind === 'xlsx' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
     try {
       const entries = await iiRead(kind, file, ii.month), c = iiCollect(entries);
       ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.want = false; ii.busy = false; iiStat('');
@@ -5975,10 +5975,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $('#iiT').textContent = 'Indisponibilités lues';
     $('#iiS').textContent = ii.rows.length+' personne'+(ii.rows.length > 1 ? 's' : '')+' · vérifiez puis enregistrez. Les gardes déjà saisies ne sont jamais écrasées.';
     $('#iiBody').innerHTML = ii.rows.map((r,i)=>{ const its = iiItems(r); if (!its.length) return '';
-      const lst = its.map(x=>{ const d = parse(x.k), sat = (d.getDay()+6)%7 === 5; return '<span class="iich">'+esc(fmtShort.format(d).replace(/\.$/, ''))+(sat && x.v === 'J' ? ' · astreinte' : x.v === 'J' ? '' : ' · '+IIV[x.v])+'</span>'; }).join('');
+      const lst = its.map(x=>{ const d = parse(x.k), sat = (d.getDay()+6)%7 === 5; return '<span class="iich">'+esc(fmtShort.format(d).replace(/\.$/, ''))+(x.from ? ' (Wk '+esc(x.from)+')' : '')+(sat && x.v === 'J' ? ' · astreinte' : x.v === 'J' ? '' : ' · '+IIV[x.v])+'</span>'; }).join('');
       const tg = r.id === '?' ? 'div' : 'label'; return '<'+tg+' class="iirow"><span class="iihd"><input type="checkbox" data-iion="'+i+'"'+(r.on ? ' checked' : '')+(r.id === '?' ? ' disabled' : '')+'>'+(r.id === '?' ? '<span class="iiunk"><b>'+(r.raw ? '« '+esc(r.raw)+' » : qui est-ce ?' : 'Quelle personne ?')+'</b><span class="iisug">'+iiSuggest(r.raw).map(id=>'<button type="button" class="ghost" data-iisug="'+i+'|'+esc(id)+'">→ '+esc(dLabel(id))+'</button>').join('')+'<select data-iiwho="'+i+'"><option value="">Autre personne…</option>'+sortedDocs().map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('')+'</select><button type="button" class="ghost" data-iidrop="'+i+'">Ignorer</button></span></span>' : '<b>'+esc(dLabel(r.id))+'</b>')+'<small>'+its.length+' jour'+(its.length > 1 ? 's' : '')+'</small></span><span class="iich-w">'+lst+'</span></'+tg+'>';
     }).join('')
     + (ii.unknown.length ? '<p class="hint">Noms non reconnus (ignorés) : '+esc(ii.unknown.join(', '))+'</p>' : '')
+    + (ii.rawTxt ? '<details class="iiraw"><summary>Texte lu sur l’image</summary><pre>'+esc(ii.rawTxt)+'</pre></details>' : '')
     + (hasW ? '<label class="check iirep"><input type="checkbox" id="iiWant"'+(ii.want ? ' checked' : '')+'>Importer aussi les souhaits (colonne « Souhait éventuel » : « je veux l’astreinte »)</label>' : '')
     + '<label class="check iirep"><input type="checkbox" id="iiRepl"'+(ii.repl ? ' checked' : '')+'>Remplacer : retirer aussi les autres indispos du mois de ces personnes</label>';
     const go = $('#iiGo'); go.textContent = 'Enregistrer ('+n+' jour'+(n > 1 ? 's' : '')+')'; go.disabled = !n || !canWrite;
