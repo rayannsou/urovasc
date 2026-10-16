@@ -1604,7 +1604,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'a4b625b305';
+  const BUILD = '40751e27cd';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5723,7 +5723,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }, {passive: false});
   /* ---------- import des indisponibilités (Excel, PDF, photo) ---------- */
   const II_DOW = ['lun','mar','mer','jeu','ven','sam','dim'];
-  let ii = {rows: [], unknown: [], month: '', busy: false, repl: false, skipG: 0};
+  let ii = {rows: [], unknown: [], month: '', busy: false, repl: false, want: false};
   /* en-tête de colonne : « 12 », « lun 12 », « lundi 12 », « 12/10 », « 12/10/2026 » */
   function iiHdr(t){
     const s = normS(t).replace(/[,;]/g, ' ').replace(/\s+/g, ' ').trim(); if (!s) return null;
@@ -5822,9 +5822,79 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     });
     return aoa;
   }
+  /* liste « une ligne par samedi » : Date | Indisponibilités (noms) | Souhait éventuel | … */
+  const II_MOIS = ['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
+  function iiYearFor(m, d, prev, dows){
+    const now = new Date(), ok = dows || [5];
+    const cands = [now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y=>new Date(y, m, d)).filter(x=>x.getMonth() === m && ok.includes((x.getDay()+6)%7));
+    const sc = x=>Math.abs(x - now) + (x < now - 14*864e5 ? 1e13 : 0);
+    if (cands.length) return cands.sort((a,b)=>sc(a) - sc(b))[0];
+    let dt = new Date(now.getFullYear(), m, d); if (prev && dt < prev) dt = new Date(prev.getFullYear() + (m < prev.getMonth() ? 1 : 0), m, d);
+    return dt;
+  }
+  /* messages « Wk 7 - 20 - 27 nov / Wk 5 février (sauf si personne dispo) » : week-ends où la personne ne peut pas faire l'astreinte */
+  function iiText(lines, who){
+    const out = [], monIdx = w=>II_MOIS.findIndex(n=>w.length >= 3 && w !== 'jui' && n.startsWith(w));
+    (lines || []).forEach(line=>{
+      const m = normS(line).match(/^\W*(?:w[kli]{1,2}|we|w-e|week-?end)\b\.?\s*(.*)$/); if (!m) return;
+      const soft = /sauf|si possible|eviter|plutot pas|prefere/.test(m[1]), rest = m[1].replace(/\([^)]*\)/g, ' ').replace(/(^|[^a-z0-9])s(?=[^a-z0-9]|$)/g, '$15').replace(/(^|[^a-z0-9])[li](?=[^a-z0-9]|$)/g, '$11');   /* lecture d'image : « S » pour 5, « l » pour 1 */
+      const toks = rest.match(/\d{1,2}|[a-z]{3,9}/g) || [], res = []; let pend = [], last = -1;
+      toks.forEach(t=>{ if (/^\d/.test(t)) { pend.push(+t); return; } const mi = monIdx(t); if (mi < 0) return; pend.forEach(d=>res.push([mi, d])); pend = []; last = mi; });
+      if (pend.length && last >= 0) pend.forEach(d=>res.push([last, d]));
+      res.forEach(([mi, d])=>{
+        let dt = iiYearFor(mi, d, null, [4, 5, 6]); if (dt.getMonth() !== mi) return;
+        const wd = (dt.getDay()+6)%7; dt = addDays(dt, wd === 4 ? 1 : wd === 6 ? -1 : wd < 4 ? 5 - wd : 0);
+        out.push({name: who || '', k: key(dt), v: soft ? 'AV' : 'J'});
+      });
+    });
+    return out;
+  }
+  function iiDateCell(t, prev){
+    const s = normS(t).replace(/[,.]/g, ' ').replace(/\s+/g, ' ').trim(); if (!s) return null;
+    let m = s.match(/(\d{1,2})\s*(?:er)?\s+([a-z]{3,9})/);
+    if (m) { const w = m[2], mi = II_MOIS.findIndex(n=>n === w || (w.length >= 3 && w !== 'jui' && n.startsWith(w))); if (mi >= 0) return iiYearFor(mi, +m[1], prev); }
+    m = s.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
+    if (m && +m[2] >= 1 && +m[2] <= 12) { if (m[3]) return new Date(+m[3] < 100 ? 2000 + (+m[3]) : +m[3], +m[2]-1, +m[1]); return iiYearFor(+m[2]-1, +m[1], prev); }
+    return null;
+  }
+  function iiNames(cell){
+    const out = [], t = String(cell == null ? '' : cell).replace(/\([^)]*\)/g, ' ');
+    t.split(/[,;\/+\n]| et /i).forEach(part=>{ const p = part.trim(); if (!p) return; if (iiWho(p)) { out.push(p); return; } p.split(/\s+/).forEach(w=>{ if (/[A-Za-zÀ-ÿ]{2}/.test(w)) out.push(w); }); });
+    return out;
+  }
+  function iiList(aoa){
+    const out = []; let hi = -1, ci = -1, si = -1;
+    for (let r = 0; r < aoa.length && hi < 0; r++) (aoa[r] || []).forEach((c, i)=>{ if (hi < 0 && ci < 0 && /indispo/.test(normS(c))) { hi = r; ci = i; } });
+    if (hi < 0) return out;
+    (aoa[hi] || []).forEach((c, i)=>{ if (si < 0 && /souhait|souhaite|voeu|veux/.test(normS(c))) si = i; });
+    let dc = -1, best = 0; for (let c = 0; c < ci; c++) { let n = 0; for (let r = hi + 1; r < Math.min(aoa.length, hi + 12); r++) if (iiDateCell((aoa[r] || [])[c])) n++; if (n > best) { best = n; dc = c; } }
+    if (dc < 0) return out;
+    let prev = null;
+    for (let r = hi + 1; r < aoa.length; r++) {
+      const row = aoa[r] || [], dt = iiDateCell(row[dc], prev); if (!dt) continue; prev = dt;
+      const k = key(dt);
+      iiNames(row[ci]).forEach(n=>out.push({name: n, k, v: 'J'}));
+      if (si >= 0) iiNames(row[si]).forEach(n=>out.push({name: n, k, v: 'W'}));
+    }
+    return out;
+  }
+  /* mots positionnés -> même liste : les colonnes sont repérées par l'en-tête « Indisponibilités » */
+  function iiListFromWords(words){
+    const W = (words || []).filter(w=>w && w.t && String(w.t).trim()).map(w=>({t: String(w.t).trim(), x0: w.x0, x1: w.x1, cy: (w.y0+w.y1)/2, h: w.y1-w.y0}));
+    if (W.length < 8) return [];
+    const mh = W.map(w=>w.h).sort((a,b)=>a-b)[Math.floor(W.length/2)] || 10;
+    W.sort((a,b)=>a.cy-b.cy);
+    const lines = []; W.forEach(w=>{ const l = lines[lines.length-1]; if (l && Math.abs(w.cy - l.cy) < mh*0.6) { l.w.push(w); l.cy = l.w.reduce((n,x)=>n+x.cy,0)/l.w.length; } else lines.push({cy: w.cy, w: [w]}); });
+    lines.forEach(l=>l.w.sort((a,b)=>a.x0-b.x0));
+    const hl = lines.find(l=>l.w.some(w=>/indispo/.test(normS(w.t)))); if (!hl) return [];
+    const starts = []; hl.w.forEach((w, i)=>{ if (!i || w.x0 - hl.w[i-1].x1 > mh*1.6) starts.push(w.x0); });
+    const bounds = starts.map((x, i)=>i ? x - mh*0.8 : -1e9), colOf = w=>{ let c = 0; bounds.forEach((b, i)=>{ if (w.x0 >= b) c = i; }); return c; };
+    const rowOf = l=>{ const row = starts.map(()=>''); l.w.forEach(w=>{ const c = colOf(w); row[c] = (row[c] ? row[c]+' ' : '')+w.t; }); return row; };
+    return [rowOf(hl)].concat(lines.filter(l=>l.cy > hl.cy).map(rowOf));
+  }
   function iiCollect(entries){
     const by = {}, unk = new Set(), seen = new Set();
-    entries.forEach(e=>{ const id = iiWho(e.name); if (!id) { unk.add(e.name); return; } const sk = id+'|'+e.k; if (seen.has(sk)) return; seen.add(sk); (by[id] || (by[id] = {id, items: []})).items.push({k: e.k, v: e.v}); });
+    entries.forEach(e=>{ const id = e.name === '' ? '?' : iiWho(e.name); if (!id) { unk.add(e.name); return; } const sk = id+'|'+e.k+'|'+(e.v === 'W' ? 'W' : 'I'); if (seen.has(sk)) return; seen.add(sk); (by[id] || (by[id] = {id, items: []})).items.push({k: e.k, v: e.v}); });
     return {rows: Object.values(by).map(r=>(r.items.sort((a,b)=>a.k < b.k ? -1 : 1), r.on = true, r)).sort((a,b)=>((doctors[a.id] || {}).order || 0) - ((doctors[b.id] || {}).order || 0)), unknown: [...unk]};
   }
   const iiStat = t => { const el = $('#iiStat'); if (el) { el.textContent = t || ''; el.hidden = !t; } };
@@ -5836,26 +5906,37 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (!words || !words.length) words = ((r && r.data && r.data.blocks) || []).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[])));
     return (words || []).filter(w=>w && w.bbox).map(w=>({t: w.text, x0: w.bbox.x0, x1: w.bbox.x1, y0: w.bbox.y0, y1: w.bbox.y1}));
   }
+  function iiWordsEntries(words, selM){
+    const a = iiMatrix(iiFromWords(words), selM); if (a.length) return a;
+    const l = iiList(iiListFromWords(words)); if (l.length) return l;
+    const W = (words || []).filter(w=>w && w.t && String(w.t).trim()).map(w=>({t: String(w.t).trim(), x0: w.x0, cy: (w.y0+w.y1)/2, h: w.y1-w.y0}));
+    if (!W.length) return [];
+    const mh = W.map(w=>w.h).sort((x,y)=>x-y)[Math.floor(W.length/2)] || 10; W.sort((x,y)=>x.cy-y.cy);
+    const ls = []; W.forEach(w=>{ const q = ls[ls.length-1]; if (q && Math.abs(w.cy - q.cy) < mh*0.6) { q.w.push(w); q.cy = q.w.reduce((n,x)=>n+x.cy,0)/q.w.length; } else ls.push({cy: w.cy, w: [w]}); });
+    const txt = ls.map(q=>q.w.sort((x,y)=>x.x0-y.x0).map(w=>w.t).join(' '));
+    let who = ''; for (const q of ls.slice(0, 6)) { for (const w of q.w) { if (iiWho(w.t)) { who = w.t; break; } } if (who) break; }
+    return iiText(txt, who);
+  }
   async function iiRead(kind, file, selM){
     if (kind === 'xlsx') {
       if (!window.XLSX) throw new Error('xlsx');
       const wb = XLSX.read(await file.arrayBuffer(), {type: 'array', cellDates: true, dateNF: 'dd/mm/yyyy'});
-      let all = []; wb.SheetNames.forEach(n=>{ const aoa = XLSX.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: false, defval: '', dateNF: 'dd/mm/yyyy'}); all = all.concat(iiMatrix(aoa, selM), iiDetail(aoa)); });
+      let all = []; wb.SheetNames.forEach(n=>{ const aoa = XLSX.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: false, defval: '', dateNF: 'dd/mm/yyyy'}); all = all.concat(iiMatrix(aoa, selM), iiDetail(aoa), iiList(aoa), iiText(aoa.map(r=>(r || []).join(' ')), '')); });
       return all;
     }
-    if (kind === 'img') return iiMatrix(iiFromWords(await iiOcr(file)), selM);
+    if (kind === 'img') return iiWordsEntries(await iiOcr(file), selM);
     const lib = await loadPdfJs(), doc = await lib.getDocument({data: await file.arrayBuffer()}).promise; let all = [];
     for (let p = 1; p <= Math.min(doc.numPages, 12); p++) {
       iiStat('Lecture du PDF… page '+p+' / '+doc.numPages);
       const page = await doc.getPage(p), tc = await page.getTextContent();
       let words = tc.items.filter(it=>it.str && it.str.trim()).map(it=>({t: it.str.trim(), x0: it.transform[4], x1: it.transform[4] + (it.width || 0), y0: -(it.transform[5] + (it.height || 8)), y1: -it.transform[5]}));
-      let got = words.length >= 15 ? iiMatrix(iiFromWords(words), selM) : [];
+      let got = words.length >= 15 ? iiWordsEntries(words, selM) : [];
       if (!got.length) {
         const v0 = page.getViewport({scale: 1}), sc = Math.min(3, 2400 / v0.width), vp = page.getViewport({scale: sc});
         const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
         const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); await page.render({canvasContext: cx, viewport: vp}).promise;
         const blob = await new Promise(r=>cv.toBlob(r, 'image/png'));
-        got = iiMatrix(iiFromWords(await iiOcr(new File([blob], 'p'+p+'.png', {type: 'image/png'}))), selM);
+        got = iiWordsEntries(await iiOcr(new File([blob], 'p'+p+'.png', {type: 'image/png'})), selM);
       }
       all = all.concat(got);
     }
@@ -5867,32 +5948,35 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     ii.busy = true; ii.month = $('#iiMonth').value; iiStat(kind === 'xlsx' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
     try {
       const entries = await iiRead(kind, file, ii.month), c = iiCollect(entries);
-      ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.busy = false; iiStat('');
+      ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.want = false; ii.busy = false; iiStat('');
       if (!ii.rows.length) return notify(entries.length ? 'Aucun nom reconnu dans ce fichier : vérifiez que les noms sont les mêmes que dans l’app ('+c.unknown.slice(0,4).join(', ')+').' : 'Aucune indisponibilité trouvée. Il faut un tableau avec les noms à gauche et les jours en colonnes (ex. « lun 5 », « mar 6 »…).', true);
       $('#iiSheet').hidden = false; renderIi();
     } catch(e) { ii.busy = false; iiStat(''); notify(kind === 'xlsx' ? 'Lecture du fichier impossible.' : 'Lecture impossible (connexion ?). Réessayez.', true); }
   }
-  const IIV = {J: 'indispo', M: 'matin', AM: 'après-midi', G: 'garde'};
+  const IIV = {J: 'indispo', M: 'matin', AM: 'après-midi', G: 'garde', W: 'souhait', AV: 'de préférence pas'};
+  const iiItems = r => r.items.filter(x=>ii.want || x.v !== 'W');
   function renderIi(){
-    const n = ii.rows.filter(r=>r.on).reduce((a,r)=>a + r.items.length, 0);
+    const n = ii.rows.filter(r=>r.on && r.id !== '?').reduce((a,r)=>a + iiItems(r).length, 0), hasW = ii.rows.some(r=>r.items.some(x=>x.v === 'W'));
     $('#iiT').textContent = 'Indisponibilités lues';
     $('#iiS').textContent = ii.rows.length+' personne'+(ii.rows.length > 1 ? 's' : '')+' · vérifiez puis enregistrez. Les gardes déjà saisies ne sont jamais écrasées.';
-    $('#iiBody').innerHTML = ii.rows.map((r,i)=>{
-      const lst = r.items.map(x=>{ const d = parse(x.k), sat = (d.getDay()+6)%7 === 5; return '<span class="iich">'+esc(fmtShort.format(d).replace(/\.$/, ''))+(sat && x.v !== 'G' ? ' · astreinte' : x.v === 'J' ? '' : ' · '+IIV[x.v])+'</span>'; }).join('');
-      return '<label class="iirow"><span class="iihd"><input type="checkbox" data-iion="'+i+'"'+(r.on ? ' checked' : '')+'><b>'+esc(dLabel(r.id))+'</b><small>'+r.items.length+' jour'+(r.items.length > 1 ? 's' : '')+'</small></span><span class="iich-w">'+lst+'</span></label>';
+    $('#iiBody').innerHTML = ii.rows.map((r,i)=>{ const its = iiItems(r); if (!its.length) return '';
+      const lst = its.map(x=>{ const d = parse(x.k), sat = (d.getDay()+6)%7 === 5; return '<span class="iich">'+esc(fmtShort.format(d).replace(/\.$/, ''))+(sat && x.v === 'J' ? ' · astreinte' : x.v === 'J' ? '' : ' · '+IIV[x.v])+'</span>'; }).join('');
+      const tg = r.id === '?' ? 'div' : 'label'; return '<'+tg+' class="iirow"><span class="iihd"><input type="checkbox" data-iion="'+i+'"'+(r.on ? ' checked' : '')+(r.id === '?' ? ' disabled' : '')+'>'+(r.id === '?' ? '<select data-iiwho="'+i+'"><option value="">Quelle personne ?</option>'+sortedDocs().map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label)+'</option>').join('')+'</select>' : '<b>'+esc(dLabel(r.id))+'</b>')+'<small>'+its.length+' jour'+(its.length > 1 ? 's' : '')+'</small></span><span class="iich-w">'+lst+'</span></'+tg+'>';
     }).join('')
     + (ii.unknown.length ? '<p class="hint">Noms non reconnus (ignorés) : '+esc(ii.unknown.join(', '))+'</p>' : '')
+    + (hasW ? '<label class="check iirep"><input type="checkbox" id="iiWant"'+(ii.want ? ' checked' : '')+'>Importer aussi les souhaits (colonne « Souhait éventuel » : « je veux l’astreinte »)</label>' : '')
     + '<label class="check iirep"><input type="checkbox" id="iiRepl"'+(ii.repl ? ' checked' : '')+'>Remplacer : retirer aussi les autres indispos du mois de ces personnes</label>';
     const go = $('#iiGo'); go.textContent = 'Enregistrer ('+n+' jour'+(n > 1 ? 's' : '')+')'; go.disabled = !n || !canWrite;
   }
   async function iiApply(){
     const go = $('#iiGo'); go.disabled = true; let nd = 0, np = 0, skip = 0;
-    for (const r of ii.rows.filter(x=>x.on)) {
-      const doc = doctors[r.id]; if (!doc) continue; const days = doc.days || {}, patch = {}, months = new Set(r.items.map(x=>x.k.slice(0,7))), inFile = new Set(r.items.map(x=>x.k));
-      r.items.forEach(x=>{ const cur = days[x.k]; if ((cur === 'G' && x.v !== 'G') || cur === 'A') { skip++; return; } if (cur !== x.v) patch[x.k] = x.v; });
+    for (const r of ii.rows.filter(x=>x.on && x.id !== '?')) {
+      const doc = doctors[r.id]; if (!doc) continue; const days = doc.days || {}, patch = {}, its = iiItems(r), real = its.filter(x=>x.v !== 'W' && x.v !== 'AV'), wants = its.filter(x=>x.v === 'W' || x.v === 'AV'), months = new Set(real.map(x=>x.k.slice(0,7))), inFile = new Set(real.map(x=>x.k));
+      if (wants.length) { const dem = {}; wants.forEach(x=>{ dem[x.k] = {t: '', w: x.v === 'AV' ? 'avoid' : 'want'}; }); try { await db.doc('medecins/'+r.id).update({dem}); nd += wants.length; np++; } catch(e) { handleErr(e); } }
+      real.forEach(x=>{ const cur = days[x.k]; if ((cur === 'G' && x.v !== 'G') || cur === 'A') { skip++; return; } if (cur !== x.v) patch[x.k] = x.v; });
       if (ii.repl) Object.keys(days).forEach(k=>{ if (months.has(k.slice(0,7)) && !inFile.has(k) && (days[k] === 'J' || days[k] === 'M' || days[k] === 'AM')) patch[k] = null; });
       if (!Object.keys(patch).length) continue;
-      if (await setDays(r.id, patch)) { nd += Object.keys(patch).length; np++; } else { go.disabled = false; return; }
+      if (await setDays(r.id, patch)) { nd += Object.keys(patch).length; if (!wants.length) np++; } else { go.disabled = false; return; }
     }
     $('#iiSheet').hidden = true;
     notify(nd ? nd+' jour'+(nd > 1 ? 's' : '')+' enregistré'+(nd > 1 ? 's' : '')+' pour '+np+' personne'+(np > 1 ? 's' : '')+(skip ? ' · '+skip+' jour'+(skip > 1 ? 's' : '')+' déjà de garde ou d’astreinte conservé'+(skip > 1 ? 's' : '') : '')+'.' : 'Rien à changer : tout était déjà à jour.');
@@ -5903,7 +5987,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     [['iiFx', 'xlsx'], ['iiFp', 'pdf'], ['iiFi', 'img']].forEach(([id, kind])=>$('#'+id).addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) iiRun(kind, f); }));
     $('#iiBtns').addEventListener('click', e=>{ const b = e.target.closest('[data-iipick]'); if (b) $('#'+b.dataset.iipick).click(); });
     $('#iiSheet').addEventListener('click', e=>{ if (e.target.closest('[data-iix]')) { $('#iiSheet').hidden = true; return; } if (e.target.closest('#iiGo')) iiApply(); });
-    $('#iiSheet').addEventListener('change', e=>{ const c = e.target.closest('[data-iion]'); if (c) { ii.rows[+c.dataset.iion].on = c.checked; renderIi(); } else if (e.target.id === 'iiRepl') { ii.repl = e.target.checked; } });
+    $('#iiSheet').addEventListener('change', e=>{ const c = e.target.closest('[data-iion]'); if (c) { ii.rows[+c.dataset.iion].on = c.checked; renderIi(); } else if (e.target.closest('[data-iiwho]')) { const sel = e.target.closest('[data-iiwho]'), r = ii.rows[+sel.dataset.iiwho]; if (sel.value) { const o = ii.rows.find(x=>x !== r && x.id === sel.value); if (o) { o.items = o.items.concat(r.items); ii.rows.splice(ii.rows.indexOf(r), 1); } else { r.id = sel.value; r.on = true; } } renderIi(); } else if (e.target.id === 'iiRepl') { ii.repl = e.target.checked; } else if (e.target.id === 'iiWant') { ii.want = e.target.checked; renderIi(); } });
   }
   iiInit();
   /* Réglages « à la iPhone » : menu de thèmes, puis sous-pages */
