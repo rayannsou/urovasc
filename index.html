@@ -1568,7 +1568,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const days = doc.days || {};
     const v = days[k] || null;
     const prev = days[key(addDays(parse(k),-1))] || null;
-    if (v === 'G') return {kind:'G', M:'G', AM:'G'};
+    if (v === 'G') return {kind:'G', M:null, AM:null};   /* le jour de garde on travaille normalement : seul le lendemain est « repos de garde » */
     if (prev === 'G') return {kind:'R', M:'R', AM:'R'};
     if (v === 'A') return {kind:'A', M:'A', AM:null};
     if (v === 'J') return {kind:'I', M:'I', AM:'I', part:'J'};
@@ -1617,7 +1617,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '29cba134b2';
+  const BUILD = '715fc06256';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -1865,6 +1865,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         if (st && !acc) sub += ' — ⚠ mais vous êtes '+(st === 'G' ? 'de garde' : st === 'R' ? 'en repos de garde' : 'indisponible');
         if (acc) sub += ' — ✓ acceptée malgré votre '+(st === 'G' ? 'garde' : st === 'R' ? 'repos de garde' : 'indisponibilité');
       } else if (st) { cls += ' '+STAT[st][0]; what = STAT[st][1]; }
+      else if (dayInfo(doc,kk).kind === 'G') { cls += ' g'; what = 'De garde · pas de vacation'; }
       else { cls += ' free'; what = isIntId(me) ? 'Off ☀️🏝️' : 'Pas de vacation'; }
       if (!vs.length && !st) return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what lone">'+what+'</span></div>';
       const acts = vs.length && st ? '<span class="cfhint">'+(acc ? 'Acceptée · toucher pour modifier ›' : 'Toucher pour accepter ou refuser ›')+'</span>' : '';
@@ -1885,7 +1886,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const chipsFor = (kk, part)=>{
       const st = dayInfo(doc,kk)[part], vs = dayVacs(me,kk).filter(v=>v.part === part), acc = !!(vs.length && st && doc.ok && doc.ok[kk+'_'+part]);
       const bad = vs.length && st && !acc;
-      if (!vs.length) return st ? '<span class="mst '+STAT[st][0]+'">'+({G:'Garde',R:'Off',A:'Astreinte',I:'Indispo'})[st]+'</span>' : '<span class="mnone">—</span>';
+      if (!vs.length) return st ? '<span class="mst '+STAT[st][0]+'">'+({G:'Garde',R:'Off',A:'Astreinte',I:'Indispo'})[st]+'</span>' : dayInfo(doc,kk).kind === 'G' ? '<span class="mst g">Garde</span>' : '<span class="mnone">—</span>';
       return '<span class="mch'+(vs.length && st ? ' cfo' : '')+'"'+(vs.length && st ? ' role="button" tabindex="0" data-cfo="'+kk+'|'+part+'"' : '')+'>'+vs.map(v=>'<span class="mc'+(bad ? ' bad' : '')+'" style="--pc:'+posteColor(v.poste)+'">'+esc(postName(v.poste,kk))+(v.ou ? ' ?' : '')+'</span>').join('')+(bad ? '<small class="mw">⚠ '+({G:'garde',R:'repos',A:'astreinte',I:'indispo'})[st]+'</small>' : acc ? '<small class="mw ok">✓ accepté</small>' : '')+'</span>';
     };
     const astP = trame && trame.postes.find(isSam);
@@ -3575,7 +3576,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const offRows = PARTS.map(part=>({p: OFFP, part, cells: days.map((d,i)=>{
       if (isFerie(dk[i])) return {who: [], texte: part === 'M' ? 'Férié · '+ferieName(dk[i]) : '', ou: false};   /* jour férié : pas de off */
       const ids = new Set(), a = absAt(dk[i], part); Object.values(a).forEach(l=>l.forEach(id=>{ if (inG(id)) ids.add(id); }));
-      sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i])[part] !== 'G' && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
+      sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i]).kind !== 'G' && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
       return {who: sdocs.filter(dc=>ids.has(dc.id)).map(dc=>dc.id), texte: '', ou: false};
     })}));
     if (offRows.some(r=>r.cells.some(c=>c.who.length || c.texte))) offRows.forEach(r=>rows.push(r));
