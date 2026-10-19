@@ -1603,8 +1603,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
   function handleErr(e){
     if (e && e.code === 'invalid_argument') {
-      canWrite = false; renderAll();
-      notify("Modification refusée : vous n'avez pas le droit d'écrire dans ce planning.", true);
+      notify("Modification refusée par la base (invalid_argument). Réessayez ; si cela persiste, vérifiez vos droits d'écriture.", true);
     } else {
       notify("Enregistrement impossible. Réessayez dans un instant.", true);
     }
@@ -1620,7 +1619,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'bbabe44a95';
+  const BUILD = '073aed1f13';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3091,8 +3090,10 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     let ok = true;
     if (imp) ok = await applyWeeks(imp, {extrasOnly: true});     /* nouvelles personnes, absences */
     const failK = [];
-    for (const w of ws) { if (!ok) break; w.val.t = Date.now(); const sg0 = plGrp; if (w.both) plGrp = ''; let r = false; try { r = await setOverride(w.k, w.kk, w.val); } finally { plGrp = sg0; } if (!r) { failK.push(w.k); if (!imp && plMode === 'ast' && Date.now() < codeUntil) continue; ok = false; } }
-    if (failK.length && !imp && plMode === 'ast') { ok = false; notify('⚠ '+(ws.length - failK.length)+' astreinte'+(ws.length - failK.length > 1 ? 's enregistrées' : ' enregistrée')+', '+failK.length+' non enregistrée'+(failK.length > 1 ? 's' : '')+' : '+failK.slice(0, 6).map(k=>fmtShort.format(parse(k))).join(', ')+(failK.length > 6 ? '…' : '')+'. Recommencez la création : seuls les samedis vides seront complétés.', true); }
+    for (const w of ws) { if (!ok) break; w.val.t = Date.now(); let r = false;
+      for (let tr = 0; tr < 3 && !r; tr++) { if (tr) await new Promise(res=>setTimeout(res, 700*tr)); const sg0 = plGrp; if (w.both) plGrp = ''; try { r = await setOverride(w.k, w.kk, w.val); } finally { plGrp = sg0; } }
+      if (!r) { failK.push(w.k); if (imp) ok = false; } }
+    if (failK.length && !imp) { ok = false; notify('⚠ '+(ws.length - failK.length)+' enregistrée'+(ws.length - failK.length > 1 ? 's' : '')+' sur '+ws.length+', '+failK.length+' non enregistrée'+(failK.length > 1 ? 's' : '')+' (connexion ?) : '+failK.slice(0, 6).map(k=>fmtShort.format(parse(k))).join(', ')+(failK.length > 6 ? '…' : '')+'. Recommencez la création : seules les cases vides seront complétées.', true); }
     if (ok && plMode !== 'ast') plPdfNew = true;
     plStage = 'man'; renderCompose();
     if (ok && !imp && plMode !== 'ast' && plGrp === 'interne') setTimeout(offOpen, 1200);
