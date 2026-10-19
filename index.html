@@ -355,6 +355,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .lview .astr{margin-top:0}
 .subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
 .subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
+.codeov{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}.codebox{background:var(--card,#fff);color:var(--ink,#111);border-radius:16px;padding:18px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px}.codebox input{font-size:18px;padding:10px 12px;border:1.5px solid var(--line,#ccc);border-radius:10px;background:var(--bg,#fff);color:inherit;width:100%;box-sizing:border-box}.codeerr{color:var(--red,#b3392b);margin:0}
 body.nonadm #creerCard,body.nonadm #exportCard,body.nonadm #teamCard,body.nonadm #gaExp,body.nonadm #trameCfg,body.nonadm .gaed{display:none!important}body.nonadm .gastrow{cursor:default}
 .gastrow{padding:12px 14px;cursor:pointer}.gaed{margin-left:8px;color:var(--muted);font-size:14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
 .plstat{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;font-size:14px;font-weight:600}.plstat .ok{color:var(--grn)}.plstat .ko{color:var(--red)}.plstat .mid{color:var(--ind-ink)}.plstat small{font-weight:400;color:var(--muted)}#plDays .dok{color:var(--grn);font-weight:700}
@@ -1617,7 +1618,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '715fc06256';
+  const BUILD = '87181bcf8f';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -1640,6 +1641,19 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (c === null) return false;
     if (c.trim().toLowerCase() !== 'grenier') { notify('Code incorrect.', true); return false; }
     codeUntil = Date.now() + 30*60*1000; return true;
+  }
+  /* code demandé dans l'appli (la fenêtre native de Safari peut être bloquée ou ignorée) */
+  function ensureCode(why){
+    if (Date.now() < codeUntil) return Promise.resolve(true);
+    return new Promise(res=>{
+      const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+      w.innerHTML = '<div class="codebox"><p><b>Code requis</b><br><small>'+esc(why)+'</small></p><input type="password" id="codeIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Code"><p class="codeerr" id="codeErr" hidden>Code incorrect.</p><div class="astpair"><button type="button" class="ghost astbtn" data-codeno="1">Annuler</button><button type="button" class="primary astbtn" data-codeok="1">Valider</button></div></div>';
+      document.body.appendChild(w); const inp = w.querySelector('#codeIn'); setTimeout(()=>{ try { inp.focus(); } catch(e) {} }, 50);
+      const done = ok=>{ w.remove(); res(ok); };
+      const go = ()=>{ if ((inp.value || '').trim().toLowerCase() === 'grenier') { codeUntil = Date.now() + 30*60*1000; done(true); } else { w.querySelector('#codeErr').hidden = false; inp.value = ''; inp.focus(); } };
+      w.addEventListener('click', e=>{ if (e.target.closest('[data-codeno]') || e.target === w) done(false); else if (e.target.closest('[data-codeok]')) go(); });
+      inp.addEventListener('keydown', e=>{ if (e.key === 'Enter') { e.preventDefault(); go(); } });
+    });
   }
   let butoir = {d: {}, unlock: {}, req: {}, nm: 3}, butKind = 'sem';
   const BUT_KIND = {sem: 'semaine', ast: 'astreinte'};
@@ -1766,7 +1780,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $('#iwJump').closest('.f').hidden = inMode === 'sat';
     { const pf = $('#period'); if (pf) pf.hidden = inMode === 'sat'; }
     const IND = {J:'Indisponible toute la journée', M:'Indisponible le matin', AM:"Indisponible l'après-midi"};
-    const optsSat = own => { const b = [['','Disponible'],['J','Indisponible']]; if (own === 'M' || own === 'AM' || own === 'G') b.push([own, own === 'G' ? 'De garde · Off le lendemain' : own === 'M' ? 'Indisponible le matin' : "Indisponible l'après-midi"]); b.push(['S','Demande spécifique de ce jour']); return b; };
+    const optsSat = own => { const b = [['','Disponible'],['J','Indisponible']]; if (own === 'M' || own === 'AM' || own === 'G') b.push([own, own === 'G' ? 'De garde · Off le lendemain' : own === 'M' ? 'Indisponible le matin' : "Indisponible l'après-midi"]); if (own === 'S') b.push(['S','Demande spécifique de ce jour']); b.push(['SW','Je veux l’astreinte ce jour'],['SA','Je préfère l’éviter']); return b; };
     const opts = [['','Disponible'],['J',IND.J],['M',IND.M],['AM',IND.AM],['G','De garde · Off le lendemain']];
     const vacHtml = (k)=>dayVacs(me,k).map(v=>{
       const r = reasonFor(me,k,v.part);
@@ -1793,7 +1807,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const inList = inMode === 'sat' ? [...Array(8)].map((_,j)=>[addDays(myWeek,5+7*j),5]) : [0,1,2,3,4,5,6].map(j=>[days[j],j]);   /* le dimanche sert à poser les gardes */
     const lockMs = [...new Set(inList.map(x=>key(x[0]).slice(0,7)))].filter(m=>butLocked(me, m+'-01'));
     $('#myDays').innerHTML = butBanners(lockMs) + inList.map(([d,i])=>{
-      const k = key(d), inf = dayInfo(doc,k), dem = i === 5 ? demGet(doc, k) : null, own = dem ? 'S' : (doc.days[k] || '');
+      const k = key(d), inf = dayInfo(doc,k), dem = i === 5 ? demGet(doc, k) : null, own = dem ? (dem.w === 'want' ? 'SW' : dem.w === 'avoid' ? 'SA' : 'S') : (doc.days[k] || '');
       let body = '';
       if (dem) { const dd = !(canWrite && !butLocked(me, k)) ? ' disabled' : ''; body += '<div class="demrow"><button type="button" data-demw="want" data-demk2="'+k+'" aria-pressed="'+(dem.w === 'want')+'"'+dd+'>Je veux l’astreinte ce jour</button><button type="button" data-demw="avoid" data-demk2="'+k+'" aria-pressed="'+(dem.w === 'avoid')+'"'+dd+'>Je préfère ne pas la faire</button></div><input type="text" class="dr-dem" data-demk="'+k+'" value="'+esc(dem.t)+'" maxlength="160" placeholder="Précision (facultatif)" autocomplete="off" aria-label="Précision pour le '+esc(fmtShort.format(d))+'"'+dd+'>'; }
       if (own === 'G') body += '<span class="none-txt">Repos de garde posé le '+esc(fmtShort.format(addDays(d,1)))+'</span>';
@@ -1801,7 +1815,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const cf = dayVacs(me,k).filter(v=>reasonFor(me,k,v.part));
       body += cf.map(v=>'<div class="vac bad"><span class="vp">'+v.part+'</span><span>'+esc(postName(v.poste,k))+' <small>vous y êtes affecté(e) : à échanger</small></span></div>').join('');
       const head = '<label class="dr-date" for="ds-'+k+'">'+dateTxt(d,k)+'</label>'
-        + '<select id="ds-'+k+'" class="dr-sel'+(own === 'G' ? ' sel-G' : own === 'S' ? ' sel-S' : (own || inf.kind === 'R') ? ' sel-I' : '')+'" data-k="'+k+'"'+(canWrite && inf.kind !== 'R' && !butLocked(me, k) ? '' : ' disabled')+'>'
+        + '<select id="ds-'+k+'" class="dr-sel'+(own === 'G' ? ' sel-G' : own.charAt(0) === 'S' ? ' sel-S' : (own || inf.kind === 'R') ? ' sel-I' : '')+'" data-k="'+k+'"'+(canWrite && inf.kind !== 'R' && !butLocked(me, k) ? '' : ' disabled')+'>'
         + (inf.kind === 'R' ? [['R','Indisponible · Off lendemain de garde (auto)']] : own === 'A' ? opts.concat([['A','Astreinte (samedi matin)']]) : i === 5 ? optsSat(own) : i === 6 ? [['','Disponible'],['G','De garde · Off le lendemain']] : opts).map(o=>'<option value="'+o[0]+'"'+(o[0] === own || o[0] === 'R' ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>';
       return rowWrap(d,i,k,head,body);
     }).join('');
@@ -2154,6 +2168,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const astMonths = () => plMode === 'ast' ? [...new Set(astSats().map(d=>key(d).slice(0,7)))] : [...new Set([0,4].map(i=>key(addDays(plStart,i)).slice(0,7)))];
   let astPrio = new Set(), astCapP = 0, astCapO = 0;
   const astCapOf = d => d.astMax || 99, astW = d => (astPrio.has(d.id) ? astCapP : astCapO) || 1;
+  let astExclOk = false;
+  function exclHtml(){
+    const docs = grpDocs(), n = docs.filter(d=>d.noAst).length;
+    return '<div class="qcard"><p class="qt">🚫 Qui ne fait pas d’astreinte ?</p><p class="qh">Touchez les personnes à exclure de ce planning (elles seront rouges). Laissez vide si tout le monde en fait.</p>'
+      + '<div class="plc">'+docs.map(d=>'<button type="button" class="plsg'+(d.noAst ? ' na' : ' alt')+'" data-astnoex="'+esc(d.id)+'" aria-pressed="'+!!d.noAst+'"'+(canWrite ? '' : ' disabled')+'>'+(d.noAst ? '🚫 ' : '')+esc(d.label)+'</button>').join('')+'</div>'
+      + '<div class="qbtns"><button type="button" data-astexclok="1" aria-pressed="'+astExclOk+'">'+(astExclOk ? '✓ Liste validée' : (n ? 'Valider : '+n+' sans astreinte' : 'Valider : tout le monde en fait'))+'</button></div></div>';
+  }
   function capHtml(){
     const docs = grpDocs().filter(d=>!d.noAst), nOpt = v=>'<option value="0">—</option>'+[1,2,3,4,5,6].map(n=>'<option value="'+n+'"'+(v === n ? ' selected' : '')+'>'+n+'</option>').join('');
     return '<div class="qcard"><p class="qt">⚖️ Répartition : prioriser certaines personnes</p><p class="qh">Touchez les personnes à favoriser. Quand il faut départager, elles reçoivent plus d’astreintes que les autres, dans la proportion indiquée (ex. 3 pour les prioritaires et 2 pour les autres : sur 5 astreintes, 3 et 2). Les autres sont servies aussi.</p>'
@@ -2223,7 +2244,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   async function plWeekDel(){
     if (!trame || !db) return notify('Les postes du service ne sont pas encore chargés.', true);
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
-    if (!askCode('supprimer le planning')) return;
+    if (!(await ensureCode('supprimer le planning'))) return;
     histSave('Planning de la semaine supprimé', [0,1,2,3,4].map(i=>key(addDays(plStart, i))));
     const posts = trame.postes.filter(p=>!p.info && !isSam(p)); let n = 0;
     try {
@@ -2424,12 +2445,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       + astMonthList().map(m=>{ const n = astMissing([m]).length; return '<label class="astrow mrow'+(astSel.includes(m) ? ' on' : '')+'"><span class="mt"><input type="checkbox" data-astm="'+m+'"'+(astSel.includes(m) ? ' checked' : '')+'><b>'+esc(monthLbl(m))+'</b></span><small class="aststat '+(n ? 'ko' : 'ok')+'">'+(n ? n+' personne'+(n > 1 ? 's n’ont' : ' n’a')+' pas renseigné' : '✓ tout le monde a renseigné')+'</small></label>'; }).join('')
       + '<button type="button" class="astbtn go" data-astmgo="1"'+(astSel.length ? '' : ' disabled')+' style="margin-top:8px">Continuer'+(astSel.length ? ' ('+astSel.length+' mois)' : '')+'</button>';
     else if (plStage === 'astask') box.innerHTML = '<button type="button" class="ghost astback" data-plstage="auto">‹ Retour</button><p class="aststat"><b>Avant de générer</b> : '+(ast ? 'y a-t-il des personnes que vous devez poser à la main ?' : 'faut-il fermer une vacation ?')+'</p><p class="hint">'+(ast ? 'Les samedis déjà pourvus sont conservés : la génération automatique complète seulement les samedis restants.' : 'Une vacation fermée reste sans personne : la génération ne la remplit pas. Vous pouvez aussi y poser quelqu’un à la main avant.')+'</p><div class="astcol">'+lb('data-astyes="1"',(ast ? '✋' : '🔒'),(ast ? 'Oui, je les pose d’abord' : 'Oui, je ferme d’abord'))+lb('data-astno="1"','⚡','Non, générer maintenant',dis)+'</div>';
-    else if (plStage === 'man') box.innerHTML = back + (ast ? (astOn ? capHtml()+'<button type="button" class="astbtn go" data-astassign="1"'+dis+'>⚡ Générer le reste automatiquement</button>' : '') : '<button type="button" class="astbtn go" data-wzgo="'+(wzStep+1)+'">Continuer ›</button><p class="hint" style="margin:6px 0 0">Quand vous avez terminé ici, touchez « Continuer » pour passer à l’étape suivante de la génération.</p>');
+    else if (plStage === 'man') box.innerHTML = back + (ast ? (astOn ? exclHtml()+capHtml()+'<button type="button" class="astbtn go" data-astassign="1"'+dis+(astExclOk ? '' : ' disabled')+'>⚡ Générer le reste automatiquement</button>' : '') : '<button type="button" class="astbtn go" data-wzgo="'+(wzStep+1)+'">Continuer ›</button><p class="hint" style="margin:6px 0 0">Quand vous avez terminé ici, touchez « Continuer » pour passer à l’étape suivante de la génération.</p>');
     else if (!ast && plStage === 'auto') box.innerHTML = wzHtml(back, stat, allOk, miss, dis);
     else box.innerHTML = back + (plGrp === 'interne' && !ast ? '<div class="intq"><p class="aststat"><b>Échographie et scanner des urgences</b> : uniquement des internes autonomes ?</p><p class="hint">Par défaut : 1 autonome + 1 autre (autonome ou non). Il peut donc n’y avoir aucun interne « pas autonome » si les autonomes suffisent. Touchez « Que des autonomes » pour l’imposer. À l’échographie, « 2 non autonomes » est aussi possible.</p>'+[['echo','Échographie'],['scanner-urg','Scanner des urgences']].filter(q=>trame.postes.some(p=>p.id === q[0])).map(q=>'<div class="intqr"><span>'+q[1]+'</span><div class="astpair"><button type="button" class="astbtn" data-intauto="'+q[0]+'|1" aria-pressed="'+!!intOnlyAuto[q[0]]+'">Que des autonomes</button><button type="button" class="astbtn" data-intauto="'+q[0]+'|0" aria-pressed="'+(!intOnlyAuto[q[0]] && !intNon[q[0]])+'">1 autonome + 1 autre</button>'+(q[0] === 'echo' ? '<button type="button" class="astbtn" data-intauto="echo|2" aria-pressed="'+!!intNon.echo+'">2 non autonomes</button>' : '')+'</div></div>').join('')+'</div>' : '') + (plGrp === 'interne' && !ast ? intCustomBtn() : '') + (plGrp === 'interne' && !ast && intCustom ? intNeedUI() : '') + (ast || qAns === 'nopost' || qAns === 'no'
         ? '<div class="qcard"><p class="qt">'+(ast ? '✋ Faut-il poser des personnes à la main avant&nbsp;?' : '🔒 Faut-il fermer une vacation&nbsp;?')+'</p><p class="qh">'+(ast ? 'Les samedis déjà pourvus sont conservés : seuls les autres sont complétés.' : 'Une vacation fermée reste sans personne : elle ne sera pas remplie.')+'</p><div class="qbtns"><button type="button" data-astyes="1" aria-pressed="false">Oui</button><button type="button" data-astqno="1" aria-pressed="'+(qAns === 'no')+'">Non</button></div></div>'
         : '<div class="qcard"><p class="qt">✋ Faut-il poster quelqu’un à la main avant&nbsp;?</p><p class="qh">Les vacations déjà pourvues sont conservées : la génération complète seulement les autres.</p><div class="qbtns"><button type="button" data-wkpostyes="1" aria-pressed="false">Oui</button><button type="button" data-wkpostno="1" aria-pressed="false">Non</button></div></div>')
-      + (ast ? capHtml() : '') + '<button type="button" class="astbtn go qgo" data-astassign="1"'+(canWrite && qAns === 'no' ? '' : ' disabled')+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'+(qAns === 'no' ? '' : '<p class="qh" style="text-align:center;margin:6px 0 0">Répondez à la question pour continuer.</p>')
+      + (ast ? exclHtml()+capHtml() : '') + '<button type="button" class="astbtn go qgo" data-astassign="1"'+(canWrite && qAns === 'no' && (!ast || astExclOk) ? '' : ' disabled')+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'+(qAns === 'no' && (!ast || astExclOk) ? '' : '<p class="qh" style="text-align:center;margin:6px 0 0">'+(ast && !astExclOk ? 'Validez la liste des personnes sans astreinte, puis répondez à la question.' : 'Répondez à la question pour continuer.')+'</p>')
       + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p><p class="aststat">Vous pourrez relire et confirmer chaque vacation avant l’enregistrement.</p>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
   }
@@ -2506,10 +2527,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     document.addEventListener('visibilitychange', fix);
     if (window.visualViewport) { window.visualViewport.addEventListener('resize', fix); window.visualViewport.addEventListener('scroll', fix); }
   })();
+  $('#astBarBox').addEventListener('click', async e=>{ const x = e.target.closest('[data-astnoex]'); if (x) { const id = x.dataset.astnoex, d = doctors[id]; if (!d) return; const on = !d.noAst; if (await setDocField(id, {noAst: on ? true : null})) { d.noAst = on ? true : null; astExclOk = false; renderCompose(); } return; } if (e.target.closest('[data-astexclok]')) { astExclOk = true; renderCompose(); } });
   $('#astBarBox').addEventListener('click', e=>{ const p = e.target.closest('[data-astprio]'); if (p) { const id = p.dataset.astprio; astPrio.has(id) ? astPrio.delete(id) : astPrio.add(id); return renderCompose(); } if (e.target.closest('[data-astprioclr]')) { astPrio.clear(); renderCompose(); } });
   $('#astBarBox').addEventListener('change', e=>{ if (e.target.id === 'astCapP') astCapP = +e.target.value || 0; else if (e.target.id === 'astCapO') astCapO = +e.target.value || 0; });
   $('#astBarBox').addEventListener('click', e=>{ const g = e.target.closest('[data-astgrp]'); if (!g || plGrp === g.dataset.astgrp) return; plGrp = g.dataset.astgrp; astSel = []; astOn = false; renderCompose(); });
-  $('#astBarBox').addEventListener('click', async e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { qAns = ''; wzStep = 1; wzTrSub = ''; genPref = []; genAvoid = []; genPrio = null; genPrioAbs = null; genOffs = null; useTr = true; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
+  $('#astBarBox').addEventListener('click', async e=>{ if (e.target.closest('[data-plstage],[data-plgrp],[data-plpick],[data-astmgo]')) { astExclOk = false; qAns = ''; wzStep = 1; wzTrSub = ''; genPref = []; genAvoid = []; genPrio = null; genPrioAbs = null; genOffs = null; useTr = true; delAsk = false; if (!e.target.closest('[data-plstage=auto]')) redoOk = ''; } const gp = e.target.closest('[data-plgrp]'); if (gp) { plGrp = gp.dataset.plgrp; plStage = ''; astOn = false; return renderCompose(); }
     const ia = e.target.closest('[data-intauto]'); if (ia) { const a = ia.dataset.intauto.split('|'); intOnlyAuto[a[0]] = a[1] === '1'; intNon[a[0]] = a[1] === '2'; return renderCompose(); }
     const nb = e.target.closest('[data-intn]'); if (nb) { const a = nb.dataset.intn.split('|'), cur = intNeed[a[0]] != null ? intNeed[a[0]] : (INT_RULES.need[a[0]] != null ? INT_RULES.need[a[0]] : INT_RULES.defaut); intNeed[a[0]] = Math.max(0, Math.min(4, cur + Number(a[1]))); Object.keys(intNeedHP).forEach(k=>{ if (k.startsWith(a[0]+'|')) delete intNeedHP[k]; }); return renderCompose(); }
     const ho = e.target.closest('[data-inthp]'); if (ho) { const a = ho.dataset.inthp.split('|'), k = a[0]+'|'+a[1]+a[2], cur = intNeedOf(a[0], a[1], a[2]); intNeedHP[k] = (cur + 1) % 4; return renderCompose(); }
@@ -2578,8 +2600,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         const free = pool.filter(d=>!reasonFor(d.id, k, 'M')), cands = free.filter(d=>(per[d.id] || 0) < astCapOf(d));
         free.forEach(d=>{ if (!cands.includes(d)) capped.add(d.label); });
         const pr = d=>{ const x = demGet(d, k); return x && x.w === 'want' ? -1000 : x && x.w === 'avoid' ? 1000 : 0; };   /* demandes spécifiques : « je veux » d'abord, « je préfère ne pas » en dernier recours */
-        const fl = d=>(per[d.id] || 0) / astW(d), useCap = astCapP || astCapO || astPrio.size;
-        cands.sort((a,b)=>(pr(a) - pr(b)) || (useCap ? (fl(a) - fl(b) || (astPrio.has(b.id) ? 1 : 0) - (astPrio.has(a.id) ? 1 : 0)) : 0) || ((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
+        const nxt = (vacWho(ap.id, key(addDays(parse(k),7)), 'M') || {who: []}).who.filter(inGrp), consec = d=>(last.includes(d.id) || nxt.includes(d.id)) ? 1 : 0, fl = d=>(per[d.id] || 0) / astW(d), useCap = astCapP || astCapO || astPrio.size;
+        cands.sort((a,b)=>(pr(a) - pr(b)) || (consec(a) - consec(b)) || (useCap ? (fl(a) - fl(b) || (astPrio.has(b.id) ? 1 : 0) - (astPrio.has(a.id) ? 1 : 0)) : 0) || ((cnt[a.id]||0) + (last.includes(a.id) ? 0.5 : 0)) - ((cnt[b.id]||0) + (last.includes(b.id) ? 0.5 : 0)) || (a.order - b.order));
         const pick = cands[0]; if (!pick) { skipped++; continue; }
         byK[k] = (byK[k] || []).concat(pick.id);
         cnt[pick.id] = (cnt[pick.id]||0) + 1; per[pick.id] = (per[pick.id] || 0) + 1; last = [pick.id];
@@ -3061,7 +3083,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const gn = e.target.closest('[data-gennext]');
     if (gn && genStep >= 0) { const r = genRows[genStep]; const on = gn.dataset.gennext === '1' && genPending[r.idx[0]].after.length > 0; r.idx.forEach(i=>{ genPending[i].on = on; }); genStep++; if (genSolo || genStep >= genRows.length) { genStep = -1; genSolo = false; } genRender(); return; }
     if (!e.target.closest('[data-genok]') || !genPending) return;
-    if (!askCode('enregistrer le planning')) return;
+    if (!(await ensureCode('enregistrer le planning'))) return;
     histSave('Génération enregistrée', genPending.filter(w=>w.on).map(w=>w.k));
     const ws = genPending.filter(w=>w.on), imp = genImp; genImp = null; genClose();
     let ok = true;
@@ -3798,10 +3820,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const sel = e.target.closest('select[data-k]'); if (!sel || !doctors[me]) return;
     const v = sel.value, k = sel.dataset.k;
     const hasDem = !!demGet(doctors[me], k);
-    if (v === 'S') {
+    if (v === 'S' || v === 'SW' || v === 'SA') {
       if (butLocked(me, k)) { butAsk([butBk(butKindNow(), k.slice(0,7))]); return renderMe(); }
       if (doctors[me].days[k] && !(await setDays(me, {[k]: null}))) return renderMe();
-      try { await db.doc('medecins/'+me).update({dem: {[k]: hasDem ? demGet(doctors[me], k) : {t: '', w: ''}}}); notify('Choisissez : vous voulez ou préférez ne pas faire l’astreinte ce jour.'); } catch(err) { handleErr(err); }
+      const w = v === 'SW' ? 'want' : v === 'SA' ? 'avoid' : (hasDem ? demGet(doctors[me], k).w : ''), t0 = hasDem ? demGet(doctors[me], k).t : '';
+      try { await db.doc('medecins/'+me).update({dem: {[k]: {t: t0, w}}}); notify(v === 'SW' ? 'Demande enregistrée : vous voulez l’astreinte ce jour.' : v === 'SA' ? 'Demande enregistrée : vous préférez l’éviter ce jour.' : 'Choisissez : vous voulez ou préférez ne pas faire l’astreinte ce jour.'); } catch(err) { handleErr(err); }
       return;
     }
     if (hasDem) { if (butLocked(me, k)) { butAsk([butBk(butKindNow(), k.slice(0,7))]); return renderMe(); } try { await db.doc('medecins/'+me).update({dem: {[k]: null}}); } catch(err) { handleErr(err); } if (!v) return notify('Enregistré.'); }
@@ -3893,7 +3916,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       renderManage(); applyRO(); return;
     }
     pendingRemove = ''; clearTimeout(pendingTimer);
-    if (!askCode('retirer une personne')) return;
+    if (!(await ensureCode('retirer une personne'))) return;
     try {
       await db.doc('medecins/'+id).delete();
       if (me === id) { me = ''; try { localStorage.removeItem('planning-me'); } catch(err) {} }
@@ -4927,7 +4950,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   async function histRestore(id){
     const h = hist.find(x=>x.id === id); if (!h || !db || !canWrite) return;
-    if (!askCode('restaurer le planning')) return;
+    if (!(await ensureCode('restaurer le planning'))) return;
     if (!window.confirm('Restaurer le planning tel qu’il était avant « '+h.label+' » ?\n\nLes modifications faites depuis sur ces dates ('+h.dates.map(d=>fmtShort.format(parse(d))).join(', ')+') seront remplacées. Les échanges de vacations ne sont pas concernés.')) return;
     try {
       histSave('Avant restauration', h.dates);
@@ -4941,13 +4964,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   function setOverride(date, kk, val){
     if (!isRim()) { notify(NOADM_MSG, true); return Promise.resolve(false); }
+    if (Date.now() >= codeUntil) { const g0 = plGrp; return ensureCode('modification du planning').then(ok=>{ if (!ok) return false; const sg = plGrp; plGrp = g0; try { return setOverride(date, kk, val); } finally { plGrp = sg; } }); }
     if (val && Array.isArray(val.w)) { const i = kk.lastIndexOf('_'); const po = kk.slice(0,i), pa = kk.slice(i+1), cur = vacWho(po, date, pa); val = Object.assign({}, val, {w: baseW(date, po, pa).filter(id=>!inGrp(id)).concat(val.w.filter(id=>inGrp(id)))}); val.w = val.w.filter((id,ix,ar)=>ar.indexOf(id) === ix);
       /* le planning de l'autre groupe reste intact : texte de la vacation et étoiles des autres sont conservés */
       if (cur) { if (val.x == null && cur.texte && !/^ferm/i.test(cur.texte)) val.x = cur.texte; const keepS = (cur.stars || []).filter(id=>!inGrp(id)); if (keepS.length) val.s = (val.s || []).concat(keepS); }
       if (val.s) val.s = val.s.filter((id,ix,ar)=>val.w.includes(id) && ar.indexOf(id) === ix); }
     if (!db) { notify("Le planning partagé n'est pas disponible dans cette vue.", true); return Promise.resolve(false); }
     if (!canWrite) { notify('Lecture seule : vous ne pouvez pas modifier le planning.', true); return Promise.resolve(false); }
-    if (!askCode('modification du planning')) return Promise.resolve(false);
     if (!histLast[date] || Date.now() - histLast[date] > 120000) histSave('Modification manuelle', [date]);
     const prev = oChains[date] || Promise.resolve();
     const run = prev.then(async ()=>{
