@@ -356,7 +356,9 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .subtabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-2px 0 4px}
 .subtabs button{flex:1;min-height:48px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:700;font-size:15px}
 .codeov{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}.codebox{background:var(--card,#fff);color:var(--ink,#111);border-radius:16px;padding:18px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px}.codebox input{font-size:18px;padding:10px 12px;border:1.5px solid var(--line,#ccc);border-radius:10px;background:var(--bg,#fff);color:inherit;width:100%;box-sizing:border-box}.codeerr{color:var(--red,#b3392b);margin:0}
-body.nonadm #creerCard,body.nonadm #exportCard,body.nonadm #teamCard,body.nonadm #gaExp,body.nonadm #trameCfg,body.nonadm .gaed{display:none!important}body.nonadm .gastrow{cursor:default}
+#gaGrpBar button,.subtabs button{white-space:nowrap}
+@media(max-width:359px){.ts{font-size:9.5px;letter-spacing:-.3px}#palBox{flex-wrap:wrap}#palBox button{flex:1 1 40%;min-width:0}}
+body.nonadm #postCard,body.nonadm #cwImport,body.nonadm #creerCard,body.nonadm #exportCard,body.nonadm #teamCard,body.nonadm #gaExp,body.nonadm #trameCfg,body.nonadm .gaed{display:none!important}body.nonadm .gastrow{cursor:default}#gaExp .exfmt{flex-wrap:wrap}.hours input[type=time]{min-height:40px}
 .gastrow{padding:12px 14px;cursor:pointer}.gaed{margin-left:8px;color:var(--muted);font-size:14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
 .plstat{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;font-size:14px;font-weight:600}.plstat .ok{color:var(--grn)}.plstat .ko{color:var(--red)}.plstat .mid{color:var(--ind-ink)}.plstat small{font-weight:400;color:var(--muted)}#plDays .dok{color:var(--grn);font-weight:700}
 .swdays{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
@@ -1033,7 +1035,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 29/09/2026 · 07h45 (rappels v29, rattrapage 1-2 oct)</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 19/10/2026</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p>
@@ -1618,7 +1620,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '7c099a6093';
+  const BUILD = 'bbabe44a95';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
