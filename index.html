@@ -1618,7 +1618,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '87181bcf8f';
+  const BUILD = '7c099a6093';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3939,7 +3939,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (v === d.label) { $('#renForm').hidden = true; return; }
     if (sortedDocs().some(x=>x.id !== me && x.label.toLowerCase() === v.toLowerCase())) return notify('Ce nom existe déjà dans la liste.', true);
     if (!db || !canWrite) return notify('Lecture seule : vous ne pouvez pas renommer.', true);
-    try { await db.doc('medecins/'+me).update({label: v}); $('#renForm').hidden = true; notify('Renommé en '+v+'.'); } catch(err) { handleErr(err); }
+    try { await db.doc('medecins/'+me).update({label: v}); $('#renForm').hidden = true; notify('Renommé en '+v+'.'); } catch(err) { if (err && (err.code === 'invalid_argument' || err.code === 'permission-denied')) notify('Renommage refusé par la base de données : un administrateur peut le faire dans Réglages > Équipe.', true); else notify('Renommage impossible ('+((err && (err.code || err.message)) || 'erreur')+'). Réessayez.', true); }
   });
   $('#people').addEventListener('change', async e=>{
     const inp = e.target.closest('[data-ren]'); if (!inp) return;
