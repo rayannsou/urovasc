@@ -1619,7 +1619,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'cd653c49ce';
+  const BUILD = 'bec066ba30';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -1823,7 +1823,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         + (inf.kind === 'R' ? [['R','Indisponible · Off lendemain de garde (auto)']] : own === 'A' ? opts.concat([['A','Astreinte (samedi matin)']]) : i === 5 ? optsSat(own) : i === 6 ? [['','Disponible'],['G','De garde · Off le lendemain']] : opts).map(o=>'<option value="'+o[0]+'"'+(o[0] === own || o[0] === 'R' ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>';
       return rowWrap(d,i,k,head,body);
     }).join('');
-    const cms = butMonths(), bkind = butKindNow();
+    const mnow = key(new Date()).slice(0,7), cmSet = new Set(butMonths());
+    Object.keys(doc.days || {}).concat(Object.keys(doc.dem || {})).forEach(k=>{ if (isDate(k) && k.slice(0,7) >= mnow) cmSet.add(k.slice(0,7)); });   /* un mois où j'ai saisi des indispos apparaît toujours, même hors de la période affichée */
+    const cms = [...cmSet].sort(), bkind = butKindNow();
     const bl = 'Date butoir '+BUT_KIND[bkind], grps = [];
     cms.forEach(m=>{ const dl = butDl(me, bkind, m) || '', lk = !!butLocked(me, m+'-01', bkind), g = grps[grps.length-1];
       if (g && g.dl === dl && g.lk === lk) g.ms.push(m); else grps.push({dl, lk, ms: [m]}); });
