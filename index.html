@@ -1619,7 +1619,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'f26ad7ffae';
+  const BUILD = '7834857edb';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -1721,6 +1721,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       + '<h4 class="asth">Quelle date butoir régler ?</h4>'
       + '<div class="exfmt"><button type="button" data-butkind="sem" aria-pressed="'+(butKind === 'sem')+'">Semaine</button><button type="button" data-butkind="ast" aria-pressed="'+(butKind === 'ast')+'">Astreinte</button></div>'
       + '<p class="hint">Date butoir <b>'+BUT_KIND[butKind]+'</b> '+gl+', mois par mois. Laissez vide pour ne pas fixer de date.</p>'
+      + '<h4 class="asth">Sur une période entière</h4><p class="hint">Une même date butoir pour tous les mois de la période.</p><div class="f"><label for="butPa">Du mois de</label><select id="butPa">'+butMonths().map(m=>'<option value="'+m+'">'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butPb">Au mois de</label><select id="butPb">'+butMonths().map((m,i,ar)=>'<option value="'+m+'"'+(i === ar.length-1 ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butPd">Date butoir (vide = retirer)</label><input type="date" id="butPd"></div><button type="button" class="primary" data-butper>Appliquer à la période</button><h4 class="asth">Mois par mois</h4>'
       + butMonths().map(m=>'<label class="butrow"><span>'+esc(monthLbl(m))+'</span><input type="date" data-butm="'+m+'" value="'+esc(((butoir.d[gk]) || {})[m] || '')+'"></label>').join('')
       + (reqs.length ? '<h4 class="asth">Demandes de modification</h4>'+reqs.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · '+esc(butLbl(x.bk))+'</span><button type="button" class="primary" data-butok="'+esc(x.bk+'|'+x.id)+'">Autoriser</button></div>').join('') : '')
       + (unl.length ? '<h4 class="asth">Modifications autorisées</h4>'+unl.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · '+esc(butLbl(x.bk))+'</span><button type="button" class="ghost" data-butlock="'+esc(x.bk+'|'+x.id)+'">Reverrouiller</button></div>').join('') : '');
@@ -3812,6 +3813,16 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const gk = butGrp()+'|'+butKind;
     { const old = ((butoir.d[gk]) || {})[inp.dataset.butm]; if (old && (inp.value || '') !== old && !askCode('modifier une date butoir déjà fixée')) { inp.value = old; return; } }
     try { await db.doc('meta/butoir').update({d: {[gk]: {[inp.dataset.butm]: inp.value || null}}}); notify(inp.value ? 'Date butoir '+BUT_KIND[butKind]+' de '+monthLbl(inp.dataset.butm)+' : '+butFmt(inp.value)+'.' : 'Date butoir retirée.'); } catch(err) { handleErr(err); }
+  });
+  document.addEventListener('click', async e=>{
+    const bp = e.target.closest && e.target.closest('[data-butper]'); if (!bp) return;
+    if (!isButAdmin() || !db) return;
+    const m1 = $('#butPa').value, m2 = $('#butPb').value, dt = $('#butPd').value || null, ms = butMonths().filter(m=>m >= m1 && m <= m2);
+    if (m1 > m2 || !ms.length) return notify('La période est à l’envers : le mois de début doit précéder celui de fin.', true);
+    const gk = butGrp()+'|'+butKind, cur = butoir.d[gk] || {};
+    if (ms.some(m=>cur[m] && cur[m] !== dt) && !askCode('modifier des dates butoir déjà fixées')) return;
+    const patch = {}; ms.forEach(m=>{ patch[m] = dt; });
+    try { await db.doc('meta/butoir').update({d: {[gk]: patch}}); notify(dt ? 'Date butoir '+BUT_KIND[butKind]+' : '+butFmt(dt)+' pour '+monthLbl(ms[0])+(ms.length > 1 ? ' → '+monthLbl(ms[ms.length-1]) : '')+'.' : 'Dates butoir retirées sur la période.'); } catch(err) { handleErr(err); }
   });
   $('#confBox').addEventListener('click', async e=>{
     if (e.target.closest('[data-butgo]')) return;
