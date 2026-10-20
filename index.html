@@ -1619,7 +1619,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '93ac0144a9';
+  const BUILD = 'f26ad7ffae';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3816,9 +3816,15 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#confBox').addEventListener('click', async e=>{
     if (e.target.closest('[data-butgo]')) return;
     const b = e.target.closest('[data-conf]'); if (!b || !doctors[me]) return;
-    const m = b.dataset.conf, on = !(doctors[me].conf && doctors[me].conf[m]);
+    const m = b.dataset.conf, on = !(doctors[me].conf && doctors[me].conf[m]); if (!on) confOff.add(m); else confOff.delete(m);
     if (await setDocField(me, {conf: {[m]: on ? true : null}})) notify(on ? 'Merci ! Indisponibilités de '+monthLbl(m)+' enregistrées comme complètes.' : 'Confirmation retirée.');
   });
+  const confOff = new Set();
+  /* dès qu'on saisit une indispo, le mois est marqué « renseigné » (décochable) */
+  async function autoConf(k){
+    const m = String(k).slice(0,7), d = doctors[me]; if (!d || !db || !canWrite || confOff.has(m) || (d.conf && d.conf[m])) return;
+    if (await setDocField(me, {conf: {[m]: true}})) { d.conf = Object.assign({}, d.conf, {[m]: true}); renderMe(); }
+  }
   $('#myDays').addEventListener('change', async e=>{
     const sel = e.target.closest('select[data-k]'); if (!sel || !doctors[me]) return;
     const v = sel.value, k = sel.dataset.k;
@@ -3828,11 +3834,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       if (doctors[me].days[k] && !(await setDays(me, {[k]: null}))) return renderMe();
       const w = v === 'SW' ? 'want' : v === 'SA' ? 'avoid' : (hasDem ? demGet(doctors[me], k).w : ''), t0 = hasDem ? demGet(doctors[me], k).t : '';
       try { await db.doc('medecins/'+me).update({dem: {[k]: {t: t0, w}}}); notify(v === 'SW' ? 'Demande enregistrée : vous voulez l’astreinte ce jour.' : v === 'SA' ? 'Demande enregistrée : vous préférez l’éviter ce jour.' : 'Choisissez : vous voulez ou préférez ne pas faire l’astreinte ce jour.'); } catch(err) { handleErr(err); }
+      autoConf(k);
       return;
     }
     if (hasDem) { if (butLocked(me, k)) { butAsk([butBk(butKindNow(), k.slice(0,7))]); return renderMe(); } try { await db.doc('medecins/'+me).update({dem: {[k]: null}}); } catch(err) { handleErr(err); } if (!v) return notify('Enregistré.'); }
     const ok = await setDays(me, {[k]: v || null});
-    if (ok) notify(v === 'G' ? 'Garde enregistrée, repos posé le lendemain.' : 'Enregistré.'); else renderMe();
+    if (ok) { notify(v === 'G' ? 'Garde enregistrée, repos posé le lendemain.' : 'Enregistré.'); if (v) autoConf(k); } else renderMe();
   });
 
   $('#myDays').addEventListener('change', async e=>{
@@ -3848,6 +3855,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (butLocked(me, k)) { butAsk([butBk(butKindNow(), k.slice(0,7))]); return; }
     const w = cur.w === b.dataset.demw ? '' : b.dataset.demw;
     try { await db.doc('medecins/'+me).update({dem: {[k]: {t: cur.t, w}}}); notify(w === 'want' ? 'Demande enregistrée : vous voulez l’astreinte ce jour.' : w === 'avoid' ? 'Demande enregistrée : vous préférez ne pas la faire ce jour.' : 'Choix retiré.'); } catch(err) { handleErr(err); }
+    if (w) autoConf(k);
   });
 
   function fillPeriod(){
