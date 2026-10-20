@@ -1619,7 +1619,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '7424c057ca';
+  const BUILD = '79523efd1d';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -1666,6 +1666,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const isButAdmin = () => butGrps().length > 0;
   const butAdminIds = g => [...new Set([butAdminOf('sen'), butAdminOf('int')])];   /* les deux administrateurs reçoivent toutes les demandes */
   const butNm = () => { const n = Number(butoir.nm); return n >= 1 && n <= 12 ? Math.floor(n) : 3; };
+  const butAdmMonths = () => { const t = new Date(); return [...Array(18)].map((_,i)=>{ const d = new Date(t.getFullYear(), t.getMonth()+i, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }); };
   const butMonths = () => { const t = new Date(); return [...Array(butNm())].map((_,i)=>{ const d = new Date(t.getFullYear(), t.getMonth()+i, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }); };
   const butKindNow = () => inMode === 'sat' ? 'ast' : 'sem';
   const butDl = (id, kind, m) => ((butoir.d[butGrpOf(id)+'|'+kind]) || {})[m] || '';
@@ -1721,8 +1722,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       + '<h4 class="asth">Quelle date butoir régler ?</h4>'
       + '<div class="exfmt"><button type="button" data-butkind="sem" aria-pressed="'+(butKind === 'sem')+'">Semaine</button><button type="button" data-butkind="ast" aria-pressed="'+(butKind === 'ast')+'">Astreinte</button></div>'
       + '<p class="hint">Date butoir <b>'+BUT_KIND[butKind]+'</b> '+gl+', mois par mois. Laissez vide pour ne pas fixer de date.</p>'
-      + '<h4 class="asth">Sur une période entière</h4><p class="hint">Une même date butoir pour tous les mois de la période.</p><div class="f"><label for="butPa">Du mois de</label><select id="butPa">'+butMonths().map(m=>'<option value="'+m+'">'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butPb">Au mois de</label><select id="butPb">'+butMonths().map((m,i,ar)=>'<option value="'+m+'"'+(i === ar.length-1 ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butPd">Date butoir (vide = retirer)</label><input type="date" id="butPd"></div><button type="button" class="primary" data-butper>Appliquer à la période</button><h4 class="asth">Mois par mois</h4>'
-      + butMonths().map(m=>'<label class="butrow"><span>'+esc(monthLbl(m))+'</span><input type="date" data-butm="'+m+'" value="'+esc(((butoir.d[gk]) || {})[m] || '')+'"></label>').join('')
+      + '<h4 class="asth">Sur une période entière</h4><p class="hint">Une même date butoir pour tous les mois de la période.</p><div class="f"><label for="butPa">Du mois de</label><select id="butPa">'+butAdmMonths().map(m=>'<option value="'+m+'">'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butPb">Au mois de</label><select id="butPb">'+butAdmMonths().map((m,i,ar)=>'<option value="'+m+'"'+(i === ar.length-1 ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butPd">Date butoir (vide = retirer)</label><input type="date" id="butPd"></div><button type="button" class="primary" data-butper>Appliquer à la période</button><h4 class="asth">Mois par mois</h4>'
+      + butAdmMonths().map(m=>'<label class="butrow"><span>'+esc(monthLbl(m))+'</span><input type="date" data-butm="'+m+'" value="'+esc(((butoir.d[gk]) || {})[m] || '')+'"></label>').join('')
       + (reqs.length ? '<h4 class="asth">Demandes de modification</h4>'+reqs.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · '+esc(butLbl(x.bk))+'</span><button type="button" class="primary" data-butok="'+esc(x.bk+'|'+x.id)+'">Autoriser</button></div>').join('') : '')
       + (unl.length ? '<h4 class="asth">Modifications autorisées</h4>'+unl.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · '+esc(butLbl(x.bk))+'</span><button type="button" class="ghost" data-butlock="'+esc(x.bk+'|'+x.id)+'">Reverrouiller</button></div>').join('') : '');
     const nb = $('#butN'); if (nb) { nb.textContent = reqs.length || ''; nb.hidden = !reqs.length; }
@@ -3822,7 +3823,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   document.addEventListener('click', async e=>{
     const bp = e.target.closest && e.target.closest('[data-butper]'); if (!bp) return;
     if (!isButAdmin() || !db) return;
-    const m1 = $('#butPa').value, m2 = $('#butPb').value, dt = $('#butPd').value || null, ms = butMonths().filter(m=>m >= m1 && m <= m2);
+    const m1 = $('#butPa').value, m2 = $('#butPb').value, dt = $('#butPd').value || null, ms = butAdmMonths().filter(m=>m >= m1 && m <= m2);
     if (m1 > m2 || !ms.length) return notify('La période est à l’envers : le mois de début doit précéder celui de fin.', true);
     const gk = butGrp()+'|'+butKind, cur = butoir.d[gk] || {};
     if (ms.some(m=>cur[m] && cur[m] !== dt) && !askCode('modifier des dates butoir déjà fixées')) return;
@@ -4130,11 +4131,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }
     return out;
   }
-  function myVacations(id){
+  function myVacations(id, hz){
     const out = [];
     if (!trame || !id) return out;
     const start = new Date(); start.setHours(0,0,0,0);
-    for (let i=0;i<HORIZON;i++){
+    for (let i=0;i<(hz || HORIZON);i++){
       const dt = addDays(start,i); if ((dt.getDay()+6)%7 > 5) continue;
       const k = key(dt);
       trame.postes.forEach(p=>PARTS.forEach(part=>{
@@ -5181,7 +5182,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
 
   let swMode = 'week';
-  const swVacs = id => myVacations(id).filter(v=>{ const ps = findPost(v.poste); return swMode === 'ast' ? isSam(ps) : !isSam(ps); });
+  const swVacs = id => myVacations(id, swMode === 'ast' ? 400 : 0).filter(v=>{ const ps = findPost(v.poste); return swMode === 'ast' ? isSam(ps) : !isSam(ps); });
   const swModeFor = val => { const v = parseVac(val); return v && isSam(findPost(v.poste)) ? 'ast' : 'week'; };
   function fillTheirs(){
     const sel = $('#swTheirs'), go = $('#swGo'), chk = $('#swCheck');
