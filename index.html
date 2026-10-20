@@ -1619,7 +1619,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '72bbb836b3';
+  const BUILD = '7424c057ca';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -1822,8 +1822,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       return rowWrap(d,i,k,head,body);
     }).join('');
     const cms = butMonths(), bkind = butKindNow();
-    $('#confBox').innerHTML = cms.map(m=>{ const on = !!(doc.conf && doc.conf[m]); const dl = butDl(me, bkind, m), lk = butLocked(me, m+'-01', bkind), bl = 'Date butoir '+BUT_KIND[bkind], dlh = dl ? '<em class="butdl'+(lk ? ' lock' : '')+'">'+(lk ? '🔒 Verrouillé depuis le ' : '⏳ '+bl+' : ')+esc(butFmt(dl))+'</em>' : isButAdmin() ? '<em class="butdl">⏳ '+bl+' : non fixée · <u data-butgo="1" role="button" tabindex="0">Régler la date ›</u></em>' : '<em class="butdl" style="opacity:.7">⏳ '+bl+' : non fixée</em>';
-      return butBanners([m]) + '<button type="button" class="confbtn'+(on ? ' on' : '')+'" data-conf="'+m+'"'+(canWrite ? '' : ' disabled')+'>'+(on ? '✓ Indisponibilités de '+esc(monthLbl(m))+' renseignées <small>Toucher pour annuler</small>' : 'J’ai renseigné mes indisponibilités de '+esc(monthLbl(m))+' <small>Toucher quand vous avez terminé (même si aucune)</small>')+dlh+'</button>'; }).join('');
+    const bl = 'Date butoir '+BUT_KIND[bkind], grps = [];
+    cms.forEach(m=>{ const dl = butDl(me, bkind, m) || '', lk = !!butLocked(me, m+'-01', bkind), g = grps[grps.length-1];
+      if (g && g.dl === dl && g.lk === lk) g.ms.push(m); else grps.push({dl, lk, ms: [m]}); });
+    $('#confBox').innerHTML = grps.map(g=>{ const ms = g.ms, on = ms.every(m=>!!(doc.conf && doc.conf[m])), dl = g.dl, lk = g.lk,
+        lbl = ms.length > 1 ? monthLbl(ms[0])+' à '+monthLbl(ms[ms.length-1]) : monthLbl(ms[0]),
+        dlh = dl ? '<em class="butdl'+(lk ? ' lock' : '')+'">'+(lk ? '🔒 Verrouillé depuis le ' : '⏳ '+bl+' : ')+esc(butFmt(dl))+'</em>' : isButAdmin() ? '<em class="butdl">⏳ '+bl+' : non fixée · <u data-butgo="1" role="button" tabindex="0">Régler la date ›</u></em>' : '<em class="butdl" style="opacity:.7">⏳ '+bl+' : non fixée</em>';
+      return butBanners(ms.length > 1 ? [ms[0]] : ms) + '<button type="button" class="confbtn'+(on ? ' on' : '')+'" data-conf="'+ms.join(',')+'"'+(canWrite ? '' : ' disabled')+'>'+(on ? '✓ Indisponibilités de '+esc(lbl)+' renseignées <small>Toucher pour annuler</small>' : 'J’ai renseigné mes indisponibilités de '+esc(lbl)+' <small>Toucher quand vous avez terminé (même si aucune)</small>')+dlh+'</button>'; }).join('');
   }
 
   let wkOff = 0;
@@ -3827,8 +3832,9 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#confBox').addEventListener('click', async e=>{
     if (e.target.closest('[data-butgo]')) return;
     const b = e.target.closest('[data-conf]'); if (!b || !doctors[me]) return;
-    const m = b.dataset.conf, on = !(doctors[me].conf && doctors[me].conf[m]); if (!on) confOff.add(m); else confOff.delete(m);
-    if (await setDocField(me, {conf: {[m]: on ? true : null}})) notify(on ? 'Merci ! Indisponibilités de '+monthLbl(m)+' enregistrées comme complètes.' : 'Confirmation retirée.');
+    const ms = b.dataset.conf.split(','), on = !ms.every(m=>doctors[me].conf && doctors[me].conf[m]); ms.forEach(m=>{ if (!on) confOff.add(m); else confOff.delete(m); });
+    const patch = {}; ms.forEach(m=>{ patch[m] = on ? true : null; });
+    if (await setDocField(me, {conf: patch})) notify(on ? 'Merci ! Indisponibilités de '+(ms.length > 1 ? monthLbl(ms[0])+' à '+monthLbl(ms[ms.length-1]) : monthLbl(ms[0]))+' enregistrées comme complètes.' : 'Confirmation retirée.');
   });
   const confOff = new Set();
   /* dès qu'on saisit une indispo, le mois est marqué « renseigné » (décochable) */
