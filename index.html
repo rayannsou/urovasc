@@ -1586,7 +1586,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const out = {};
     sortedDocs().forEach(d=>{
       const inf = dayInfo(d, dk)[part]; if (!inf || inf === 'G' || inf === 'A') return;
-      let cat = inf === 'R' ? 'Repos de garde' : ((d.abs && d.abs[dk+'_'+part]) || 'Indisponible');
+      let cat = inf === 'R' ? 'Repos de garde' : ((d.abs && d.abs[dk+'_'+part]) || 'Off');
       if (ABS_CATS.indexOf(cat) < 0) cat = 'Absent(e)';
       (out[cat] = out[cat] || []).push(d.id);
     });
@@ -1619,7 +1619,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '7834857edb';
+  const BUILD = '72bbb836b3';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5535,7 +5535,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (inf.kind === 'G') return ['Garde','Journée'];
     if (inf.kind === 'R') return ['Off (repos de garde)','Journée'];
     if (inf.kind === 'A') return ['Astreinte','Matin'];
-    if (inf.kind === 'I') return ['Indisponible', inf.part === 'J' ? 'Journée' : inf.part === 'M' ? 'Matin' : 'Après-midi'];
+    if (inf.kind === 'I') return ['Off', inf.part === 'J' ? 'Journée' : inf.part === 'M' ? 'Matin' : 'Après-midi'];
     return null;
   }
   async function exportIndispos(ym){
