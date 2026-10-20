@@ -1619,7 +1619,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '79523efd1d';
+  const BUILD = 'cd653c49ce';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -1667,7 +1667,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const butAdminIds = g => [...new Set([butAdminOf('sen'), butAdminOf('int')])];   /* les deux administrateurs reçoivent toutes les demandes */
   const butNm = () => { const n = Number(butoir.nm); return n >= 1 && n <= 12 ? Math.floor(n) : 3; };
   const butAdmMonths = () => { const t = new Date(); return [...Array(18)].map((_,i)=>{ const d = new Date(t.getFullYear(), t.getMonth()+i, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }); };
-  const butMonths = () => { const t = new Date(); return [...Array(butNm())].map((_,i)=>{ const d = new Date(t.getFullYear(), t.getMonth()+i, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }); };
+  const butMonths = () => { if (butoir.vfrom && butoir.vto && butoir.vfrom <= butoir.vto) { const out = []; let y = +butoir.vfrom.slice(0,4), m = +butoir.vfrom.slice(5,7); while ((y+'-'+pad(m)) <= butoir.vto && out.length < 24) { out.push(y+'-'+pad(m)); if (++m > 12) { m = 1; y++; } } if (out.length) return out; } const t = new Date(); return [...Array(butNm())].map((_,i)=>{ const d = new Date(t.getFullYear(), t.getMonth()+i, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }); };
   const butKindNow = () => inMode === 'sat' ? 'ast' : 'sem';
   const butDl = (id, kind, m) => ((butoir.d[butGrpOf(id)+'|'+kind]) || {})[m] || '';
   const butFmt = k => new Intl.DateTimeFormat('fr-FR',{day:'numeric', month:'long', year:'numeric'}).format(parse(k));
@@ -1718,6 +1718,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const nm = butNm();
     $('#butBody').innerHTML = '<p class="hint">Vous gérez la date butoir <b>'+gl+'</b>'+(butGrps().length > 1 ? ' (et celle des '+(g === 'int' ? 'seniors' : 'internes')+')' : '')+'. Après cette date, chacun ne peut plus modifier ses indisponibilités du mois, sauf si vous l’y autorisez.</p>'
       + (butGrps().length > 1 ? '<h4 class="asth">Pour qui ?</h4><div class="exfmt"><button type="button" data-butgrp="sen" aria-pressed="'+(g === 'sen')+'">Seniors</button><button type="button" data-butgrp="int" aria-pressed="'+(g === 'int')+'">Internes</button></div>' : '')
+      + '<div class="f"><label for="butVa">Afficher aux médecins : du mois de</label><select id="butVa"><option value="">Mois en cours (automatique)</option>'+butAdmMonths().map(m=>'<option value="'+m+'"'+(butoir.vfrom === m ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butVb">au mois de</label><select id="butVb">'+butAdmMonths().map(m=>'<option value="'+m+'"'+(butoir.vto === m ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>').join('')+'</select></div><p class="hint">Si « Mois en cours » est choisi, le nombre de mois ci-dessous s’applique.</p>'
       + '<div class="f"><label for="butNm">Mois visibles dans « Mes indisponibilités »</label><select id="butNm">'+[...Array(12)].map((_,i)=>'<option value="'+(i+1)+'"'+(i+1 === nm ? ' selected' : '')+'>'+(i+1)+' mois</option>').join('')+'</select></div>'
       + '<h4 class="asth">Quelle date butoir régler ?</h4>'
       + '<div class="exfmt"><button type="button" data-butkind="sem" aria-pressed="'+(butKind === 'sem')+'">Semaine</button><button type="button" data-butkind="ast" aria-pressed="'+(butKind === 'ast')+'">Astreinte</button></div>'
@@ -3813,6 +3814,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     }
   });
   document.addEventListener('change', async e=>{
+    const vs = e.target.closest && e.target.closest('#butVa,#butVb');
+    if (vs) { if (!isButAdmin() || !db) return; const va = $('#butVa').value; let vb = $('#butVb').value;
+      if (va && (!vb || vb < va)) vb = va;
+      if (!askCode('changer les mois affichés')) { renderBut(); return; }
+      try { await db.doc('meta/butoir').update({vfrom: va || null, vto: va ? vb : null}); notify(va ? 'Mois affichés : '+monthLbl(va)+(vb !== va ? ' à '+monthLbl(vb) : '')+'.' : 'Mois affichés : à partir du mois en cours.'); } catch(err) { handleErr(err); } return; }
     const nmSel = e.target.closest && e.target.closest('#butNm');
     if (nmSel) { if (!isButAdmin() || !db) return; if (!askCode('changer le nombre de mois')) { nmSel.value = String(butNm()); return; } try { await db.doc('meta/butoir').update({nm: Number(nmSel.value)}); notify('« Mes indisponibilités » affiche '+nmSel.value+' mois.'); } catch(err) { handleErr(err); } return; }
     const inp = e.target.closest && e.target.closest('[data-butm]'); if (!inp || !isButAdmin() || !db) return;
@@ -6362,7 +6368,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       snap.docs.forEach(s=>{ if (!isDate(s.id)) return; const v = s.data() || {}; if (Array.isArray(v.items)) next[s.id] = v.items.filter(t=>typeof t === 'string' && t); });
       notesBy = next; subs.notes = true; renderGNotes(); renderToday(); maybeSeed();
     }, err=>{});
-    db.doc('meta/butoir').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; butoir = {d: v.d || {}, unlock: v.unlock || {}, req: v.req || {}, nm: v.nm}; renderBut(); if (typeof renderMe === 'function') renderMe(); }, err=>{});
+    db.doc('meta/butoir').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; butoir = {d: v.d || {}, unlock: v.unlock || {}, req: v.req || {}, nm: v.nm, vfrom: v.vfrom || '', vto: v.vto || ''}; renderBut(); if (typeof renderMe === 'function') renderMe(); }, err=>{});
     db.collection('meta').onSnapshot(snap=>{ hist = snap.docs.filter(s=>/^hist-/.test(s.id)).map(s=>Object.assign({id: s.id}, s.data() || {})).filter(h=>Array.isArray(h.dates) && h.dates.length).sort((a,b)=>(b.at||0)-(a.at||0)); renderHist(); }, err=>{});
     db.doc('meta/ast1').onSnapshot(s=>{ astMeta = s.exists ? 'done' : 'absent'; ensureAst(); }, err=>{});
     db.doc('meta/patch-oct12').onSnapshot(s=>{ patchState = s.exists ? 'done' : 'absent'; maybePatch(); }, err=>{});
