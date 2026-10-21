@@ -239,6 +239,7 @@ table.trame{table-layout:fixed;width:100%;min-width:860px}table.trame .who{width
 
 body{font-size:16px}
 select,input[type=date],input[type=text],input[type=time]{font-size:16px}
+input[type=date],input[type=time]{box-sizing:border-box;max-width:100%;min-width:0;-webkit-appearance:none;appearance:none}.f{min-width:0}
 .ic{display:none;width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .ts{display:none}
 .tabs{flex-wrap:wrap}
@@ -1619,7 +1620,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'bec066ba30';
+  const BUILD = 'f4587a9989';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
