@@ -316,7 +316,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .dayrow.today{border-left-color:var(--accent)}
 .card>h2{color:var(--accent)}
 .tabs button[aria-selected=true]{color:var(--accent)}
-.annu{display:flex;flex-direction:column}.annu .ar{display:grid;grid-template-columns:minmax(0,1fr) 7.8em auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);min-width:0}.annu .ar b{font-weight:600;min-width:0;overflow-wrap:anywhere}.annu .ar span{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:left}.annu .ar button{justify-self:end}.annu .ar button{min-height:36px;padding:0 10px}.annu h3{margin:14px 0 2px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}#annuQ{margin:8px 0 4px}.annc{display:flex;gap:8px;align-items:baseline;background:var(--accent-soft);border-left:4px solid var(--accent,#1b5fa8);border-radius:8px;padding:8px 10px;font-size:14px;margin:0 0 8px}.annc b{white-space:nowrap}.annc small{color:var(--muted);margin-left:auto;white-space:nowrap}.annh{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:0 0 8px}.annh h2{margin:0;font-size:16px}.annd{font:600 12px var(--font-body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px}button.annc{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}.annf{display:flex;flex-direction:column;gap:10px}.annf label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}.annf .annrow{display:flex;gap:8px}.annf .annrow label{flex:1;min-width:0}.annf .asb{display:flex;gap:8px;flex-wrap:wrap}.dnote{font-size:13px;color:var(--ink);background:var(--accent-soft);border-radius:8px;padding:6px 10px}
+.livretbtn{background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px}.annu{display:flex;flex-direction:column}.annu .ar{display:grid;grid-template-columns:minmax(0,1fr) 7.8em auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);min-width:0}.annu .ar b{font-weight:600;min-width:0;overflow-wrap:anywhere}.annu .ar span{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:left}.annu .ar button{justify-self:end}.annu .ar button{min-height:36px;padding:0 10px}.annu h3{margin:14px 0 2px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}#annuQ{margin:8px 0 4px}.annc{display:flex;gap:8px;align-items:baseline;background:var(--accent-soft);border-left:4px solid var(--accent,#1b5fa8);border-radius:8px;padding:8px 10px;font-size:14px;margin:0 0 8px}.annc b{white-space:nowrap}.annc small{color:var(--muted);margin-left:auto;white-space:nowrap}.annh{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:0 0 8px}.annh h2{margin:0;font-size:16px}.annd{font:600 12px var(--font-body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px}button.annc{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}.annf{display:flex;flex-direction:column;gap:10px}.annf label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}.annf .annrow{display:flex;gap:8px}.annf .annrow label{flex:1;min-width:0}.annf .asb{display:flex;gap:8px;flex-wrap:wrap}.dnote{font-size:13px;color:var(--ink);background:var(--accent-soft);border-radius:8px;padding:6px 10px}
 .dnote b{font-weight:600}
 .notelist{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
 .cwr.empty{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 12px}
@@ -1011,6 +1011,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <input type="text" id="annuQ" placeholder="Rechercher un nom ou un poste…" autocomplete="off" aria-label="Rechercher dans l’annuaire">
           <div id="annuBody"></div>
         </div>
+        <div class="card" id="livretCard">
+          <div class="annh"><h2>📘 Livret de l’interne</h2></div>
+          <p class="hint">Livret d’accueil des internes du service d’imagerie uro-vasculaire · semestre novembre 2026 – mai 2027 (27 pages).</p>
+          <a class="primary livretbtn" href="livret-interne-2026.pdf" target="_blank" rel="noopener">Ouvrir le livret (PDF)</a>
+        </div>
         <div class="card" id="histCard" hidden>
           <details class="cardfold" id="histFold"><summary>🕘 Historique des modifications</summary>
           <p class="hint">Les 25 dernières modifications du planning (générations, suppressions, changements manuels). « Restaurer » remet les jours concernés comme avant.</p>
@@ -1626,7 +1631,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '1f85c1f849';
+  const BUILD = '6274a9918d';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -6350,6 +6355,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     {id:'compte', ic:'👤', bg:'#3B82F6', t:'Mon compte', sub:'Profil, apparence, calendrier, rappels, administrateurs', sel:['#fMp','#fApp','#instBtn','#remCard','#fCal','#admCard']},
     {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#trameCfg','#creerCard','#impSlotR','#exportCard']},
     {id:'annuaire', ic:'📞', bg:'#8B5CF6', t:'Annuaire', sub:'Numéros utiles du service', sel:['#annuCard']},
+    {id:'livret', ic:'📘', bg:'#0EA5E9', t:'Livret de l’interne', sub:'Livret d’accueil, semestre nov. 2026 – mai 2027', sel:['#livretCard']},
     {id:'equipe', ic:'👥', bg:'#10B981', t:'Équipe et postes', sub:'Personnes, postes du service', sel:['#teamCard','#postCard']},
     {id:'suivi', ic:'🔔', bg:'#EF4444', t:'Suivi', sub:'Date butoir, rappels, historique, statistiques', sel:['#butCard','#msgCard','#histCard','#statCard']}
   ];
