@@ -1011,13 +1011,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <input type="text" id="annuQ" placeholder="Rechercher un nom ou un poste…" autocomplete="off" aria-label="Rechercher dans l’annuaire">
           <div id="annuBody"></div>
         </div>
-        <div class="card" id="protoCard">
+        <div class="card" id="protoCard" hidden>
           <div class="annh"><h2>📋 Protocoles</h2></div>
           <p class="hint">Extraits du livret de l’interne : scanner, IRM, urétro-cystographie rétrograde, échographie.</p>
           <input type="text" id="protoQ" placeholder="Rechercher (ex. hématurie, prostate, greffe)…" autocomplete="off" aria-label="Rechercher un protocole">
           <div id="protoBody"></div>
         </div>
-        <div class="card" id="livretCard">
+        <div class="card" id="livretCard" hidden>
           <div class="annh"><h2>📘 Livret de l’interne</h2></div>
           <p class="hint">Livret d’accueil des internes du service d’imagerie uro-vasculaire · semestre novembre 2026 – mai 2027 (27 pages).</p>
           <a class="primary livretbtn" href="livret-interne-2026.pdf" target="_blank" rel="noopener">Ouvrir le livret (PDF)</a>
@@ -1637,7 +1637,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '943c2df0f9';
+  const BUILD = '0278825ccc';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2198,7 +2198,7 @@ const PROTO = [
   }
 
   function renderAll(){
-    renderRenMe(); renderBut(); renderAnnu(); if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderBut(); renderAnnu(); { const it = !!me && isIntId(me); ['#protoCard','#livretCard'].forEach(q=>{ const el = $(q); if (el) el.hidden = !it; }); } if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
 
