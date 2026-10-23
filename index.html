@@ -316,7 +316,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .dayrow.today{border-left-color:var(--accent)}
 .card>h2{color:var(--accent)}
 .tabs button[aria-selected=true]{color:var(--accent)}
-.livretbtn{background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px}.annu{display:flex;flex-direction:column}.annu .ar{display:grid;grid-template-columns:minmax(0,1fr) 7.8em auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);min-width:0}.annu .ar b{font-weight:600;min-width:0;overflow-wrap:anywhere}.annu .ar span{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:left}.annu .ar button{justify-self:end}.annu .ar button{min-height:36px;padding:0 10px}.annu h3{margin:14px 0 2px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}#annuQ{margin:8px 0 4px}.annc{display:flex;gap:8px;align-items:baseline;background:var(--accent-soft);border-left:4px solid var(--accent,#1b5fa8);border-radius:8px;padding:8px 10px;font-size:14px;margin:0 0 8px}.annc b{white-space:nowrap}.annc small{color:var(--muted);margin-left:auto;white-space:nowrap}.annh{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:0 0 8px}.annh h2{margin:0;font-size:16px}.annd{font:600 12px var(--font-body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px}button.annc{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}.annf{display:flex;flex-direction:column;gap:10px}.annf label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}.annf .annrow{display:flex;gap:8px}.annf .annrow label{flex:1;min-width:0}.annf .asb{display:flex;gap:8px;flex-wrap:wrap}.dnote{font-size:13px;color:var(--ink);background:var(--accent-soft);border-radius:8px;padding:6px 10px}
+.protoq{margin:8px 0}.pr{padding:10px 0;border-bottom:1px solid var(--line)}.pr b{display:block;font-weight:600}.pr .pp{display:block;margin-top:4px;color:var(--accent);font-weight:600;overflow-wrap:anywhere}.pr .pd{display:block;margin-top:4px;font-size:14px;color:var(--ink);overflow-wrap:anywhere}#protoBody details{border-top:1px solid var(--line);padding:6px 0}#protoBody summary{font-weight:700;padding:10px 0;cursor:pointer}#protoBody .pn{font-size:13px;color:var(--muted);margin:0 0 6px}#protoQ{margin:8px 0}.livretbtn{background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px}.annu{display:flex;flex-direction:column}.annu .ar{display:grid;grid-template-columns:minmax(0,1fr) 7.8em auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);min-width:0}.annu .ar b{font-weight:600;min-width:0;overflow-wrap:anywhere}.annu .ar span{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:left}.annu .ar button{justify-self:end}.annu .ar button{min-height:36px;padding:0 10px}.annu h3{margin:14px 0 2px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}#annuQ{margin:8px 0 4px}.annc{display:flex;gap:8px;align-items:baseline;background:var(--accent-soft);border-left:4px solid var(--accent,#1b5fa8);border-radius:8px;padding:8px 10px;font-size:14px;margin:0 0 8px}.annc b{white-space:nowrap}.annc small{color:var(--muted);margin-left:auto;white-space:nowrap}.annh{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:0 0 8px}.annh h2{margin:0;font-size:16px}.annd{font:600 12px var(--font-body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px}button.annc{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}.annf{display:flex;flex-direction:column;gap:10px}.annf label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}.annf .annrow{display:flex;gap:8px}.annf .annrow label{flex:1;min-width:0}.annf .asb{display:flex;gap:8px;flex-wrap:wrap}.dnote{font-size:13px;color:var(--ink);background:var(--accent-soft);border-radius:8px;padding:6px 10px}
 .dnote b{font-weight:600}
 .notelist{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
 .cwr.empty{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 12px}
@@ -1011,6 +1011,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <input type="text" id="annuQ" placeholder="Rechercher un nom ou un poste…" autocomplete="off" aria-label="Rechercher dans l’annuaire">
           <div id="annuBody"></div>
         </div>
+        <div class="card" id="protoCard">
+          <div class="annh"><h2>📋 Protocoles</h2></div>
+          <p class="hint">Extraits du livret de l’interne : scanner, IRM, urétro-cystographie rétrograde, échographie.</p>
+          <input type="text" id="protoQ" placeholder="Rechercher (ex. hématurie, prostate, greffe)…" autocomplete="off" aria-label="Rechercher un protocole">
+          <div id="protoBody"></div>
+        </div>
         <div class="card" id="livretCard">
           <div class="annh"><h2>📘 Livret de l’interne</h2></div>
           <p class="hint">Livret d’accueil des internes du service d’imagerie uro-vasculaire · semestre novembre 2026 – mai 2027 (27 pages).</p>
@@ -1631,7 +1637,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '6274a9918d';
+  const BUILD = '943c2df0f9';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2080,6 +2086,66 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   $('#annuQ').addEventListener('input', renderAnnu);
   $('#annuAdd').addEventListener('click', ()=>{ if (isRim()) annuOpen(null); });
   $('#annuBody').addEventListener('click', e=>{ const b = e.target.closest('[data-annuedit]'); if (b && isRim()) annuOpen(b.dataset.annuedit); });
+const PROTO = [
+ {m:'Scanner', note:['Injection de produit de contraste : OK si clairance > 30 mL/min, avec hydratation orale.','Si injection obligatoire et clairance < 30 mL/min : protocole d’hydratation IV (12 h avant et 12 h après, patient hospitalisé).','Scanner spectral Philips : protocole particulier (EVAR) permettant d’injecter tous les patients quelle que soit leur clairance (environ 15-20 cc d’iode).','Toute demande avec analyse rénale : faire un temps néphrographique (90-100 s) plutôt que portal.'], items:[
+  ['Contrôle d’endoprothèse aortique','ENDOPROTHÈSE : AP-, angio aorte abdo, AP 80','Endofuite (préciser le type), complications (infarctus rénal/splénique sur embole, sténose artérielle sur malposition de fenêtre ou cheminée, hématome au point de ponction fémoral…). Demandé en précoce à J2-J3 ou pour le suivi. Endoprothèse thoracique : vérifier l’emplacement avant de choisir le protocole. Insuffisance rénale : protocole EVAR (scanner Philips uniquement).'],
+  ['Bilan d’hématurie','UROSCANNER : AP-, AP 45, AP porto-tardif après Lasilix','Demandé en complément d’une cystoscopie. Lithiases intra-rénales, carcinome urothélial (voies excrétrices supérieures), malformation rénale, tumeur rénale, masse vésicale.'],
+  ['Bilan d’AEG ou recherche de néoplasie (bilan d’AVC ou pathologie neuro)','AP- (pour les incidentalomes et les kystes), TAP 80',''],
+  ['Bilan pré-opératoire de tumeur rénale','CORNELIS : AP-, angio aorte abdo, TAP portal puis AP tardif','Stadification T (taille, envahissement de la graisse périrénale, bourgeon dans la veine rénale…), N, M ; autres tumeurs synchrones ; variante anatomique rénale (reco 3D VR) vasculaire ; voies excrétrices supérieures.'],
+  ['Suivi après exérèse de cancer rénal (carcinome à cellules claires)','Abdo sans injection, TA 40, AP 90-100','Les métastases sont hypervasculaires, d’où un temps artériel. Récidive locale : regarder le rein et les veines rénales (bourgeon endovasculaire hypervascularisé). Récidive à distance : os, poumons, foie, ganglions…'],
+  ['Bilan donneur vivant','DONNEUR VIVANT : AP-, angio aorte, AP porto-tardif','Variante anatomique rénale (artère, veine rétro-aortique, voies excrétrices), tumeur rénale, lithiase intra-rénale, asymétrie de taille des reins, autre lésion contre-indiquant la greffe. REMPLIR le CR type disponible dans Carestream.'],
+  ['Bilan pré-greffe','AP- ; si dialysé : AP-, angio aorte, AP portal','Décrire l’état vasculaire, notamment les artères iliaques externes (anastomose avec l’artère du greffon) : calibre, surcharge athéromateuse calcifiée. Si artères très calcifiées : regarder l’artère splénique (transplantation Gil Vernet). Si PKAD : mesurer les reins natifs (place pour la greffe en fosse iliaque). Rechercher des contre-indications à la greffe (tumeur…).'],
+  ['Bilan d’AOMI','Angio aorte abdo + MI (reconstruire sur la GE)','Aorte abdo (surcharge, anévrisme ?), artères à visée viscérale (sténose ostiale ?), artères des membres inférieurs (iliaque commune, iliaque externe, fémorale commune, fémorale superficielle, poplitée, trépied jambier). Sténose significative si > 60-70 % (mesure du diamètre). Décrire sténose pré-occlusive ou thrombose (et reperméabilisation d’aval par collatéralité).'],
+  ['Pathologie pancréatique','Abdo-, Abdo 45 (ou ROI + 18 s), AP 80','Calcifications, hypertrophie, tumeur hypo- ou hypervasculaire ; si cancer : envahissement des vaisseaux pour la résection, dilatation du Wirsung ; si pancréatite : % de nécrose, coulées, faux anévrisme et pseudo-kyste à distance.'],
+  ['Pathologie hépatique','Abdo-, Abdo ROI + 18 s, AP 80 ± tardif à 3 et 5 min','Dysmorphie hépatique, stéatose, signes d’HTP (splénomégalie, ascite, voies de dérivation porto-systémique), thrombose portale, CHC.'],
+  ['Opacification rectale avant rétablissement de continuité','AP-, puis AP 80 avec opacification rectale (produit de contraste dilué au 1/10 pour limiter les artéfacts)','Qualité du moignon rectal : fistule, sténose, anomalie pariétale ? État de la stomie.'],
+  ['Lésion surrénalienne','AP- ; si densité spontanée < 10 UH on s’arrête là, sinon injecter et calculer wash-in / wash-out (Abdo 70 s et Abdo 10-15 min)','Densité précoce mesurée au temps portal (70 s), tardive entre 10 et 15 min. Une chute ≥ 40 % de la densité relative à 10-15 min et ≥ 60 % de la densité absolue est spécifique d’un adénome bénin.'],
+  ['Surveillance de maladie lithiasique','AP-','Comparer au scanner antérieur. Nombre de calculs intra-rénaux, localisation (groupe caliciel sup, moyen, inf), taille, stabilité, caractère obstructif, densité. Un calcul est corralliforme s’il touche le bassinet (pyélon) et pas seulement les calices et les tiges calicielles. Ne pas employer le terme « lithiase » seul.'],
+  ['Suivi de STB','AP-, TAP 35’, AP 80','Atteinte pulmonaire (LEM), tumeurs rénales principalement.'],
+  ['Densité des calculs selon leur composition (UH)','Repères','Phosphate de calcium 1 550-1 950 · Oxalate de calcium 1 000-1 700 · Phosphate ammoniaco-magnésien 550-950 · Cystine 650-850 · Acide urique 350-650.']
+ ]},
+ {m:'IRM', note:[], items:[
+  ['Surveillance après ablathermie (cryothérapie ou RF) de tumeur rénale','REINS avec Gado : Ax T2, Coro T2 FS, Ax T1 Dixon, Ax Diff, Ax T1 Dixon dynamiques après Gado avec soustractions (indispensable en REINS), Ax et Coro T1 FS Gado','Indication : type histologique de la tumeur traitée (DxCare, « anapath tous les séjours »), date de l’ablathermie (mois et année), clairance de la créatinine DU JOUR. On cherche un résidu tumoral (IRM à 2 mois) puis une récidive locale (6 mois, 12 mois, 2, 3, 4, 5 ans), de nouvelles lésions rénales, une récidive sur le trajet de RF ou de cryo.'],
+  ['Recherche de lésion cible prostatique','PROSTATE avec Gado (ajouter la séquence T2 abdo pour les ganglions si PSA > 10 ng/mL ou surveillance active d’ADK prostatique)','Lésion cible PIRADS 4 ou 5 avant biopsie ciblée ; bilan d’extension loco-régional (atteinte extra-capsulaire, ganglions suspects, vésicules séminales, vessie et rectum).'],
+  ['Caractérisation de tumeur rénale','REINS avec Gado avec séquences tardives : Ax T2, Coro T2 FS, Ax T1 Dixon, Ax Diff, Ax T1 Dixon dynamiques après Gado avec soustractions, séquences tardives si cicatrice centrale',''],
+  ['Caractérisation de lésion hépatique','Ax T2 SS, Ax T2 SPIR, Ax T1 IP OP, Ax Diff (avec 3 b, B800 en max), Ax T1 Vibe sans injection, Ax T1 Vibe 30-40 s (déclencher quand le Gado est dans les artères rénales), Ax T1 Vibe 80 s, 2 min, 5 min (et Ax T1 IP OP entre les deux dernières)','Si suspicion de tumeur hépatocytaire : MULTIHANCE, et voir si dernière séquence à 1 h 30 après un autre patient.'],
+  ['Greffon : thrombose / sténose d’artère','Greffon : Ax T2, Coro T2 FS, Ax Diff, Angio, Ax et Coro T1 FS Gado',''],
+  ['Bilan de varices','3D STIR pelvis (ou 3 plans STIR), 3D T2 si premier bilan, T1 Dixon sans IV, 4D Tracks (T1 Dixon post-Gado si contrôle)',''],
+  ['Bilan de thrombus de tumeur rénale','Ax T2, Coro T2 FS',''],
+  ['Pré-embolisation','Étage abdominal : T2 axial, séquence coronale dynamique avec Gado. Étage pelvien et périnéal : T2 et saturation de graisse (STIR) dans les 3 plans, T1 axial avant et après Gado','']
+ ]},
+ {m:'Urétro-cystographie rétrograde', note:['Lundi et mardi matin, 2 par matinée.','Indications : reflux dans le cadre de pyélonéphrites à répétition (greffon ou rein natif) ; sténose urétrale (antérieure ou postérieure) ; résidu post-mictionnel ; bilan pré-greffe (patients anuriques). Chez la femme : recherche de reflux (urètre difficile à analyser).'], items:[
+  ['Technique chez l’homme','Étapes','1) Manip : patient en 3/4 sur le flanc gauche dès le début. 2) Champ bleu troué autour du pénis. 3) Désinfection de la verge. 4) Champ vert sur les jambes. 5) Champ vert sur la table. 6) Pince : dévisser. 7) Sonde dans l’orifice de la pince, 2-3 cm qui dépassent. 8) Seringue remplie de produit de contraste. 9) Purger la sonde, resserrer légèrement la vis (sans plicaturer), laisser la seringue en place. 10-11) Deux compresses pliées en 3 de part et d’autre de la verge. 12) Ouvrir la pince, sonder l’urètre, refermer la pince au dernier cran sur les compresses (sous le sillon balano-préputial). 13) Tirer le pénis vers soi, sur le côté, pour aligner l’urètre en profil (scopie avant injection pour vérifier le centrage). 14) Injection et vérification de l’absence de fuite au gland (point clé : sonder plus distal ou serrer plus la pince). Pas de gel anesthésiant : la sonde glisserait. 15) Image de remplissage rétrograde (scopie et graphie) jusqu’à l’arrivée dans la vessie ; puis débrancher la seringue, patient sur le dos, brancher la perfusion pour le remplissage, images en miction puis post-mictionnelles (les manips s’en chargent).'],
+  ['Technique chez la femme','Étapes','Désinfection (dernier temps), champ vert sous les fesses (± champ bleu troué). Sonder la patiente, fixer la sonde par stéri-strip sur la cuisse (pas sur le champ). Vérifier qu’il y a un retour d’urine (sinon forte chance d’être dans le vagin). Brancher la poche de produit de contraste. Sonder à 30° vers le bas.'],
+  ['Interprétation et conduite à tenir','Rappels','Guide d’interprétation : sur le bureau de l’ordinateur sans DXMM, salle d’interprétation. CR type : classeur bleu en salle d’échographie. Il faut réfléchir et s’adapter à chaque situation ; en cas de doute, appeler un senior alors que le patient est toujours sur la table.']
+ ]},
+ {m:'Échographie', note:[], items:[
+  ['Greffons','J1, J7, puis tous les ans',''],
+  ['Foie','Perturbations du bilan, suivi d’hépatite virale (ARFI salles 1 et 3), bilan de greffe hépatique, polykystique',''],
+  ['Reins natifs','Bilan d’hématurie, IRA, IRC, colique néphrétique',''],
+  ['Doppler des artères rénales','HTA résistante',''],
+  ['Vessie','Demander vessie pleine ou clamper la sonde urinaire (RPM, vessie neuro, HBP, bilan d’hématurie)',''],
+  ['Prostate','Quasi exclusivement par voie sus-pubienne : volume prostatique, reins, vessie (signes d’hypertrophie du détrusor) et RPM (vessie pleine puis faire vider ; RPM significatif après 100 cc)',''],
+  ['Testicule','Hydrocèle, infection, recherche de tumeur, bilan de gynécomastie, recherche de varicocèle (souvent avec les chefs). Faire reins et vessie en plus.',''],
+  ['Membres inférieurs','Recherche de TVP',''],
+  ['Doppler artériel','Tous les Doppler artériels se font au 5e étage',''],
+  ['Fistule artério-veineuse','Uniquement si recherche de thrombose : commencer l’écho et appeler un senior pour revalidation. Le reste des indications : à faire sur la vacation YLB ou en médecine vasculaire.','']
+ ]}
+];
+
+  function renderProto(){
+    const box = $('#protoBody'); if (!box) return;
+    const q = normS(($('#protoQ') || {}).value || '');
+    const html = PROTO.map(g=>{
+      const its = g.items.filter(it=>!q || normS(it.join(' ')).includes(q));
+      if (!its.length) return '';
+      return '<details'+(q ? ' open' : '')+'><summary>'+esc(g.m)+' <small>('+its.length+')</small></summary>'
+        + (g.note.length && !q ? g.note.map(n=>'<p class="pn">'+esc(n)+'</p>').join('') : '')
+        + its.map(it=>'<div class="pr"><b>'+esc(it[0])+'</b><span class="pp">'+esc(it[1])+'</span>'+(it[2] ? '<span class="pd">'+esc(it[2])+'</span>' : '')+'</div>').join('')+'</details>';
+    }).join('');
+    box.innerHTML = html || '<p class="hint">Aucun protocole trouvé.</p>';
+  }
+  $('#protoQ').addEventListener('input', renderProto); let protoDone = false;
   const dayNotes = k => (notesBy[k] || []);
   function renderGNotes(){
     const box = $('#gNotes');
@@ -2132,7 +2198,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
 
   function renderAll(){
-    renderRenMe(); renderBut(); renderAnnu(); renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderBut(); renderAnnu(); if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
 
@@ -6355,6 +6421,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     {id:'compte', ic:'👤', bg:'#3B82F6', t:'Mon compte', sub:'Profil, apparence, calendrier, rappels, administrateurs', sel:['#fMp','#fApp','#instBtn','#remCard','#fCal','#admCard']},
     {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#trameCfg','#creerCard','#impSlotR','#exportCard']},
     {id:'annuaire', ic:'📞', bg:'#8B5CF6', t:'Annuaire', sub:'Numéros utiles du service', sel:['#annuCard']},
+    {id:'protocoles', ic:'📋', bg:'#14B8A6', t:'Protocoles', sub:'Scanner, IRM, UCR, échographie', sel:['#protoCard']},
     {id:'livret', ic:'📘', bg:'#0EA5E9', t:'Livret de l’interne', sub:'Livret d’accueil, semestre nov. 2026 – mai 2027', sel:['#livretCard']},
     {id:'equipe', ic:'👥', bg:'#10B981', t:'Équipe et postes', sub:'Personnes, postes du service', sel:['#teamCard','#postCard']},
     {id:'suivi', ic:'🔔', bg:'#EF4444', t:'Suivi', sub:'Date butoir, rappels, historique, statistiques', sel:['#butCard','#msgCard','#histCard','#statCard']}
