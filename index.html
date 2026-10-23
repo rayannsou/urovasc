@@ -1621,7 +1621,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'b1a1d888fc';
+  const BUILD = 'c5d9ab7c08';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -1968,10 +1968,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
 
   /* ---------- annonces : cours, réunions… affichés avant le planning du jour ---------- */
-  const annList = (k, grpOnly)=>Object.keys(annon).map(id=>Object.assign({id}, annon[id])).filter(x=>x && x.d === k && x.t && (!grpOnly || !x.g || (x.g === 'int') === isIntId(me))).sort((a,b)=>String(a.a || '').localeCompare(String(b.a || '')) || a.t.localeCompare(b.t));
+  const annOn = (x, k)=>{ if (!x.d) return false; if (x.d === k) return true; const n = Number(x.r) || 0; if (!n || k < x.d || (x.e && k > x.e)) return false; const df = Math.round((parse(k) - parse(x.d)) / 86400000); return df % (7*n) === 0; };
+  const annList = (k, grpOnly)=>Object.keys(annon).map(id=>Object.assign({id}, annon[id])).filter(x=>x && annOn(x, k) && x.t && (!grpOnly || !x.g || (x.g === 'int') === isIntId(me))).sort((a,b)=>String(a.a || '').localeCompare(String(b.a || '')) || a.t.localeCompare(b.t));
   const annTime = x => x.a ? (x.b ? x.a.replace(':','h')+' – '+x.b.replace(':','h') : 'dès '+x.a.replace(':','h')) : 'Toute la journée';
   const annGrpTxt = g => g === 'sen' ? 'Seniors' : g === 'int' ? 'Internes' : '';
-  const annHtml = (k, grpOnly, edit)=>{ const l = annList(k, grpOnly); return l.map(x=>{ const inner = '<b>📣 '+esc(annTime(x))+'</b><span>'+esc(x.t)+'</span>'+(!grpOnly && annGrpTxt(x.g) ? '<small>'+annGrpTxt(x.g)+'</small>' : ''); return edit ? '<button type="button" class="annc" data-annedit="'+esc(x.id)+'">'+inner+'<small>✎</small></button>' : '<div class="annc">'+inner+'</div>'; }).join(''); };
+  const annHtml = (k, grpOnly, edit)=>{ const l = annList(k, grpOnly); return l.map(x=>{ const inner = '<b>📣 '+esc(annTime(x))+'</b>'+(Number(x.r) ? '<small>🔁</small>' : '')+'<span>'+esc(x.t)+'</span>'+(!grpOnly && annGrpTxt(x.g) ? '<small>'+annGrpTxt(x.g)+'</small>' : ''); return edit ? '<button type="button" class="annc" data-annedit="'+esc(x.id)+'">'+inner+'<small>✎</small></button>' : '<div class="annc">'+inner+'</div>'; }).join(''); };
   function renderAnn(){
     const box = $('#gAnn'); if (!box) return;
     const adm = isRim(), keys = [...Array(6)].map((_,i)=>key(addDays(weekStart,i)));
@@ -1989,6 +1990,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       + '<label>Texte<input type="text" id="anT" maxlength="120" placeholder="Ex. Cours d’anatomie" value="'+esc(x ? x.t : '')+'" autocomplete="off"></label>'
       + '<label>Date<input type="date" id="anD" value="'+esc(dk)+'"></label>'
       + '<div class="annrow"><label>De<input type="time" id="anA" value="'+esc(x ? x.a || '' : '08:00')+'"></label><label>À<input type="time" id="anB" value="'+esc(x ? x.b || '' : '09:00')+'"></label></div>'
+      + '<label>Répéter<select id="anR"><option value="0">Jamais</option><option value="1"'+(x && Number(x.r) === 1 ? ' selected' : '')+'>Chaque semaine (même jour)</option><option value="2"'+(x && Number(x.r) === 2 ? ' selected' : '')+'>Toutes les 2 semaines</option><option value="3"'+(x && Number(x.r) === 3 ? ' selected' : '')+'>Toutes les 3 semaines</option><option value="4"'+(x && Number(x.r) === 4 ? ' selected' : '')+'>Toutes les 4 semaines</option></select></label>'
+      + '<label id="anEw"'+(x && Number(x.r) ? '' : ' hidden')+'>Jusqu’au (facultatif)<input type="date" id="anE" value="'+esc(x && x.e ? x.e : '')+'"></label>'
       + '<label>Pour<select id="anG"><option value="">Tout le monde</option><option value="sen"'+(x && x.g === 'sen' ? ' selected' : '')+'>Seniors</option><option value="int"'+(x && x.g === 'int' ? ' selected' : '')+'>Internes</option></select></label>'
       + '<p class="codeerr" id="anErr" hidden></p><div class="asb"><button type="button" class="primary" data-anok>Enregistrer</button>'+(x ? '<button type="button" class="ghost" data-andel>Supprimer</button>' : '')+'<button type="button" class="ghost" data-anno>Annuler</button></div></div>';
     document.body.appendChild(w);
@@ -1999,15 +2002,17 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       const nid = id || ('a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5));
       try { await db.doc('meta/annonces').update({items: {[nid]: val}}); w.remove(); notify(val ? 'Annonce enregistrée.' : 'Annonce supprimée.'); } catch(e) { handleErr(e); }
     };
+    w.addEventListener('change', e=>{ if (e.target.id === 'anR') w.querySelector('#anEw').hidden = !Number(e.target.value); });
     w.addEventListener('click', e=>{
       if (e.target === w || e.target.closest('[data-anno]')) { w.remove(); return; }
       if (e.target.closest('[data-andel]')) { save(null); return; }
       if (e.target.closest('[data-anok]')) {
-        const t = w.querySelector('#anT').value.trim(), d = w.querySelector('#anD').value, a = w.querySelector('#anA').value, b = w.querySelector('#anB').value, g = w.querySelector('#anG').value;
+        const t = w.querySelector('#anT').value.trim(), d = w.querySelector('#anD').value, a = w.querySelector('#anA').value, b = w.querySelector('#anB').value, g = w.querySelector('#anG').value, r = Number(w.querySelector('#anR').value) || 0, en = r ? w.querySelector('#anE').value : '';
         if (!t) return err('Saisissez le texte de l’annonce.');
         if (!d) return err('Choisissez une date.');
         if (a && b && b <= a) return err('L’heure de fin doit être après l’heure de début.');
-        save({d, a: a || '', b: b || '', t, g});
+        if (en && en < d) return err('La date de fin de répétition doit être après la première date.');
+        save({d, a: a || '', b: b || '', t, g, r, e: en || ''});
       }
     });
     setTimeout(()=>{ try { w.querySelector('#anT').focus(); } catch(e) {} }, 50);
