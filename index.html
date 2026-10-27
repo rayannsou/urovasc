@@ -359,7 +359,7 @@ fieldset:disabled .filebtn{opacity:.5;cursor:not-allowed}
 .codeov{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}.codebox{background:var(--card,#fff);color:var(--ink,#111);border-radius:16px;padding:18px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px}.codebox input{font-size:18px;padding:10px 12px;border:1.5px solid var(--line,#ccc);border-radius:10px;background:var(--bg,#fff);color:inherit;width:100%;box-sizing:border-box}.codeerr{color:var(--red,#b3392b);margin:0}
 #gaGrpBar button,.subtabs button{white-space:nowrap}
 @media(max-width:359px){.ts{font-size:9.5px;letter-spacing:-.3px}#palBox{flex-wrap:wrap}#palBox button{flex:1 1 40%;min-width:0}}
-body.nonadm #postCard,body.nonadm #cwImport,body.nonadm #creerCard,body.nonadm #exportCard,body.nonadm #teamCard,body.nonadm #gaExp,body.nonadm #trameCfg,body.nonadm .gaed{display:none!important}body.nonadm .gastrow{cursor:default}#gaExp .exfmt{flex-wrap:wrap}.hours input[type=time]{min-height:40px}
+body.nonadm #pubCard,body.nonadm #chefCard,body.nonadm #postCard,body.nonadm #cwImport,body.nonadm #creerCard,body.nonadm #exportCard,body.nonadm #teamCard,body.nonadm #gaExp,body.nonadm #trameCfg,body.nonadm .gaed{display:none!important}body.nonadm .gastrow{cursor:default}#gaExp .exfmt{flex-wrap:wrap}.hours input[type=time]{min-height:40px}
 .gastrow{padding:12px 14px;cursor:pointer}.gaed{margin-left:8px;color:var(--muted);font-size:14px}.gastin{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}.gastrow.mine{border-color:var(--accent);background:var(--accent-soft)}.gastrow.today{outline:2px solid var(--accent)}.gastw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
 .plstat{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;font-size:14px;font-weight:600}.plstat .ok{color:var(--grn)}.plstat .ko{color:var(--red)}.plstat .mid{color:var(--ind-ink)}.plstat small{font-weight:400;color:var(--muted)}#plDays .dok{color:var(--grn);font-weight:700}
 .swdays{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
@@ -1079,6 +1079,17 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </form>
           </details>
         </div>
+        <div class="card" id="pubCard" hidden>
+          <details class="cardfold" id="pubFold"><summary>📢 Publication du planning</summary>
+          <p class="hint">Une semaine non publiée n’est visible que par les administrateurs. Par défaut tout est publié.</p>
+          <div id="pubBody"></div>
+          </details>
+        </div>
+        <div class="card" id="chefCard" hidden>
+          <div class="annh"><h2>🩺 Trame des chefs</h2></div>
+          <p class="hint">Importe la trame hebdomadaire des seniors (document « planning chefs ») : vacations fixes de chacun, avec alternance semaine par semaine quand le document l’indique. Un aperçu s’affiche avant toute modification.</p>
+          <button type="button" class="primary" id="chefGo">Importer la trame des chefs</button>
+        </div>
         <div class="card" id="trameCfg" hidden>
           <details class="cardfold" id="trameFold"><summary>🗓 Trame du planning (sans personne)</summary>
           <p class="hint">Deux trames distinctes : <b>senior</b> et <b>interne</b>. Choisissez les vacations qui existent chaque semaine (poste, jour, matin / après-midi), sans y poster personne. Au moment de créer un planning, la première question est « Utiliser la trame ? ». Une vacation cochée apparaît « non pourvue » tant que personne n’y est posté.</p>
@@ -1637,7 +1648,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '95b7a7851a';
+  const BUILD = 'a48a42a007';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2154,6 +2165,83 @@ const PROTO = [
     box.innerHTML = html || '<p class="hint">Aucun protocole trouvé.</p>';
   }
   $('#protoQ').addEventListener('input', renderProto); let protoDone = false;
+
+  /* ---------- publication du planning (par semaine, seniors / internes) ---------- */
+  let pubDoc = {};
+  const pubWk = k => key(mondayOf(parse(k)));
+  const pubOff = k => { const u = pubDoc[pubWk(k)]; return !!(u && (u.s || u.i)); };
+  const pubHidden = (k, id) => { const u = pubDoc[pubWk(k)]; return !!(u && u[isIntId(id) ? 'i' : 's']); };
+  function renderPub(){
+    const b = $('#pubBody'), pc = $('#pubCard'); if (pc) pc.hidden = !isRim(); if (!b || !isRim()) return;
+    const m0 = mondayOf(new Date()); m0.setDate(m0.getDate() - 7);
+    let h = '';
+    for (let n = 0; n < 14; n++) { const d = addDays(m0, 7 * n), k = key(d), u = pubDoc[k] || {};
+      h += '<div class="annd" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0"><span style="flex:1;min-width:8em">Sem. du '+fmtShort.format(d)+'</span>'
+        + ['s','i'].map(g=>'<button type="button" class="'+(u[g] ? 'ghost' : 'primary')+'" style="padding:4px 10px" data-pub="'+k+'|'+g+'">'+(g === 's' ? 'Seniors' : 'Internes')+' : '+(u[g] ? 'non publié' : 'publié')+'</button>').join('')+'</div>'; }
+    b.innerHTML = h;
+  }
+  document.addEventListener('click', async e=>{
+    const t = e.target.closest('[data-pub]'); if (!t || !db || !isRim()) return;
+    const [k, g] = t.dataset.pub.split('|'), cur = !!(pubDoc[k] && pubDoc[k][g]);
+    if (!askCode((cur ? 'publier' : 'dépublier')+' le planning')) return;
+    try { await db.doc('meta/publication').update({[k]: {[g]: !cur}}); notify((g === 's' ? 'Seniors' : 'Internes')+', semaine du '+fmtShort.format(parse(k))+' : '+(cur ? 'publié.' : 'non publié (visible uniquement par les administrateurs).')); } catch(err) { handleErr(err); }
+  });
+
+  /* ---------- import de la trame des chefs (document « planning chefs ») ---------- */
+  const CHEF_NOMS = {nicolas:['nicolas','nico','pangon'], clement:['clement','marcelin','cm'], eva:['eva','fourage'], antoine:['antoine','martin'], henri:['henri','remy'], ima:['ima','isabelle','molina'], yann:['yann','lebras','ylb'], amandine:['amandine','crombe'], rim:['rim','rm','maaloum'], rayann:['rayann']};
+  const CHEF_POSTES = {bloc:['Bloc'], echo:['Échographie'], echosa:['Écho SA'], cs:['Consultation'], irm:['IRM'], ext:['Scanner externes'], rdc:['Scanner RDC / RI'], urg:['Scanner urgences'], sa:['Scanner SA'], rcp:['RCP']};
+  /* [jour 0=lundi, partie, poste, personnes, options {rot: alternance, t: mention}] */
+  const CHEF_TRAME = [
+    [0,'M','rdc',['nicolas','rim','henri']], [0,'AM','cs',['nicolas']], [0,'M','rcp',[],{rot:['rim','antoine']}],
+    [1,'M','bloc',['nicolas','antoine']], [1,'AM','bloc',['nicolas','antoine']], [2,'M','irm',[],{rot:['nicolas','henri']}],
+    [0,'M','bloc',['clement','rayann']], [0,'AM','bloc',['clement']], [1,'M','echo',['clement']], [1,'AM','irm',['clement']],
+    [3,'M','ext',['clement']], [3,'AM','cs',['clement']], [4,'M','rdc',['clement','rayann']], [4,'AM','ext',['clement']], [4,'AM','rdc',['rayann']],
+    [2,'M','bloc',['eva']], [2,'AM','bloc',['eva']], [3,'M','cs',['eva']], [4,'M','echo',['eva','antoine']], [4,'AM','irm',[],{rot:['eva','antoine'], t:'IRM 8'}],
+    [0,'M','cs',['antoine']], [0,'AM','urg',[],{rot:['antoine','henri','rayann']}], [3,'M','bloc',['antoine','rim']], [3,'AM','bloc',['antoine','rim']],
+    [1,'AM','echo',['henri']], [1,'M','cs',['henri']], [1,'AM','rcp',['henri']], [2,'AM','echo',['henri']], [4,'M','bloc',['henri']], [4,'AM','bloc',['henri']],
+    [0,'AM','rdc',['ima']], [2,'AM','ext',['ima']],
+    [0,'M','sa',['yann']], [0,'AM','sa',['yann']], [2,'M','echo',['yann']], [2,'AM','echosa',['yann']], [3,'M','echo',['yann']], [3,'AM','echo',['yann']], [4,'AM','ext',['yann']],
+    [3,'M','irm',['amandine'],{t:'IRM 8'}], [3,'AM','sa',['amandine']], [4,'M','sa',['amandine']],
+    [0,'AM','echo',['rim']], [2,'M','cs',['rim']], [2,'AM','irm',['rim'],{t:'IRM 7'}]
+  ];
+  function chefPlan(){
+    const docs = sortedDocs(), who = {}, miss = new Set(), noPost = new Set(), put = {};
+    Object.keys(CHEF_NOMS).forEach(k=>{ const al = CHEF_NOMS[k]; const d = docs.find(x=>al.includes(plNorm(x.label)) || al.includes(x.id)) || docs.find(x=>al.some(a=>a.length > 3 && plNorm(x.label).startsWith(a))); if (d) who[k] = d.id; });
+    const posts = trame.postes.filter(p=>!p.info), pick = {}, rx = {bloc:/\bbloc\b/, echosa:/(echo|echographie).*\bsa\b/, cs:/consult/, irm:/\birm\b(?!.*urg)/, ext:/(scanner|tdm).*ext/, rdc:/(scanner|tdm).*(rdc|\bri\b|interv)|(rdc|\bri\b)/, urg:/(scanner|tdm).*urg/, sa:/(scanner|tdm).*\bsa\b|photonique|\bxa\b/, rcp:/\brcp\b/};
+    Object.keys(CHEF_POSTES).forEach(k=>{ pick[k] = posts.find(p=>{ const t = plNorm(p.id+' '+p.label); if (k === 'echo') return /(echo|echographie)/.test(t) && !/\bsa\b/.test(t); if (k === 'sa') return rx.sa.test(t) && !/echo/.test(t); if (k === 'irm') return /\birm\b/.test(t) && !/urg/.test(t); return rx[k].test(t); }) || null; });
+    CHEF_TRAME.forEach(([dow, part, pk, names, o])=>{
+      const po = pick[pk]; const lbl = CHEF_POSTES[pk][0];
+      if (!po) { noPost.add(lbl); return; }
+      if (po.journee && part !== 'M') return;
+      const key2 = po.id+'|'+dow+'|'+part, c = put[key2] = put[key2] || {po, dow, part, who: [], rot: [], t: ''};
+      const idsOf = a=>a.map(n=>{ if (!who[n]) { miss.add(n); return null; } return who[n]; }).filter(Boolean);
+      idsOf(names).forEach(id=>{ if (!c.who.includes(id)) c.who.push(id); });
+      if (o && o.rot) { const r = idsOf(o.rot); if (r.length) c.rot = r; }
+      if (o && o.t) c.t = o.t;
+    });
+    return {put, miss: [...miss], noPost: [...noPost], who};
+  }
+  function chefOpen(){
+    if (!trame || !isRim()) return;
+    const pl = chefPlan(), cells = Object.values(pl.put), DN = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
+    const byDay = [0,1,2,3,4].map(d=>'<p class="annd">'+DN[d]+'</p>'+['M','AM'].map(pt=>{ const l = cells.filter(c=>c.dow === d && c.part === pt); return l.length ? '<p class="hint" style="margin:2px 0"><b>'+(pt === 'M' ? 'Matin' : 'Après-midi')+'</b> · '+l.map(c=>esc(c.po.label)+' : '+esc(c.who.map(dLabel).join(', ')+(c.rot.length ? (c.who.length ? ' + ' : '')+c.rot.map(dLabel).join(' / ')+' (alternance)' : ''))).join(' · ')+'</p>' : ''; }).join('')).join('');
+    const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+    w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Importer la trame des chefs</b></p><p class="hint">'+cells.length+' vacation'+(cells.length > 1 ? 's' : '')+' seront posées. Les seniors actuellement posés dans la trame sont remplacés (les internes ne changent pas).</p>'
+      + (pl.miss.length ? '<p class="codeerr">Personnes introuvables dans la liste : '+esc(pl.miss.join(', '))+' (non importées).</p>' : '') + (pl.noPost.length ? '<p class="codeerr">Postes introuvables dans le service : '+esc(pl.noPost.join(', '))+' (non importés).</p>' : '')
+      + byDay + '<div class="asb"><button type="button" class="primary" data-chefok'+(cells.length ? '' : ' disabled')+'>Importer</button><button type="button" class="ghost" data-chefno>Annuler</button></div></div>';
+    document.body.appendChild(w);
+    w.addEventListener('click', async e=>{
+      if (e.target === w || e.target.closest('[data-chefno]')) { w.remove(); return; }
+      if (!e.target.closest('[data-chefok]')) return;
+      try { await db.doc('meta/trame-avant-chefs').set({at: Date.now(), trame: JSON.stringify(trame)}); } catch(err) {}
+      const ok = await saveTrame(t=>{
+        Object.keys(t.cases).forEach(k=>{ const c = t.cases[k]; if (c && Array.isArray(c.who)) c.who = c.who.filter(isIntId); if (c) delete c.rot; });
+        cells.forEach(c=>{ const k = tk(c.po.id, c.dow, c.part), prev = t.cases[k] || {}, keep = Array.isArray(prev.who) ? prev.who.filter(isIntId) : []; const nc = {who: c.who.concat(keep.filter(x=>!c.who.includes(x)))}; if (c.rot.length) nc.rot = c.rot; if (c.t) nc.texte = c.t; else if (prev.texte && !/^ferm/i.test(prev.texte)) nc.texte = prev.texte; t.cases[k] = nc; });
+      });
+      if (ok) { w.remove(); trSig = ''; notify('Trame des chefs importée ('+cells.length+' vacations). Une copie de l’ancienne trame est conservée.'); }
+    });
+  }
+  $('#chefGo').addEventListener('click', chefOpen);
   const dayNotes = k => (notesBy[k] || []);
   function renderGNotes(){
     const box = $('#gNotes');
@@ -2206,7 +2294,7 @@ const PROTO = [
   }
 
   function renderAll(){
-    renderRenMe(); renderBut(); renderAnnu(); { const it = !!me && isIntId(me); ['#protoCard','#livretCard'].forEach(q=>{ const el = $(q); if (el) el.hidden = !it; }); } if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderBut(); renderAnnu(); { const it = !!me && isIntId(me); ['#protoCard','#livretCard'].forEach(q=>{ const el = $(q); if (el) el.hidden = !it; }); { const ch = $('#chefCard'); if (ch) ch.hidden = !isRim(); const pc = $('#pubCard'); if (pc) pc.hidden = !isRim(); renderPub(); } } if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
 
@@ -4291,6 +4379,7 @@ const PROTO = [
     const ov = overrides[k] && overrides[k][postId+'_'+part] || null;
     if (!c && !(ov && (ov.w.length || ov.x))) return null;
     const who = ov ? ov.w.slice() : (Array.isArray(c.who) ? c.who.slice() : []);
+    if (!ov && c && Array.isArray(c.rot) && c.rot.length) { const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7), n = c.rot.length, r = c.rot[((wk % n) + n) % n]; if (r && !who.includes(r)) who.push(r); }   /* alternance semaine par semaine */
     Object.values(swaps).filter(x=>x.status === 'conclu' && (!ov || (x.updatedAt||0) > ov.t)).sort((a,b)=>(a.updatedAt||0)-(b.updatedAt||0)).forEach(x=>{
       if (x.poste === postId && x.date === k && x.part === part) {
         const i = who.indexOf(x.from); if (i >= 0) who.splice(i,1);
@@ -4301,6 +4390,7 @@ const PROTO = [
         if (!who.includes(x.from)) who.push(x.from);
       }
     });
+    if (pubOff(k) && !isRim()) { const w2 = who.filter(id=>!pubHidden(k, id)); if (!w2.length && who.length) return null; who.length = 0; w2.forEach(x=>who.push(x)); }
     return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : ''), edited: !!(ov && c), open: !!ov && !who.length && !ov.x && !ov.dl, dl: !!(ov && ov.dl)};
   }
   /* pourquoi id ne peut pas être sur ce créneau ('' si tout va bien) */
@@ -6427,7 +6517,7 @@ const PROTO = [
   /* Réglages « à la iPhone » : menu de thèmes, puis sous-pages */
   const SET_GRPS = [
     {id:'compte', ic:'👤', bg:'#3B82F6', t:'Mon compte', sub:'Profil, apparence, calendrier, rappels, administrateurs', sel:['#fMp','#fApp','#instBtn','#remCard','#fCal','#admCard']},
-    {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#trameCfg','#creerCard','#impSlotR','#exportCard']},
+    {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#pubCard','#chefCard','#trameCfg','#creerCard','#impSlotR','#exportCard']},
     {id:'annuaire', ic:'📞', bg:'#8B5CF6', t:'Annuaire', sub:'Numéros utiles du service', sel:['#annuCard']},
     {id:'protocoles', ic:'📋', bg:'#14B8A6', t:'Protocoles', sub:'Scanner, IRM, UCR, échographie', sel:['#protoCard']},
     {id:'livret', ic:'📘', bg:'#0EA5E9', t:'Livret de l’interne', sub:'Livret d’accueil, semestre nov. 2026 – mai 2027', sel:['#livretCard']},
@@ -6555,6 +6645,7 @@ const PROTO = [
       jumpToData();
       maybeSeed(); maybePatch();
     }, err=>{});
+    db.doc('meta/publication').onSnapshot(s=>{ pubDoc = s.exists ? (s.data() || {}) : {}; renderPub(); if (typeof renderAll === 'function') renderAll(); }, err=>{});
     db.doc('meta/annonces').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; annon = v.items && typeof v.items === 'object' ? v.items : {}; renderAnn(); renderToday(); }, err=>{});
     db.doc('meta/annuaire').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; annu = v.items && typeof v.items === 'object' && Object.keys(v.items).length ? v.items : null; renderAnnu(); }, err=>{});
     db.doc('trame/semaine').onSnapshot(s=>{
