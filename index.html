@@ -1648,7 +1648,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'f39179593a';
+  const BUILD = '5d0e427eda';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2662,12 +2662,35 @@ const PROTO = [
   /* trame de la semaine en cours de création (grille à cocher) */
   const wkG = () => plGrp === 'interne' ? 'int' : 'med';
   function wkEff(po, i, pt){ const g = wkG(), s = semG(key(plStart), g), kk = tk(po, i, pt); if (s && s.add && s.add[kk]) return true; if (s && (s.blank || (s.rem && s.rem[kk]))) return false; return g === 'int' ? (intEmpty() ? !!trame.cases[kk] : !!(trame.casesInt && trame.casesInt[kk])) : !!trame.cases[kk]; }
+  const CHEF_REGLES = [
+    ['Nicolas','Lun : scan interv. le matin, consultation l’après-midi (garder ses consultations au maximum ; si besoin écho ou bloc le matin, il ferme alors ses consultations). RCP greffe à 8h en alternance Rim / Antoine (et Henri si nécessaire). Mar : bloc. Mer matin : IRM en alternance avec Henri (mettre les deux, sauf absence de l’un).'],
+    ['Clément','Lun : bloc. Mar : écho le matin (bloc en parallèle si Nicolas est seul), IRM l’après-midi. Mer : off à maintenir. Jeu : scan externe / consultation. Ven : bloc si le principal est absent, sinon scan hospit., Lyric ou scan externe.'],
+    ['Eva','Lun et Mar : off (mobilisable si besoin, ou RCP du mardi soir). Mer : bloc. Jeu matin : consultation ; jeu après-midi : écho / administratif (récupère ses enfants à 17h un jour sur deux). Ven matin : Lyric (1 à 2 fois par mois), biopsie ou écho ; ven après-midi : IRM 8 en alternance avec Antoine.'],
+    ['Antoine','Lun : consultation le matin, scan urgences l’après-midi (ou écho / bloc / TDM hospit. si IMA absente). Mar : bloc avec Nicolas (RCP du mardi soir si Henri absent). Mer : off. Jeu : bloc avec Rim (ou TDM externe si Clément absent, IRM si Amandine absente) ; après-midi bloc, scan urg. ou SA, écho. Ven : biopsie TDM hospit. / écho ; après-midi IRM 8 en alternance avec Eva.'],
+    ['Henri','Lun matin : ablation avec Rim et Nicolas ; après-midi scan urgences en alternance avec Antoine et Rayann (ou scan hospit. si IMA absente, ou écho). Mar : consultation, puis vacation PM sinon écho, puis RCP à 17h. Mer : IRM le matin en alternance avec Nicolas ; après-midi écho (TDM externe si IMA absente, IRM si Rim absente). Jeu : off sauf souci. Ven : bloc toute la journée, il a la priorité.'],
+    ['IMA','Lun après-midi : TDM hospit. Mer après-midi : TDM externe. Ven matin : Lyric 1 fois par mois.'],
+    ['Yann','Lun : scan SA toute la journée. Mar : off. Mer matin : écho Pellegrin ; après-midi écho SA (TDM externe ou IRM en dernier recours). Jeu : écho toute la journée (remplace SA ou TDM externe si besoin). Ven : Lyric rarement (1 fois par mois maximum), TDM externe l’après-midi.'],
+    ['Amandine','Jeu matin : IRM 8 ; jeu après-midi : scan SA ; ven matin : scan SA. Elle ne remplace personne : on la remplace si besoin.'],
+    ['Rim','Lun : ablation le matin avec Nicolas / Henri, écho l’après-midi ; off le 4ᵉ lundi du mois. Mar : off 3 mardis sur 4 (sauf le 4ᵉ), sinon ablation le matin et écho l’après-midi ; RCP le 4ᵉ mardi (sinon Henri, puis Antoine, puis Eva). Mer : consultation, IRM 7. Jeu : bloc. Ven : biopsies (priorité à Antoine ou Rayann), ou écho. Dernier recours : TDM SA, scan hospit. ou urgences (après CCA / DJ).'],
+    ['Rayann','Lun : bloc ou ablation le matin, TDM urg. l’après-midi. Mar : off (2 fois par mois maximum), sinon bloc ; vacation PM en alternance avec Henri. Mer : off ou bloc avec Eva. Jeu : off ou bloc avec Rim (TDM urg. / SA si besoin). Ven : bloc, ou TDM biopsie hospit. le matin et TDM hospit. l’après-midi.']
+  ];
+  function chefRulesHtml(){
+    return '<details class="cardfold" style="margin-top:10px" open><summary><b>📋 Règles de création automatique des chefs</b></summary><p class="hint">Ces règles guident la génération : la trame ci-dessus est la base, le reste sert quand il manque quelqu’un.</p>'
+      + CHEF_REGLES.map(r=>'<p class="hint" style="margin:6px 0"><b>'+esc(r[0])+'</b> · '+esc(r[1])+'</p>').join('')+'</details>';
+  }
+  function chefLoadHtml(){
+    if (plGrp === 'interne' || !isRim()) return '';
+    const has = Object.keys(trame.cases).some(k=>{ const c = trame.cases[k]; return c && ((c.who || []).some(id=>!isIntId(id)) || (c.rot || []).length); });
+    return has ? '' : '<div class="qcard"><p class="qt">🩺 Trame des chefs</p><p class="qh">La trame des chefs n’est pas encore chargée : la grille ci-dessous est vide.</p><button type="button" class="astbtn go" data-chefload="1">Charger la trame des chefs (déjà cochée)</button></div>';
+  }
+  document.addEventListener('click', e=>{ if (e.target.closest('[data-chefload]')) chefOpen(); });
   function wkTrHtml(){
     const s = semG(key(plStart), wkG()), dis = canWrite ? '' : ' disabled';
-    return '<div class="qcard"><p class="qt">🗓 Trame de la semaine du '+esc(fmtDM.format(plStart))+'</p><p class="qh">'+(s && s.blank ? 'Trame vierge : touchez les vacations qui existent cette semaine.' : 'Touchez une vacation pour l’ajouter ou la retirer, cette semaine seulement.')+'</p></div>'
+    return chefLoadHtml() + '<div class="qcard"><p class="qt">🗓 Trame de la semaine du '+esc(fmtDM.format(plStart))+'</p><p class="qh">'+(s && s.blank ? 'Trame vierge : touchez les vacations qui existent cette semaine.' : 'Touchez une vacation pour l’ajouter ou la retirer, cette semaine seulement.')+'</p></div>'
       + trame.postes.filter(p=>!p.info && !isSam(p)).map(p=>{ const parts = p.journee ? ['M'] : PARTS;
         return '<div class="intnr"><div class="intnh"><span><b>'+esc(p.label)+'</b></span><span class="astpair"><button type="button" class="ghost" data-wkcall="'+esc(p.id)+'|1"'+dis+'>Tout cocher</button><button type="button" class="ghost" data-wkcall="'+esc(p.id)+'|0"'+dis+'>Tout décocher</button></span></div>'
-          + '<div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = wkEff(p.id, i, pt); return '<button type="button" data-wkc="'+esc(p.id+'|'+i+'|'+pt)+'" class="'+(on ? 'ov' : '')+'" aria-pressed="'+on+'"'+dis+'>'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div></div>'; }).join('');
+          + '<div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = wkEff(p.id, i, pt); return '<button type="button" data-wkc="'+esc(p.id+'|'+i+'|'+pt)+'" class="'+(on ? 'ov' : '')+'" aria-pressed="'+on+'"'+dis+'>'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div></div>'; }).join('')
+      + (plGrp === 'interne' ? '' : chefRulesHtml());
   }
   async function wkSemSet(todo, mut){
     const g = wkG(), mk = key(plStart);
