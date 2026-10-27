@@ -1648,7 +1648,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'a48a42a007';
+  const BUILD = 'f39179593a';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2224,7 +2224,10 @@ const PROTO = [
   function chefOpen(){
     if (!trame || !isRim()) return;
     const pl = chefPlan(), cells = Object.values(pl.put), DN = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
-    const byDay = [0,1,2,3,4].map(d=>'<p class="annd">'+DN[d]+'</p>'+['M','AM'].map(pt=>{ const l = cells.filter(c=>c.dow === d && c.part === pt); return l.length ? '<p class="hint" style="margin:2px 0"><b>'+(pt === 'M' ? 'Matin' : 'Après-midi')+'</b> · '+l.map(c=>esc(c.po.label)+' : '+esc(c.who.map(dLabel).join(', ')+(c.rot.length ? (c.who.length ? ' + ' : '')+c.rot.map(dLabel).join(' / ')+' (alternance)' : ''))).join(' · ')+'</p>' : ''; }).join('')).join('');
+    const who = c=>c.who.map(dLabel).join(', ')+(c.rot.length ? (c.who.length ? ' + ' : '')+c.rot.map(dLabel).join(' / ')+' (en alternance)' : '');
+    const byDay = trame.postes.filter(p=>!p.info && !isSam(p)).map(p=>{ const parts = p.journee ? ['M'] : PARTS, mine = cells.filter(c=>c.po.id === p.id);
+      return '<div class="intnr"><div class="intnh"><span><b>'+esc(p.label)+'</b></span></div><div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = mine.some(c=>c.dow === i && c.part === pt); return '<button type="button" tabindex="-1" class="'+(on ? 'ov' : '')+'" aria-pressed="'+on+'" style="pointer-events:none">'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div>'
+        + (mine.length ? '<p class="hint" style="margin:6px 0 0;font-size:12px">'+mine.sort((x,y)=>x.dow-y.dow || (x.part === 'M' ? -1 : 1)).map(c=>'<b>'+TDN[c.dow]+' '+(c.part === 'M' ? 'M' : 'AM')+'</b> '+esc(who(c))+(c.t ? ' ('+esc(c.t)+')' : '')).join(' · ')+'</p>' : '')+'</div>'; }).join('');
     const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
     w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Importer la trame des chefs</b></p><p class="hint">'+cells.length+' vacation'+(cells.length > 1 ? 's' : '')+' seront posées. Les seniors actuellement posés dans la trame sont remplacés (les internes ne changent pas).</p>'
       + (pl.miss.length ? '<p class="codeerr">Personnes introuvables dans la liste : '+esc(pl.miss.join(', '))+' (non importées).</p>' : '') + (pl.noPost.length ? '<p class="codeerr">Postes introuvables dans le service : '+esc(pl.noPost.join(', '))+' (non importés).</p>' : '')
