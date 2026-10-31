@@ -2660,7 +2660,9 @@ const PROTO = [
       trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ const r = aPourvoir(p, k, i, part); if (!r) return; n++; if (r.ok) f++; else un.push(new Intl.DateTimeFormat('fr-FR',{weekday:'long'}).format(d)+' '+(p.journee ? '(journée)' : PART_TXT[part])+' · '+postName(p.id, k)); })); }
     const dis = canWrite ? '' : ' disabled';
     const fer = [0,1,2,3,4].map(i=>key(addDays(plStart, i))).filter(isFerie);
-    return '<div class="wktools">'
+    const pubG = plGrp === 'interne' ? 'i' : 's', pubK = key(plStart), pubOn = !(pubDoc[pubK] && pubDoc[pubK][pubG]);
+    const pubBtn = isRim() ? '<button type="button" class="astbtn'+(pubOn ? '' : ' dangerbtn')+'" data-pub="'+pubK+'|'+pubG+'" style="margin-bottom:8px">'+(pubOn ? '📢 Planning publié · dépublier' : '🚫 Non publié (visible des administrateurs seulement) · publier')+'</button>' : '';
+    return '<div class="wktools">' + pubBtn
       + (fer.length ? '<p class="hint">🎌 Jour férié : '+fer.map(k=>esc(fmtShort.format(parse(k))+' ('+ferieName(k)+')')).join(', ')+' · aucune vacation à pourvoir, pas de off.</p>' : '')
       + (un.length ? '<details class="wkun" open><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul>'+un.map(x=>'<li>'+esc(x.charAt(0).toUpperCase()+x.slice(1))+'</li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
       + (n && f < n && !wkClosed() ? '<button type="button" class="astbtn" data-wkclose="1" style="margin-bottom:8px"'+dis+'>✅ Planning terminé (même incomplet)</button>' : '')
@@ -6688,7 +6690,7 @@ const PROTO = [
       jumpToData();
       maybeSeed(); maybePatch();
     }, err=>{});
-    db.doc('meta/publication').onSnapshot(s=>{ pubDoc = s.exists ? (s.data() || {}) : {}; renderPub(); if (typeof renderAll === 'function') renderAll(); }, err=>{});
+    db.doc('meta/publication').onSnapshot(s=>{ pubDoc = s.exists ? (s.data() || {}) : {}; renderPub(); if (typeof renderAll === 'function') renderAll(); try { renderCompose(); } catch(e) {} }, err=>{});
     db.doc('meta/annonces').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; annon = v.items && typeof v.items === 'object' ? v.items : {}; renderAnn(); renderToday(); }, err=>{});
     db.doc('meta/annuaire').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; annu = v.items && typeof v.items === 'object' && Object.keys(v.items).length ? v.items : null; renderAnnu(); }, err=>{});
     db.doc('trame/semaine').onSnapshot(s=>{
