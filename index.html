@@ -7287,7 +7287,7 @@ function home(){
   drawC();drawChips();drawR();renderList();
 }
 function renderList(){
-  const L=document.getElementById('crList');L.style.maxWidth='760px';const toks=norm(q).split(/\s+/).filter(Boolean);
+  const L=document.getElementById('crList');const toks=norm(q).split(/\s+/).filter(Boolean);
   let r=DATA.filter(d=>(!cat||(d.cat||'Urgences')===cat)&&(!kind||d.kind===kind)&&(!reg||d.regions.includes(reg))&&toks.every(t=>tokHit(d,t)));
   const score=d=>toks.reduce((s,t)=>s+(norm(d.name).includes(t)?2:0),0);
   r.sort((a,b)=>score(b)-score(a));
