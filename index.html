@@ -50,7 +50,7 @@
 #view-cr .cr-fin{font-size:16px}
 .cr-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--page);padding:8px 14px;border-radius:99px;font-size:14px;z-index:400}
 
-#view-cr .cr-mk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}#view-cr .cr-mk.cr-vide{opacity:.7;font-style:italic}
+#view-cr .cr-mk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}#view-cr .cr-mk.cr-vide{opacity:.7;font-style:italic}#view-cr .cr-mk.cr-ok{background:color-mix(in srgb,var(--accent) 13%,transparent);color:inherit;text-decoration:none;border-bottom:1px solid var(--accent)}
 .cr-sheet-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:350}
 .cr-sheet{background:var(--surface);color:var(--ink);width:100%;max-width:560px;max-height:85vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
 .cr-sheet-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.cr-sheet-h b{font-size:15px}
@@ -7256,10 +7256,10 @@ function renderList(){
   L.replaceChildren(...out);
 }
 function toast(m){const t=$('div',{class:'cr-toast',role:'status'},m);document.body.append(t);setTimeout(()=>t.remove(),1600)}
-async function copy(text){
-  try{await navigator.clipboard.writeText(text);toast('Copié')}catch(e){
+async function copy(text,suf){
+  try{await navigator.clipboard.writeText(text);toast('Copié'+(suf||''))}catch(e){
     const ta=$('textarea',{style:'position:fixed;opacity:0'},text);document.body.append(ta);ta.select();
-    let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();toast(ok?'Copié':'Sélectionne le texte et copie à la main')}
+    let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();toast(ok?'Copié'+(suf||''):'Sélectionne le texte et copie à la main')}
 }
 function open(it){
   cur=it;pushRec(it.id);app.replaceChildren();
@@ -7272,14 +7272,14 @@ function open(it){
   const prevs=[];
   const sectionText=d=>{const c=d.body.cloneNode(true);c.querySelectorAll('span.variableTreeSpan').forEach(s=>s.replaceWith(fields.has(s.id)?(fields.get(s.id).value.trim()?fields.get(s.id).value:'\u0001'):''));c.querySelectorAll('br').forEach(b=>b.replaceWith('\n'));return c.textContent.replace(/^[ \t]*\u0001[ \t\u0001]*\n/gm,'').replace(/\u0001/g,'').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').replace(/ {2,}/g,' ').trim()};
   function fillPrev(el,d){el.replaceChildren();const c=d.body.cloneNode(true);
-    c.querySelectorAll('span.variableTreeSpan').forEach(s=>s.replaceWith(fields.has(s.id)?(v=>$('mark',{class:'cr-mk'+(v.trim()?'':' vide'),'data-id':s.id,role:'button',tabindex:'0','aria-label':'Modifier : '+fields.get(s.id).title.trim()},v.trim()?v:'＋ à compléter'))(fields.get(s.id).value):''));
+    c.querySelectorAll('span.variableTreeSpan').forEach(s=>s.replaceWith(fields.has(s.id)?(v=>$('mark',{class:'cr-mk'+(v.trim()?'':' vide')+(fields.get(s.id).seen?' cr-ok':''),'data-id':s.id,role:'button',tabindex:'0','aria-label':'Modifier : '+fields.get(s.id).title.trim()},v.trim()?v:'＋ à compléter'))(fields.get(s.id).value):''));
     c.querySelectorAll('br').forEach(b=>b.replaceWith('\n'));el.append(...c.childNodes)}
-  function refresh(){prevs.forEach(([el,d])=>fillPrev(el,d))}
+  function refresh(){prevs.forEach(([el,d])=>fillPrev(el,d));if(typeof upPill==='function')upPill()}
   const full=()=>parsed.map(([n,d])=>(parsed.length>1?n.toUpperCase()+'\n':'')+sectionText(d)).join('\n\n');
   function poolFor(f){const key=norm(f.title.trim());const co=cur&&cur.opts&&cur.opts[f.id.split('_').pop()];const base=co||optsFor(f.title,f.def);const s=[];const add=v=>{v=v.trim();if(v&&!s.includes(v))s.push(v)};add(f.def);(base||POOL[key]||[]).forEach(add);(MINE[key]||[]).forEach(add);return s}
   const isNum=v=>/^[\dxX*×.,\s]+(mm|cm|h|%|°|ml\/min|UH|points)?$/i.test((v||'').trim())&&/[\dxX]/.test(v);
   let curField=null;
-  function closeSheet(){if(curField&&!/^LES_/.test(curField.id)){const v=curField.value.trim();if(v&&v!==curField.def.trim()){const L=lsGet('last',{});L[norm(curField.title.trim())]=v;lsSet('last',L)}}curField=null;document.querySelectorAll('.cr-sheet-ov').forEach(e=>e.remove());document.removeEventListener('keydown',escK)}
+  function closeSheet(){if(curField&&!/^LES_/.test(curField.id)){const v=curField.value.trim();if(v&&v!==curField.def.trim()){const L=lsGet('last',{});L[norm(curField.title.trim())]=v;lsSet('last',L)}}const had=curField;if(curField)curField.seen=true;curField=null;document.querySelectorAll('.cr-sheet-ov').forEach(e=>e.remove());document.removeEventListener('keydown',escK);if(had)refresh()}
   function escK(e){if(e.key==='Escape')closeSheet()}
   const LORG=[['foie','Lésion hépatique','Foie','foie'],['rate','Lésion splénique','Rate','rate'],['reind','Lésion du rein droit','Rein droit','rein'],['reing','Lésion du rein gauche','Rein gauche','rein']];
   function openLes(){
@@ -7295,6 +7295,30 @@ function open(it){
       Object.defineProperty(t2,'value',{get(){return real.lst[o[0]]||''},set(v){v=v.trim();if(v===''){delete real.lst[o[0]]}else if(opts.includes(v)){real.lst[o[0]]=v}else return;upd()}});
       fields.set('LES_G',t2);cur.opts.G=opts;openSheet('LES_G')}
   }
+  function calcFor(f,setVal){
+    const k=ek(f.title),box=(...c)=>$('div',{style:'border:1px dashed var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:13px'},...c);
+    const sel=(opts,val,cb)=>{const e=$('select',{style:'padding:6px;border-radius:8px'});opts.forEach(([v,l])=>{const o=$('option',{value:v},l);if(String(v)===String(val))o.selected=true;e.append(o)});e.addEventListener('change',()=>cb(e.value));return e};
+    if(/^scorectsi/.test(k)){
+      const bf=[...fields.values()].find(x=>/balthazar/i.test(x.title)&&/\b([A-E])\b/.test(x.value));let g=bf?bf.value.match(/\b([A-E])\b/)[1]:'A',n=0;const P={A:0,B:1,C:2,D:3,E:4};
+      const out=$('b',{},'');const up=()=>{out.textContent=(P[g]+n)+' points'};
+      const btn=$('button',{onclick:()=>setVal(String(P[g]+n))},'Utiliser');
+      const c=box($('span',{style:'color:var(--muted)'},'Calcul du CTSI : grade de Balthazar (0 à 4 pts) + nécrose (0 à 6 pts)'),
+        $('span',{},'Grade ',sel([['A','A (0)'],['B','B (1)'],['C','C (2)'],['D','D (3)'],['E','E (4)']],g,v=>{g=v;up()})),
+        $('span',{},'Nécrose ',sel([[0,'aucune (0)'],[2,'< 30 % (2)'],[4,'30-50 % (4)'],[6,'> 50 % (6)']],0,v=>{n=+v;up()})),
+        $('span',{style:'display:flex;gap:10px;align-items:center'},'Total : ',out,btn));up();return c}
+    if(/^%stenosenascet/.test(k)){
+      const cf=[...fields.values()].find(x=>/calibre art.riel minimal/i.test(x.title)&&/^\d/.test(x.value.trim()));let r=cf?cf.value.trim():'',d='';const out=$('b',{},'—');const calc=()=>{const R=parseFloat(r.replace(',','.')),D=parseFloat(d.replace(',','.'));return (R>=0&&D>0&&R<=D)?Math.round((1-R/D)*100):null};
+      const btn=$('button',{onclick:()=>{const v=calc();if(v!==null)setVal(String(v))}},'Utiliser');
+      const inp=(ph,cb)=>$('input',{type:'text',inputmode:'decimal',placeholder:ph,style:'width:110px;padding:6px;border-radius:8px',oninput:e=>{cb(e.target.value);const v=calc();out.textContent=v===null?'—':v+' %'}});
+      return box($('span',{style:'color:var(--muted)'},'Méthode NASCET : (1 − diamètre résiduel minimal / diamètre de la carotide interne distale normale) × 100'),
+        $('span',{},'Résiduel (mm) ',(i=>{i.value=r;return i})(inp('ex. 1,5',v=>r=v))),$('span',{},'Distal normal (mm) ',inp('ex. 5',v=>d=v)),$('span',{style:'display:flex;gap:10px;align-items:center'},'Sténose : ',out,btn))}
+    if(/^scoreaspects/.test(k)){
+      const REG=[['C','noyau caudé'],['L','noyau lenticulaire'],['IC','capsule interne'],['I','insula'],['M1','M1'],['M2','M2'],['M3','M3'],['M4','M4'],['M5','M5'],['M6','M6']];const hit=new Set();const out=$('b',{},'10 / 10');
+      const btn=$('button',{onclick:()=>setVal(String(10-hit.size))},'Utiliser');
+      return box($('span',{style:'color:var(--muted)'},'ASPECTS : cochez les régions atteintes (10 − nombre de régions)'),
+        $('div',{style:'display:flex;flex-wrap:wrap;gap:4px 12px'},...REG.map(([c,l])=>$('label',{style:'display:flex;gap:4px;align-items:center'},$('input',{type:'checkbox',onchange:e=>{e.target.checked?hit.add(c):hit.delete(c);out.textContent=(10-hit.size)+' / 10'}}),l))),
+        $('span',{style:'display:flex;gap:10px;align-items:center'},'Score : ',out,btn))}
+    return null}
   function openSheet(id){
     if(id==='LES_L1'){openLes();return}
     const f=fields.get(id);if(!f)return;closeSheet();curField=f;const key=norm(f.title.trim());const num=isNum(f.def);const lv=lsGet('last',{})[key];
@@ -7306,22 +7330,43 @@ function open(it){
     ta.value=f.value;
     const ov=$('div',{class:'cr-sheet-ov',role:'dialog','aria-label':f.title,onclick:e=>{if(e.target===ov)closeSheet()}},
       $('div',{class:'cr-sheet'},$('div',{class:'cr-sheet-h'},$('b',{},f.title.trim()),$('button',{class:'cr-sheet-x','aria-label':'Fermer',onclick:closeSheet},'✕')),
-        $('div',{class:'cr-sheet-w'},$('label',{},num?'Valeur':'Écrire soi-même'),ta,$('div',{class:'cr-sheet-b'},(lv&&lv!==f.value.trim()&&!/^LES_/.test(f.id))?$('button',{title:lv,onclick:()=>{f.value=lv;ta.value=lv;refresh();closeSheet()}},'↩ Dernière : '+(lv.length>30?lv.slice(0,30)+'…':lv)):'',num?'':save,
+        $('div',{class:'cr-sheet-w'},$('label',{},num?'Valeur':'Écrire soi-même'),ta,calcFor(f,v=>{f.value=v;ta.value=v;refresh();closeSheet()})||'',$('div',{class:'cr-sheet-b'},(lv&&lv!==f.value.trim()&&!/^LES_/.test(f.id))?$('button',{title:lv,onclick:()=>{f.value=lv;ta.value=lv;refresh();closeSheet()}},'↩ Dernière : '+(lv.length>30?lv.slice(0,30)+'…':lv)):'',num?'':save,
           $('button',{onclick:()=>{f.value=f.def;ta.value=f.def;refresh();build()}},'↺ Défaut'),$('button',{class:'primary',onclick:closeSheet},'OK'))),...(num?[]:[$('label',{class:'cr-sheet-l'},'Ou choisir dans la liste'),list])));
     document.body.append(ov);document.addEventListener('keydown',escK);build();if(num)setTimeout(()=>{ta.focus();ta.select()},50);
   }
   const pcol=$('div',{class:'cr-card'},$('h3',{},'Compte rendu'),fields.size?$('p',{class:'cr-note'},'Touchez un passage surligné pour le modifier.'):$('p',{class:'cr-note'},'Texte fixe : aucun champ à modifier.'));
+  const real=id=>[...fields.values()].filter(f=>!/^LES_/.test(f.id)||id);
+  const unseen=()=>[...fields.values()].filter(f=>!/^LES_/.test(f.id)&&!f.seen);
+  const pill=$('button',{class:'cr-chip',style:'display:none',onclick:()=>{const m=[...document.querySelectorAll('.mk:not(.ok)')].find(x=>!/^LES_/.test(x.dataset.id));if(m){m.scrollIntoView({block:'center',behavior:'smooth'})}}});
+  function upPill(){const n=unseen().length;pill.style.display=n?'':'none';pill.textContent='◉ '+n+' à vérifier'}
+  const secText=n=>{const p=parsed.find(x=>x[0]===n);return p?sectionText(p[1]):''};
+  function audit(){const W=[],body=secText('Résultat'),ccl=secText('Conclusion'),all=full();
+    const ph=all.match(/\([^)]*(?:\.{3}|…)[^)]*\)|\bXX\b|\?\?|\.{3,}/);if(ph)W.push('Valeur à compléter : « '+ph[0].slice(0,40)+' »');
+    const sd=t=>new Set([/\bdroit(e|s|es)?\b/i.test(t)?'droit':'',/\bgauches?\b/i.test(t)?'gauche':''].filter(Boolean));
+    const sb=sd(body),sc=sd(ccl);if(sb.size)sc.forEach(x=>{if(!sb.has(x))W.push('La conclusion parle du côté '+x+', mais le compte rendu ne mentionne que le côté '+[...sb].join('/'))});
+    const nm=t=>[...t.matchAll(/(\d+(?:[.,]\d+)?)\s*(mm|cm)\b/g)].map(m=>m[1].replace(',','.')+' '+m[2]);const nbody=nm(body).join('|');
+    nm(ccl).forEach(x=>{if(!nbody.includes(x))W.push('Mesure « '+x+' » dans la conclusion, absente du compte rendu')});
+    [...ccl.matchAll(/grade ([IVX]+|[A-E])\b/gi)].forEach(m=>{if(!new RegExp('grade '+m[1]+'\\b','i').test(body))W.push('« grade '+m[1]+' » dans la conclusion, absent du compte rendu')});
+    return [...new Set(W)]}
+  function showAudit(W,un){
+    const ov=$('div',{class:'cr-sheet-ov',role:'dialog','aria-label':'Avant de copier',onclick:e=>{if(e.target===ov)closeSheet()}},
+      $('div',{class:'cr-sheet'},$('div',{class:'cr-sheet-h'},$('b',{},'À vérifier avant de copier'),$('button',{class:'cr-sheet-x','aria-label':'Fermer',onclick:closeSheet},'✕')),
+        $('ul',{style:'margin:6px 0 10px 18px;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px'},...W.map(w=>$('li',{},w))),
+        un?$('p',{class:'cr-note'},un+' passage'+(un>1?'s':'')+' jamais ouvert'+(un>1?'s':'')+' (texte par défaut).'):'',
+        $('div',{class:'cr-sheet-b'},$('button',{onclick:()=>{closeSheet();copy(full())}},'Copier quand même'),$('button',{class:'primary',onclick:closeSheet},'Revoir'))));
+    document.body.append(ov);document.addEventListener('keydown',escK)}
+  function copyChecked(){const W=audit(),un=unseen().length;if(W.length)showAudit(W,un);else copy(full(),un?' — '+un+' passage'+(un>1?'s':'')+' non vérifié'+(un>1?'s':''):'')}
   const NORMAL=/^(absence|pas d|aucun|il ne contient pas)/i;
   const cclIds=new Set((parsed.find(x=>x[0]==='Conclusion')||[0,{querySelectorAll:()=>[]}])[1].querySelectorAll('span.variableTreeSpan').length?[...parsed.find(x=>x[0]==='Conclusion')[1].querySelectorAll('span.variableTreeSpan')].map(x=>x.id):[]);
-  function toNormal(){let n=0;fields.forEach(f=>{if(/^LES_/.test(f.id)||cclIds.has(f.id)||isNum(f.def))return;const o=poolFor(f).find(v=>NORMAL.test(v.trim()));if(o&&f.value.trim()!==o){f.value=o;n++}});refresh();toast(n?n+' passage'+(n>1?'s':'')+' mis à « absence »':'Rien à changer')}
-  function resetAll(){fields.forEach(f=>{f.value=f.def;if(f.lst)f.lst={}});refresh();toast('Valeurs par défaut rétablies')}
-  if(fields.size)pcol.append($('div',{class:'cr-chips',style:'margin:2px 0 6px'},$('button',{class:'cr-chip',onclick:toNormal},'✓ Passages à « absence »'),$('button',{class:'cr-chip',onclick:resetAll},'↺ Réinitialiser')));
+  function toNormal(){let n=0;fields.forEach(f=>{if(/^LES_/.test(f.id)||cclIds.has(f.id)||isNum(f.def))return;const o=poolFor(f).find(v=>NORMAL.test(v.trim()));if(o&&f.value.trim()!==o){f.value=o;f.seen=true;n++}});refresh();toast(n?n+' passage'+(n>1?'s':'')+' mis à « absence »':'Rien à changer')}
+  function resetAll(){fields.forEach(f=>{f.value=f.def;f.seen=false;if(f.lst)f.lst={}});refresh();toast('Valeurs par défaut rétablies')}
+  if(fields.size)pcol.append($('div',{class:'cr-chips',style:'margin:2px 0 6px'},pill,$('button',{class:'cr-chip',onclick:toNormal},'✓ Passages à « absence »'),$('button',{class:'cr-chip',onclick:resetAll},'↺ Réinitialiser')));
   pcol.addEventListener('click',e=>{const m=e.target.closest('.cr-mk');if(m)openSheet(m.dataset.id)});
   pcol.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('cr-mk')){e.preventDefault();openSheet(e.target.dataset.id)}});
   parsed.forEach(([n,d])=>{const el=$('div',{class:'cr-prev'});prevs.push([el,d]);pcol.append($('div',{class:'cr-sec'},parsed.length>1?$('h4',{},n):'',el,
     $('div',{},$('button',{onclick:()=>copy(sectionText(d))},'Copier '+n.toLowerCase())))) });
   refresh();
-  app.append($('div',{class:'cr-bar'},$('button',{onclick:()=>{closeSheet();home()}},'← Retour'),$('span',{class:'cr-sp'}),starBtn(it.id),$('button',{class:'primary',onclick:()=>copy(full())},'Tout copier')),
+  app.append($('div',{class:'cr-bar'},$('button',{onclick:()=>{closeSheet();home()}},'← Retour'),$('span',{class:'cr-sp'}),starBtn(it.id),$('button',{class:'primary',onclick:()=>copyChecked()},'Tout copier')),
     $('div',{},$('h2',{},it.name),$('p',{class:'cr-sub'},KINDS[it.kind]+' · '+RN(it.regions.join(', '))+(it.path==='True'?' · pathologique':''))),pcol);
 }
 home();
