@@ -6839,6 +6839,7 @@ const EPAN=["Pas d'épanchement intrapéritonéal.","Epanchement péritonéal de
 const PNEUMO=["Absence de pneumopéritoine.","Pneumopéritoine de faible abondance.","Pneumopéritoine de moyenne abondance.","Pneumopéritoine abondant."];
 const SITES=["dans la région péri-ombilicale","en fosse iliaque droite","en fosse iliaque gauche","dans le pelvis","dans le flanc droit","dans le flanc gauche","dans l'hypochondre gauche","dans l'hypochondre droit","en regard d'une cicatrice de laparotomie"];
 const OPT=[
+[/^typededissection/,0,["type A de Stanford","type B de Stanford"]],
 // Appendicite
 [/^positionducaecum$/,0,["habituelle","haute (sous-hépatique)","basse (pelvienne)","mobile","médiane"]],
 [/^positiondel'appendice$/,0,["pelvienne","rétrocaecale","rétro-iléale","sous-caecale","latéro-caecale (externe)","méso-cœliaque","pré-iléale","sous-hépatique (ascendante)","iliaque interne"]],
@@ -7008,12 +7009,34 @@ II:[RAD(rl('M36 28V46')+rl('M24 32H20V44',1.6)),"Fracture partielle de la tête,
 III:[RAD(rl('M30 28V46M42 28V46M24 37H48')),"Fracture comminutive de toute la tête radiale"],
 IV:[RAD(rl('M30 28V46M42 28V46M24 37H48')+rl('M10 20H4M7 16L4 20L7 24')),"Fracture de la tête radiale associée à une luxation du coude"]};
 const BAL={A:"Pancréas normal",B:"Élargissement focal ou diffus du pancréas",C:"Pancréas hétérogène avec infiltration de la graisse péripancréatique",D:"Une collection liquidienne péripancréatique unique",E:"Au moins deux collections liquidiennes et/ou présence de gaz dans ou au contact du pancréas"};
+const ORG={foie:'<path d="M8 40Q10 20 40 18Q64 18 66 40Q62 66 30 72Q10 70 8 40Z"/>',rate:'<path d="M26 14Q54 18 52 48Q50 76 30 82Q22 60 26 14Z"/>',rein:'<path d="M44 14Q16 16 18 48Q20 80 44 82Q36 66 38 48Q36 30 44 14Z"/>'};
+const GRD={1:rl('M14 30Q10 48 16 64',2)+rl('M36 18v6',2),2:rl('M14 28Q9 48 16 66',4)+rl('M36 18V34'),3:rl('M14 26Q8 48 16 68',5)+rl('M36 18V54'),4:'<path d="M24 30Q40 24 52 34Q56 50 44 60Q28 62 24 30Z" fill="'+RED+'" stroke="none"/>',5:'<path d="M16 26Q40 14 62 30Q66 56 44 70Q20 66 16 26Z" fill="'+RED+'" stroke="none"/>'+rl('M60 74h8M64 70v8'),6:'<path d="M16 26Q40 14 62 30Q66 56 44 70Q20 66 16 26Z" fill="'+RED+'" stroke="none"/>'+rl('M8 82l12-12M20 82L8 70')};
+const AASTD={foie:{I:"Hématome sous-capsulaire < 10 % de la surface ; lacération capsulaire < 1 cm de profondeur",II:"Hématome sous-capsulaire 10-50 % ou intraparenchymateux < 10 cm ; lacération 1-3 cm de profondeur et ≤ 10 cm de longueur",III:"Hématome sous-capsulaire > 50 % ou en expansion, ou rompu ; hématome intraparenchymateux ≥ 10 cm ; lacération > 3 cm de profondeur",IV:"Lacération avec destruction parenchymateuse de 25 à 75 % d'un lobe hépatique",V:"Destruction parenchymateuse > 75 % d'un lobe ; lésion veineuse juxta-hépatique (veine cave rétrohépatique, veines sus-hépatiques principales)",VI:"Avulsion hépatique (arrachement du foie de ses attaches vasculaires)"},
+rate:{I:"Hématome sous-capsulaire < 10 % de la surface ; lacération < 1 cm de profondeur",II:"Hématome sous-capsulaire 10-50 % ou intraparenchymateux < 5 cm ; lacération 1-3 cm de profondeur",III:"Hématome sous-capsulaire > 50 % ou en expansion ; hématome intraparenchymateux ≥ 5 cm ; lacération > 3 cm de profondeur ou atteignant des vaisseaux trabéculaires",IV:"Lacération atteignant des vaisseaux segmentaires ou hilaires avec dévascularisation > 25 % de la rate ; saignement actif",V:"Rate éclatée, ou lésion vasculaire hilaire avec rate dévascularisée"},
+rein:{I:"Contusion ; hématome sous-capsulaire non expansif, sans lacération",II:"Hématome périrénal non expansif confiné au rétropéritoine ; lacération corticale < 1 cm sans atteinte des cavités",III:"Lacération parenchymateuse > 1 cm de profondeur, sans rupture des cavités ni extravasation urinaire",IV:"Lacération atteignant les cavités excrétrices avec extravasation urinaire ; lésion vasculaire segmentaire avec hématome, infarctus segmentaire ou saignement actif",V:"Rein éclaté ; avulsion de la jonction pyélo-urétérale ; lésion ou thrombose hilaire avec dévascularisation du rein"}};
+const GN={I:1,II:2,III:3,IV:4,V:5,VI:6};
+const ROM=v=>{const m=v.match(/grade (VI|IV|V|III|II|I)\b/);return m&&m[1]};
+const AAST=(o,v)=>{const g=ROM(v);return g&&AASTD[o][g]&&{svg:SV(ORG[o]+GRD[GN[g]]),d:AASTD[o][g]}};
+const C2=(a,b,c,d)=>SV('<path d="M30 8H44V50H62V90H16V50H30z"/><circle cx="14" cy="22" r="5"/>'+rl('M'+a+' '+b+'L'+c+' '+d,2.4));
+const ROY={OBAR:[C2(26,46,48,60),"Trait oblique en bas et en arrière (OBAR, type A de Roy-Camille)"],HOR:[C2(26,53,48,53),"Trait horizontal (type B de Roy-Camille)"],OHAR:[C2(26,60,48,46),"Trait oblique en haut et en arrière (OHAR, type C de Roy-Camille)"]};
+const CAD=(s)=>SV('<circle cx="36" cy="48" r="28" fill="#ddd"/><circle cx="36" cy="48" r="'+(s>=1?0:(28*(1-s)).toFixed(1))+'" fill="#fff"/>');
+const CADD={"0":[0,"Absence de sténose (0 %)"],"1":[0.12,"Sténose minime (1-24 %)"],"2":[0.37,"Sténose légère (25-49 %)"],"3":[0.6,"Sténose modérée (50-69 %)"],"4A":[0.85,"Sténose sévère (70-99 %) d'un ou deux vaisseaux"],"4B":[0.9,"Sténose du tronc commun > 50 % ou sténose sévère ≥ 70 % des trois vaisseaux"],"5":[1,"Occlusion totale (100 %)"]};
+const AORT=(h)=>SV('<path d="M20 90V40Q20 18 38 18Q56 18 56 40V90" stroke-width="7" stroke="#bbb"/>'+(h=='A'?rl('M20 88V40Q20 18 38 18',3):rl('M56 40V88',3)));
+const STF={A:[AORT('A'),"Dissection intéressant l'aorte ascendante (quelle que soit l'extension)"],B:[AORT('B'),"Dissection respectant l'aorte ascendante (naissant après l'artère sous-clavière gauche)"]};
 function ill(key,v){let m;
  if(/^classificationdemagerl$/.test(key)){const x=MAG[v.trim()];return x&&{svg:x[0],d:x[1]}}
  if(/^classificationaospine/.test(key)){m=v.match(/class[ée]e? ([ABC]\d?)/);const x=m&&MAG[m[1]];return x&&{svg:x[0],d:null}}
  if(/^traumatismedubassin/.test(key)){m=v.match(/^([ABC])(\d)?/);const x=m&&TILE[m[1]];return x&&{svg:x[0],d:(m[2]&&TL[m[1]+m[2]])||x[1]}}
  if(/^classificationdemason/.test(key)){m=v.match(/type (I{1,3}|IV)/);const x=m&&MAS[m[1]];return x&&{svg:x[0],d:x[1]}}
  if(/^classificationdebalthazar/.test(key)){m=v.match(/grade ([A-E])/);return m&&{svg:null,d:BAL[m[1]]}}
+
+ if(/^classificationaast(hepatique)/.test(key))return AAST('foie',v);
+ if(/^classificationaastsplenique/.test(key))return AAST('rate',v);
+ if(/^classificationaastrein/.test(key))return AAST('rein',v);
+ if(/^obliquitedutraitdefracture/.test(key)){const k=/OBAR/.test(v)?'OBAR':/OHAR/.test(v)?'OHAR':/horizontal/i.test(v)?'HOR':'';const x=ROY[k];return x&&{svg:x[0],d:x[1]}}
+ if(/^(gradecad|cad-rads|cotationcad)|^gradecad-radsdelalesion/.test(key)){m=v.match(/CAD-RADS (4A|4B|[0-5])/);const x=m&&CADD[m[1]];return x&&{svg:CAD(x[0]),d:x[1]}}
+ if(/^typededissection/.test(key)){m=v.match(/type ([AB])\b/);const x=m&&STF[m[1]];return x&&{svg:x[0],d:x[1]}}
+ if(/^typedefractureencompression/.test(key)){m=v.match(/Magerl (A\d)/);const x=m&&MAG[m[1]];return x&&{svg:x[0],d:x[1]}}
  return null}
 function optsFor(title,def){const k=ek(title);for(const [re,dre,o] of OPT){if(re.test(k)&&(!dre||dre.test(def||'')))return o}for(const [re,dre,o] of OPT2){if(o.length&&re.test(k)&&(!dre||dre.test(def||'')))return o}return autoOpts(title,def)}
 
