@@ -7336,6 +7336,21 @@ function fromEdit(t,titles){const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&
 const ROMV={I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8,IX:9,X:10};
 function ordKey(v){const m=v.match(/^(?:[A-Za-zÀ-ÿ'’\-]+ )?(\d+(?:[.,]\d+)?|VIII|VII|VI|IV|IX|III|II|I|V|X)([a-dF])?(?![A-Za-zÀ-ÿ0-9])/);if(!m)return null;const n=/^\d/.test(m[1])?parseFloat(m[1].replace(',','.')):ROMV[m[1]];return n==null?null:[n,(m[2]||'').toLowerCase()]}
 function ordSort(s){if(s.length<3)return s;const k=s.map(ordKey);if(k.some(x=>!x)||new Set(k.map(x=>x[0]+x[1])).size<2)return s;return s.map((v,i)=>[v,k[i],i]).sort((x,y)=>x[1][0]-y[1][0]||(x[1][1]<y[1][1]?-1:x[1][1]>y[1][1]?1:0)||x[2]-y[2]).map(x=>x[0])}
+function refLine(l){
+  const wrap=$('div',{style:'margin:12px 0 0;font-size:13.5px;line-height:1.45'});
+  if(/^[•·-]\s/.test(l)){wrap.append($('div',{style:'padding-left:14px;text-indent:-10px'},'• '+l.replace(/^[•·-]\s*/,'')));return wrap}
+  let title='',body=l;const k=l.indexOf(' : ');
+  if(k>0&&k<=80&&!/[;=]/.test(l.slice(0,k))){title=l.slice(0,k);body=l.slice(k+3)}
+  const items=body.split(/ ; /);
+  if(items.length<2&&!title){wrap.append(l);return wrap}
+  if(title)wrap.append($('div',{style:'font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-bottom:6px'},title));
+  if(items.length<2){wrap.append(body);return wrap}
+  const g=$('div',{style:'display:grid;grid-template-columns:fit-content(38%) 1fr;gap:1px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--line)'});
+  items.forEach(s=>{let m=s.match(/^(.{1,45}?) = (.+)$/),key,val;
+    if(m){key=m[1];val=m[2]}else if(m=s.match(/^(.{2,45}?) (?=[<>≥≤≈])(.+)$/)){key=m[1];val=m[2]}else if(m=s.match(/^(.{2,40}?) : (.+)$/)){key=m[1];val=m[2]}else{key='';val=s}
+    g.append($('div',{style:'background:var(--soft,var(--bg));padding:6px 9px;font-weight:700'},key),$('div',{style:'background:var(--bg);padding:6px 9px'},val))});
+  wrap.append(g);return wrap}
+
 function open(it){
   cur=it;pushRec(it.id);app.replaceChildren();
   // collect fields
@@ -7607,7 +7622,7 @@ function open(it){
       ...(hit.length?[]:[$('p',{class:'cr-note',style:'margin-top:8px'},'Aucun protocole propre à ce modèle dans ta liste'+(grp?' : voir tous les protocoles '+mod+' ci-dessous.':'.'))]),
       ...(grp?[$('details',{style:'margin-top:8px'},$('summary',{style:'cursor:pointer'},'Tous les protocoles '+mod+' ('+grp.items.length+')'),...grp.items.map(e=>ent(mod,e)))]:[]),
       $('p',{class:'cr-note',style:'margin-top:8px'},'Protocoles de l’onglet « Protocoles » ; le rapprochement avec ce modèle est proposé par mes soins : à vérifier.')))})();
-  if(it.ref&&it.ref.length)pcol.append($('details',{style:'margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px'},$('summary',{style:'cursor:pointer;font-weight:600'},'📚 Rappel des valeurs et définitions'),...it.ref.map(l=>$('p',{style:'margin:8px 0 0;font-size:13.5px;line-height:1.45'},l)),$('p',{class:'cr-note',style:'margin-top:8px'},'Résumé par mes soins à partir des sources ci-dessous : à relire.')));
+  if(it.ref&&it.ref.length)pcol.append($('details',{style:'margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px'},$('summary',{style:'cursor:pointer;font-weight:600'},'📚 Rappel des valeurs et définitions'),...it.ref.map(refLine),$('p',{class:'cr-note',style:'margin-top:8px'},'Résumé par mes soins à partir des sources ci-dessous : à relire.')));
   if(it.src&&it.src.length)pcol.append($('p',{class:'cr-note'},'Sources : ',...it.src.flatMap(([t,u],i)=>[i?' · ':'',u?$('a',{href:u,target:'_blank',rel:'noopener'},t):t])));
   app.append($('div',{class:'cr-bar'},$('button',{onclick:()=>{closeSheet();lastFam?openFam(lastFam):home()}},'← Retour'),$('span',{class:'cr-sp'}),starBtn(it.id),$('button',{class:'primary',onclick:()=>copyChecked()},'Tout copier')),
     $('div',{},$('h2',{},it.name),$('p',{class:'cr-sub'},(it._ed?'✎ modifié · ':'')+(it.cat||'Urgences')+' · '+KINDS[it.kind]+' · '+RN(it.regions.join(', '))+(it.path==='True'?' · pathologique':''))),pcol);
