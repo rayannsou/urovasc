@@ -2359,7 +2359,7 @@ const PROTO = [
         const cn = id => isSam(p) ? '<b class="acn" aria-label="'+(AC[id]||0)+' astreinte'+((AC[id]||0) > 1 ? 's' : '')+'">'+(AC[id]||0)+'</b>' : '';
         const chips = who.map(id=>{ const r = v && v.ou ? '' : reasonFor(id,k,part); if (r) bad++; return '<span class="pch'+(r ? ' bad' : '')+'">'+esc(dLabel(id))+cn(id)+'<button type="button" data-plx="'+esc(slot+'|'+id)+'" aria-label="Retirer '+esc(dLabel(id))+'"'+dis+'>×</button></span>'; }).join('');
         const why = who.filter(id=>!(v && v.ou) && reasonFor(id,k,part)).map(id=>esc(dLabel(id))+' : '+esc(reasonFor(id,k,part))).join(' · ');
-        const tag = ov ? (ov.a ? '<em class="auto">⚡ automatiquement selon les postes habituels</em>' : '<em class="man">✋ manuel</em>') : (who.length ? '<em>toujours</em>' : '');
+        const tag = ov ? (ov.a ? '<em class="auto">⚡ automatiquement '+((plGrp === 'interne' || (who.length && who.every(isIntId))) ? 'pour respecter l’équité' : 'selon les postes habituels')+'</em>' : '<em class="man">✋ manuel</em>') : (who.length ? '<em>toujours</em>' : '');
         const top = isSam(p) ? [] : plSuggest(p.id, part, who, k), sug = top.concat((isSam(p) ? grpDocs() : docs).map(d=>d.id).filter(id=>!who.includes(id) && !top.includes(id)));
         if (isSam(p)) sug.sort((a,b)=>(AC[a]||0)-(AC[b]||0));
         const closed = !!v && !who.length && /^ferm/i.test(v.texte || '');
