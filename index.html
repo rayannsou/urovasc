@@ -3415,7 +3415,18 @@ const PROTO = [
     if (e.target.closest('[data-genlist]')) { genSolo = false; genStep = -1; genRender(); return; }
     if (e.target.closest('[data-genprev]')) { genStep = Math.max(0, genStep-1); genRender(); return; }
     const gp = e.target.closest('[data-genpick]');
-    if (gp && genStep >= 0) { const r = genRows[genStep], id = gp.dataset.genpick, cur = genPending[r.idx[0]].after; let nx = r.sam ? [id] : (cur.includes(id) ? cur.filter(x=>x !== id) : cur.concat(id)); r.idx.forEach(i=>{ genPending[i].after = nx.slice(); genPending[i].val.w = nx.slice(); if (genPending[i].ph) genPending[i].on = nx.length > 0; }); genRender(); return; }
+    if (gp && genStep >= 0) { const r = genRows[genStep], id = gp.dataset.genpick, cur = genPending[r.idx[0]].after; let nx = r.sam ? [id] : (cur.includes(id) ? cur.filter(x=>x !== id) : cur.concat(id)); r.idx.forEach(i=>{ genPending[i].after = nx.slice(); genPending[i].val.w = nx.slice(); if (genPending[i].ph) genPending[i].on = nx.length > 0; });
+      if (!r.sam && !cur.includes(id)) {   /* choisi ici : on le retire de ses autres postes au même moment */
+        const w0 = genPending[r.idx[0]], dw = (parse(w0.k).getDay()+6)%7;
+        genPending.forEach((x, xi)=>{ if (r.idx.includes(xi) || x.k !== w0.k || x.part !== w0.part || x.poste === w0.poste || !(x.after || []).includes(id)) return; x.after = x.after.filter(z=>z !== id); x.val.w = x.after.slice(); if (x.ph) x.on = x.after.length > 0; });
+        trame.postes.filter(p=>!p.info && !isSam(p) && !p.journee && p.id !== w0.poste && okDay(p, dw)).forEach(p=>{
+          if (genPending.some(x=>x.k === w0.k && x.part === w0.part && x.poste === p.id)) return;
+          const v = vacWho(p.id, w0.k, w0.part); if (!v || v.ou || !v.who.includes(id)) return;
+          const bf = v.who.filter(inGrp), af = bf.filter(z=>z !== id);
+          genPending.push({k: w0.k, part: w0.part, poste: p.id, kk: p.id+'_'+w0.part, val: {w: af.slice(), t: 0, a: 1}, before: bf, after: af, on: true, shown: true});
+        });
+      }
+      genRender(); return; }
     const gn = e.target.closest('[data-gennext]');
     if (gn && genStep >= 0) { const r = genRows[genStep]; const on = gn.dataset.gennext === '1' && genPending[r.idx[0]].after.length > 0; r.idx.forEach(i=>{ genPending[i].on = on; }); genStep++; if (genSolo || genStep >= genRows.length) { genStep = -1; genSolo = false; } genRender(); return; }
     if (!e.target.closest('[data-genok]') || !genPending) return;
