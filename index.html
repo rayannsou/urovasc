@@ -2192,6 +2192,7 @@ const PROTO = [
  ]}
 ];
 
+  window.CR_PROTO = PROTO;   /* partagé avec l'onglet CR : protocole proposé selon le compte rendu */
   const protoSplit = t => { const out = []; let d = 0, cur = ''; for (const ch of t) { if (ch === '(') d++; if (ch === ')') d--; if ((ch === ',' ) && d === 0) { out.push(cur.trim()); cur = ''; } else cur += ch; } if (cur.trim()) out.push(cur.trim()); return out; };
   /* texte long -> liste : étapes numérotées « 1) … 2) … », sinon une phrase par ligne */
   const protoList = t=>{
@@ -7584,6 +7585,24 @@ function open(it){
     closeSheet();document.body.append(ov);document.addEventListener('keydown',escK)}
   if(window.CR_ADMIN&&CR_ADMIN.isAdmin())pcol.append($('button',{style:'width:100%;margin:10px 0 2px;padding:11px;border-radius:10px;border:1px dashed var(--line);background:transparent;color:inherit;font:inherit;cursor:pointer',onclick:()=>openAdm(it)},'🛡 Modifier ce modèle (permanent, pour tous)'+(it._ed?' · déjà modifié':'')));
   refresh();
+  (()=>{const PR=(window.CR_PROTO&&window.CR_PROTO.length?window.CR_PROTO:(()=>{try{return JSON.parse(document.getElementById('crProto').textContent)}catch(e){return[]}})());if(!PR.length||it.kind!==2)return;
+    const RULES=[[/uro-?scanner/i,[['Scanner','Bilan d’hématurie'],['Scanner','Bilan pré-opératoire de tumeur rénale'],['Scanner','Suivi après exérèse de cancer rénal'],['Scanner','Densité des calculs']]],
+      [/RECIST|oncologique/i,[['Scanner','Bilan d’AEG']]],[/colique n[ée]phr/i,[['Scanner','Surveillance de maladie lithiasique'],['Scanner','Densité des calculs']]],
+      [/pancr[ée]atite/i,[['Scanner','Pathologie pancréatique']]],[/angioscanner des membres|AOMI/i,[['Scanner','Bilan d’AOMI']]],
+      [/IRM de la prostate/i,[['IRM','Recherche de lésion cible prostatique']]],
+      [/greffon/i,[['Échographie','Greffons']]],[/abdominale normale/i,[['Échographie','Foie'],['Échographie','Reins natifs']]],[/hépatique/i,[['Échographie','Foie']]],
+      [/appareil urinaire/i,[['Échographie','Reins natifs'],['Échographie','Vessie'],['Échographie','Prostate']]],[/scrotale/i,[['Échographie','Testicule']]],
+      [/veineux des membres/i,[['Échographie','Membres inférieurs']]],[/art[ée]riel des membres/i,[['Échographie','Doppler artériel']]],[/fistule/i,[['Échographie','Fistule']]]];
+    const mod=it._m==='Écho'?'Échographie':it._m;const hit=[];
+    RULES.forEach(([re,L])=>{if(re.test(it.name))L.forEach(([m,t])=>{const g=PR.find(x=>x.m===m);const e=g&&g.items.find(y=>norm(y[0]).startsWith(norm(t)));if(e&&!hit.some(h=>h.e===e))hit.push({m,e,g})})});
+    const ent=(m,e)=>$('div',{style:'margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px'},$('b',{style:'display:block'},e[0]),$('div',{style:'margin-top:4px;font-size:13.5px;line-height:1.45;white-space:pre-wrap'},e[1]),...(e[2]?[$('div',{style:'margin-top:6px;font-size:13px;color:var(--muted);line-height:1.45'},e[2])]:[]));
+    const grp=PR.find(x=>x.m===mod);
+    const notes=hit.some(h=>h.m==='Scanner')?(PR.find(x=>x.m==='Scanner')||{note:[]}).note.slice(0,2):[];
+    pcol.append($('details',{style:'margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px'},$('summary',{style:'cursor:pointer;font-weight:600'},'📋 Protocole de l’examen'+(hit.length?' ('+hit.length+')':'')),
+      ...hit.map(h=>ent(h.m,h.e)),...notes.map(n=>$('p',{class:'cr-note',style:'margin-top:8px'},n)),
+      ...(hit.length?[]:[$('p',{class:'cr-note',style:'margin-top:8px'},'Aucun protocole propre à ce modèle dans ta liste'+(grp?' : voir tous les protocoles '+mod+' ci-dessous.':'.'))]),
+      ...(grp?[$('details',{style:'margin-top:8px'},$('summary',{style:'cursor:pointer'},'Tous les protocoles '+mod+' ('+grp.items.length+')'),...grp.items.map(e=>ent(mod,e)))]:[]),
+      $('p',{class:'cr-note',style:'margin-top:8px'},'Protocoles de l’onglet « Protocoles » ; le rapprochement avec ce modèle est proposé par mes soins : à vérifier.')))})();
   if(it.ref&&it.ref.length)pcol.append($('details',{style:'margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px'},$('summary',{style:'cursor:pointer;font-weight:600'},'📚 Rappel des valeurs et définitions'),...it.ref.map(l=>$('p',{style:'margin:8px 0 0;font-size:13.5px;line-height:1.45'},l)),$('p',{class:'cr-note',style:'margin-top:8px'},'Résumé par mes soins à partir des sources ci-dessous : à relire.')));
   if(it.src&&it.src.length)pcol.append($('p',{class:'cr-note'},'Sources : ',...it.src.flatMap(([t,u],i)=>[i?' · ':'',u?$('a',{href:u,target:'_blank',rel:'noopener'},t):t])));
   app.append($('div',{class:'cr-bar'},$('button',{onclick:()=>{closeSheet();lastFam?openFam(lastFam):home()}},'← Retour'),$('span',{class:'cr-sp'}),starBtn(it.id),$('button',{class:'primary',onclick:()=>copyChecked()},'Tout copier')),
