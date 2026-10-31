@@ -7325,7 +7325,7 @@ function open(it){
     c.querySelectorAll('br').forEach(b=>b.replaceWith('\n'));el.append(...c.childNodes)}
   function refresh(){prevs.forEach(([el,d])=>fillPrev(el,d));if(typeof upPill==='function')upPill()}
   const full=()=>parsed.map(([n,d])=>(parsed.length>1?n.toUpperCase()+'\n':'')+sectionText(d)).join('\n\n');
-  function poolFor(f){const key=norm(f.title.trim());const co=cur&&cur.opts&&cur.opts[f.id.split('_').pop()];const base=co||optsFor(f.title,f.def);const s=[];const add=v=>{v=v.trim();if(v&&!s.includes(v))s.push(v)};add(f.def);(base||POOL[key]||[]).forEach(add);(MINE[key]||[]).forEach(add);return s}
+  function poolFor(f){const key=norm(f.title.trim());const co=f.opts||(cur&&cur.opts&&cur.opts[f.id.split('_').pop()]);const base=co||optsFor(f.title,f.def);const s=[];const add=v=>{v=v.trim();if(v&&!s.includes(v))s.push(v)};add(f.def);(base||POOL[key]||[]).forEach(add);(MINE[key]||[]).forEach(add);return s}
   const isNum=v=>/^[\dxX*×.,\s]+(mm|cm|h|%|°|ml\/min|UH|points)?$/i.test((v||'').trim())&&/[\dxX]/.test(v);
   let curField=null,wz=null;
   const stopWiz=()=>{wz=null;closeSheet()};
@@ -7498,7 +7498,35 @@ function open(it){
   const cclIds=new Set((parsed.find(x=>x[0]==='Conclusion')||[0,{querySelectorAll:()=>[]}])[1].querySelectorAll('span.variableTreeSpan').length?[...parsed.find(x=>x[0]==='Conclusion')[1].querySelectorAll('span.variableTreeSpan')].map(x=>x.id):[]);
   function toNormal(){let n=0;fields.forEach(f=>{if(/^LES_/.test(f.id)||cclIds.has(f.id)||isNum(f.def))return;const o=poolFor(f).find(v=>NORMAL.test(v.trim()));if(o&&f.value.trim()!==o){f.value=o;f.seen=true;n++}});refresh();toast(n?n+' passage'+(n>1?'s':'')+' mis à « absence »':'Rien à changer')}
   function resetAll(){edits.clear();resetBtns.forEach(f=>f());fields.forEach(f=>{f.value=f.def;f.seen=false;if(f.lst)f.lst={}});refresh();toast('Valeurs par défaut rétablies')}
-  if(fields.size)pcol.append($('button',{class:'primary',style:'width:100%;padding:13px;font-size:16px;margin:4px 0 8px',onclick:startWiz},'▶ Mode guidé : remplir pas à pas'),$('div',{class:'cr-chips',style:'margin:2px 0 6px'},pill,$('button',{class:'cr-chip',onclick:toNormal},'✓ Passages à « absence »'),$('button',{class:'cr-chip',onclick:resetAll},'↺ Réinitialiser')));
+  // --- paragraphes insérables
+  const insBox=$('div',{class:'cr-chips',style:'margin:0 0 6px'});const inserted=new Map();
+  const docOf=n=>(parsed.find(x=>x[0]===n)||[])[1];
+  function addPara(p){
+    if(inserted.has(p.id)){toast('Déjà ajouté');return false}
+    const dR=docOf('Résultat');if(!dR){toast('Impossible ici');return false}
+    const mk=h=>new DOMParser().parseFromString('<body>'+h+'</body>','text/html');
+    const pr=mk(p.outcome),pc=p.conclusion&&p.conclusion.trim()?mk(p.conclusion):null;
+    const ids=[];const reg=d=>d.querySelectorAll('span.variableTreeSpan').forEach(s=>{if(fields.has(s.id)){s.setAttribute('data-dup','1');return}const f={id:s.id,title:s.getAttribute('title')||'Champ',value:s.textContent,def:s.textContent};if(p.opts&&p.opts[s.id.split('_').pop()])f.opts=p.opts[s.id.split('_').pop()];fields.set(s.id,f);ids.push(s.id)});
+    reg(pr);if(pc)reg(pc);
+    const wr=dR.createElement('span');wr.setAttribute('data-para',p.id);wr.innerHTML='<br />'+pr.body.innerHTML+'<br />';dR.body.append(wr);
+    let wc=null;const dC=docOf('Conclusion');
+    if(pc&&dC){wc=dC.createElement('span');wc.setAttribute('data-para',p.id);wc.innerHTML='<br />'+pc.body.innerHTML;dC.body.append(wc);pc.querySelectorAll('span.variableTreeSpan').forEach(s=>cclIds.add(s.id))}
+    inserted.set(p.id,{wr,wc,ids});drawIns();refresh();return true}
+  function dropPara(id){const r=inserted.get(id);if(!r)return;r.wr.remove();r.wc&&r.wc.remove();r.ids.forEach(i=>fields.delete(i));inserted.delete(id);drawIns();refresh()}
+  function drawIns(){insBox.replaceChildren(...[...inserted.keys()].map(id=>{const p=DATA.find(d=>d.id===id);return $('button',{class:'cr-chip',title:'Retirer ce paragraphe',onclick:()=>dropPara(id)},'✕ '+(p?p.name:id))}))}
+  function openParas(){
+    const all=DATA.filter(d=>d.kind===1&&d.id!==it.id);const mine=new Set(it.regions);
+    const inp=$('input',{type:'search',placeholder:'Filtrer : AAST, PE-RADS, Tile…',style:'width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--line);margin:4px 0 8px'});
+    const list=$('div',{class:'cr-sheet-list'});
+    const draw=()=>{const toks=norm(inp.value).split(/\s+/).filter(Boolean);let r=all.filter(d=>toks.every(x=>tokHit(d,x)));
+      const rel=r.filter(d=>d.regions.some(x=>mine.has(x))),oth=r.filter(d=>!rel.includes(d));
+      const sec=s=>$('div',{style:'font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 2px 2px'},s);
+      const b=d=>$('button',{class:'cr-opt',onclick:()=>{if(addPara(d)){closeSheet();toast('Paragraphe ajouté : '+d.name)}}},EM(d.regions[0])+d.name);
+      list.replaceChildren(...(rel.length?[sec('Même région'),...rel.map(b)]:[]),...(oth.length?[sec(rel.length?'Autres paragraphes':'Paragraphes'),...oth.map(b)]:[]),...(r.length?[]:[$('div',{class:'cr-empty'},'Aucun paragraphe.')]))};
+    inp.oninput=draw;draw();
+    const ov=$('div',{class:'cr-sheet-ov',role:'dialog','aria-label':'Ajouter un paragraphe',onclick:e=>{if(e.target===ov)closeSheet()}},$('div',{class:'cr-sheet'},$('div',{class:'cr-sheet-h'},$('b',{},'Ajouter un paragraphe au compte rendu'),$('button',{class:'cr-sheet-x','aria-label':'Fermer',onclick:closeSheet},'✕')),$('div',{class:'cr-sheet-w'},inp),list));
+    closeSheet();document.body.append(ov);document.addEventListener('keydown',escK)}
+  if(fields.size)pcol.append($('button',{class:'primary',style:'width:100%;padding:13px;font-size:16px;margin:4px 0 8px',onclick:startWiz},'▶ Mode guidé : remplir pas à pas'),$('div',{class:'cr-chips',style:'margin:2px 0 6px'},pill,$('button',{class:'cr-chip',onclick:toNormal},'✓ Passages à « absence »'),$('button',{class:'cr-chip',onclick:resetAll},'↺ Réinitialiser'),...(it.kind===2?[$('button',{class:'cr-chip',onclick:openParas},'➕ Ajouter un paragraphe')]:[])),insBox);
   pcol.addEventListener('click',e=>{const m=e.target.closest('.cr-mk');if(m)openSheet(m.dataset.id)});
   pcol.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('cr-mk')){e.preventDefault();openSheet(e.target.dataset.id)}});
   parsed.forEach(([n,d])=>{const el=$('div',{class:'cr-prev'});prevs.push([el,d]);pcol.append($('div',{class:'cr-sec'},parsed.length>1?$('h4',{},n):'',el,
