@@ -3131,7 +3131,7 @@ const PROTO = [
     const load = {}, prev = {}, writes = [], noAuto = [], holes = [], relaxed = []; let ouWarn = 0;
     const score = (id, sl)=>{
       const ep = eqI.post[sl.p.id] || {}, dev = (ep[id] || 0) - eqMP(sl.p.id), devT = (eqI.tot[id] || 0) - eqMT();
-      let sc = -Math.max(-30, Math.min(30, dev * 2.5)) - Math.max(-8, Math.min(8, devT * 0.3)) + Math.min(((freq[id] && freq[id][sl.p.id]) || 0), 4) * 0.08 - (load[id] || 0) * 2;   /* équité sur une longue période : moins on a fait ce poste, plus on est favorisé */
+      let sc = -Math.max(-30, Math.min(30, dev * 2.5)) - Math.max(-15, Math.min(15, devT * 0.7)) + Math.min(((freq[id] && freq[id][sl.p.id]) || 0), 4) * 0.08 - (load[id] || 0) * 2;   /* équité sur une longue période : moins on a fait ce poste, plus on est favorisé */
       const pv = prev[sl.h.k+'|M'];
       if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : sl.p.id === 'echo' ? -12 : 2;   /* pas à l'écho toute la journée */
       if (!R.autonomie.includes(sl.p.id) && isAuto(id)) sc -= 1.5;
