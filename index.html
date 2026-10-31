@@ -6844,7 +6844,7 @@ const EMO_R={'Échographie':'🔊','Crâne':'🧠','Cou':'🧣','Thorax':'🫁',
 const EM=r=>EMO_R[r]?EMO_R[r]+' ':'';
 const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const $=(t,a={},...c)=>{const e=document.createElement(t);for(const k in a){if(k==='class')e.className=a[k];else if(k.startsWith('on'))e.addEventListener(k.slice(2),a[k]);else e.setAttribute(k,a[k])}c.flat().forEach(x=>e.append(x));return e};
-let q='',kind=0,reg='',cat='',cur=null,MINE={};
+let q='',kind=2,reg='',cat='',mod='',cur=null,MINE={};
 const LSK=k=>'cr_'+k;
 const lsGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(LSK(k))||'null')||d}catch(e){return d}};
 const lsSet=(k,v)=>{try{localStorage.setItem(LSK(k),JSON.stringify(v))}catch(e){}};
@@ -7257,8 +7257,9 @@ function plain(html){ // -> text
 }
 function searchText(it){return norm(it.name+' '+plain(it.tech||'')+' '+plain(it.outcome)+' '+plain(it.conclusion)+' '+plain(it.extra))}
 DATA.forEach(d=>{d.regions=d.regions||[d.region];d._s=searchText(d);d._w=[...new Set(d._s.split(/[^a-z0-9]+/).filter(w=>w.length>=4))]});
+const modOf=d=>{const t=norm(d.name+' '+(d.tech||'').replace(/<[^>]+>/g,' '));return d.regions.includes('Échographie')||/echograph|doppler|\becho\b/.test(t)?'Écho':/\birm\b|resonance/.test(t)?'IRM':'Scanner'};
 const ORIG={},OK=['name','tech','outcome','conclusion','extra'];
-function applyOvr(){const o=window.CR_OVR||{};DATA.forEach(d=>{if(!ORIG[d.id])ORIG[d.id]=Object.fromEntries(OK.map(x=>[x,d[x]||'']));const v=o[d.id];OK.forEach(x=>{d[x]=v&&typeof v[x]==='string'?v[x]:ORIG[d.id][x]});d._ed=!!(v&&typeof v==='object');d._s=searchText(d);d._w=[...new Set(d._s.split(/[^a-z0-9]+/).filter(w=>w.length>=4))]})}
+function applyOvr(){const o=window.CR_OVR||{};DATA.forEach(d=>{if(!ORIG[d.id])ORIG[d.id]=Object.fromEntries(OK.map(x=>[x,d[x]||'']));const v=o[d.id];OK.forEach(x=>{d[x]=v&&typeof v[x]==='string'?v[x]:ORIG[d.id][x]});d._ed=!!(v&&typeof v==='object');d._m=modOf(d);d._s=searchText(d);d._w=[...new Set(d._s.split(/[^a-z0-9]+/).filter(w=>w.length>=4))]})}
 window.CR_APPLY=()=>{applyOvr();const L=document.getElementById('crList');if(L&&typeof renderList==='function')renderList()};
 applyOvr();
 const SYN={tap:['thoraco-abdomino','thoraco'],ep:['embolie'],cck:['cholecyst'],hsa:['meningee'],avc:['avc','ischemique'],tdm:['scanner'],ct:['scanner'],irm:['irm'],us:['echographie'],echo:['echographie'],lca:['croise anterieur'],lcp:['croise posterieur'],ldh:['lombaire'],hernie:['hernie','discale'],pneumo:['pneumothorax'],hic:['hypertension intracranienne'],fracture:['fracture'],trauma:['trauma'],appendicite:['appendic'],pancreatite:['pancreat'],diverticulite:['sigmoid','diverticul'],colique:['nephretique','lithiase'],rcc:['rein'],hcc:['hepatocellulaire','li-rads'],pirads:['pi-rads'],virads:['vi-rads'],tirads:['tirads']};
@@ -7277,18 +7278,18 @@ function openFam(fam){
 function home(){
   cur=null;lastFam=null;app.replaceChildren();
   const inp=$('input',{type:'search',placeholder:'Rechercher : appendicite, occlusion, colique…',value:q,'aria-label':'Rechercher un compte rendu',oninput:e=>{q=e.target.value;try{localStorage.setItem('cr_q',q)}catch(_){}renderList()}});
-  const chips=$('div',{class:'cr-chips'});const rchips=$('div',{class:'cr-chips'});const cchips=$('div',{class:'cr-chips'});const fwrap=$('div',{style:'display:'+((reg||kind)?'flex':'none')+';flex-direction:column;gap:8px'},rchips,chips);
+  const chips=$('div',{class:'cr-chips'});const rchips=$('div',{class:'cr-chips'});const cchips=$('div',{class:'cr-chips'});const fwrap=$('div',{style:'display:'+((reg||kind!==2)?'flex':'none')+';flex-direction:column;gap:8px'},rchips,chips);
   app.append($('header',{class:'cr-head'},$('div',{},$('h2',{class:'cr-h'},'Comptes rendus'),$('p',{class:'cr-sub'},DATA.length+' modèles · '+REGS.length+' régions'))),inp,cchips,fwrap,$('div',{class:'cr-list',id:'crList'}),
     $('p',{class:'cr-note'},'Les options des menus sont des propositions à relire avant usage.'));
   const opts=[[0,'Tous'],...Object.entries(KINDS).map(([k,v])=>[+k,v])];
   function drawChips(){chips.replaceChildren(...opts.map(([k,l])=>$('button',{class:'cr-chip','aria-pressed':String(kind===k),onclick:()=>{kind=k;drawChips();renderList()}},l)))}
   function drawR(){rchips.replaceChildren(...[['','Toutes régions'],...REGS.map(r=>[r,RN(r)])].map(([k,l])=>$('button',{class:'cr-chip','aria-pressed':String(reg===k),onclick:()=>{reg=k;drawR();renderList()}},EM(k)+l)))}
-  function drawC(){cchips.replaceChildren(...[['','Tous'],['Urgences','🚨 Urgences'],['Programmé','📅 Programmé']].map(([k,l])=>$('button',{class:'cr-chip','aria-pressed':String(cat===k),onclick:()=>{cat=k;drawC();renderList()}},l)).concat([$('button',{class:'cr-chip','aria-pressed':String(fwrap.style.display==='flex'),onclick:()=>{fwrap.style.display=fwrap.style.display==='flex'?'none':'flex';drawC()}},'⚙ Filtres'+((reg||kind)?' •':''))]))}
+  function drawC(){cchips.replaceChildren(...[['','Tous'],['Urgences','🚨 Urgences'],['Programmé','📅 Programmé']].map(([k,l])=>$('button',{class:'cr-chip','aria-pressed':String(cat===k),onclick:()=>{cat=k;drawC();renderList()}},l)).concat([['Scanner','🩻 Scanner'],['IRM','🧲 IRM'],['Écho','🔊 Échographie']].map(([k,l])=>$('button',{class:'cr-chip','aria-pressed':String(mod===k),onclick:()=>{mod=mod===k?'':k;drawC();renderList()}},l)),[$('button',{class:'cr-chip','aria-pressed':String(fwrap.style.display==='flex'),onclick:()=>{fwrap.style.display=fwrap.style.display==='flex'?'none':'flex';drawC()}},'⚙ Filtres'+((reg||kind!==2)?' •':''))]))}
   drawC();drawChips();drawR();renderList();
 }
 function renderList(){
   const L=document.getElementById('crList');const toks=norm(q).split(/\s+/).filter(Boolean);
-  let r=DATA.filter(d=>(!cat||(d.cat||'Urgences')===cat)&&(!kind||d.kind===kind)&&(!reg||d.regions.includes(reg))&&toks.every(t=>tokHit(d,t)));
+  let r=DATA.filter(d=>(!cat||(d.cat||'Urgences')===cat)&&(!kind||d.kind===kind)&&(!mod||d._m===mod)&&(!reg||d.regions.includes(reg))&&toks.every(t=>tokHit(d,t)));
   const score=d=>toks.reduce((s,t)=>s+(norm(d.name).includes(t)?2:0),0);
   r.sort((a,b)=>score(b)-score(a));
   const row=d=>$('div',{style:CARD},$('button',{class:'cr-item',style:BTN,onclick:()=>{lastFam=null;open(d)}},$('span',{style:'display:flex;gap:12px;align-items:center'},$('span',{style:'font-size:26px;line-height:1'},EM(d.regions[0]).trim()||'📄'),$('span',{style:'display:flex;flex-direction:column;gap:2px'},$('b',{style:'font-size:16px'},d.name),$('small',{},RN(d.regions[0])+(d.kind===1?' · Paragraphe':d.kind===4?' · Info':'')+(d.cat==='Programmé'?' · Programmé':''))))),$('div',{style:ACT},copyBtn(d),starBtn(d.id,renderList)));
@@ -7330,6 +7331,9 @@ function toEdit(html){const d=new DOMParser().parseFromString('<body>'+(html||''
   d.querySelectorAll('br').forEach(s=>s.replaceWith('\n'));return d.body.innerHTML.replace(/&nbsp;/g,' ')}
 function fromEdit(t,titles){const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   return t.replace(/\r/g,'').replace(TOKR,(m,id,def)=>titles[id]!=null?'<span id="'+id+'" class="variableTreeSpan" title="'+esc(titles[id])+'">'+esc(def)+'</span>':esc(def)).replace(/\n/g,'<br />').trim()}
+const ROMV={I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8,IX:9,X:10};
+function ordKey(v){const m=v.match(/^(?:[A-Za-zÀ-ÿ'’\-]+ )?(\d+(?:[.,]\d+)?|VIII|VII|VI|IV|IX|III|II|I|V|X)([a-dF])?(?![A-Za-zÀ-ÿ0-9])/);if(!m)return null;const n=/^\d/.test(m[1])?parseFloat(m[1].replace(',','.')):ROMV[m[1]];return n==null?null:[n,(m[2]||'').toLowerCase()]}
+function ordSort(s){if(s.length<3)return s;const k=s.map(ordKey);if(k.some(x=>!x)||new Set(k.map(x=>x[0]+x[1])).size<2)return s;return s.map((v,i)=>[v,k[i],i]).sort((x,y)=>x[1][0]-y[1][0]||(x[1][1]<y[1][1]?-1:x[1][1]>y[1][1]?1:0)||x[2]-y[2]).map(x=>x[0])}
 function open(it){
   cur=it;pushRec(it.id);app.replaceChildren();
   // collect fields
@@ -7347,7 +7351,7 @@ function open(it){
     c.querySelectorAll('br').forEach(b=>b.replaceWith('\n'));el.append(...c.childNodes)}
   function refresh(){prevs.forEach(([el,d])=>fillPrev(el,d));if(typeof upPill==='function')upPill()}
   const full=()=>parsed.map(([n,d])=>(parsed.length>1?n.toUpperCase()+'\n':'')+sectionText(d)).join('\n\n');
-  function poolFor(f){const key=norm(f.title.trim());const co=f.opts||(cur&&cur.opts&&cur.opts[f.id.split('_').pop()]);const base=co||optsFor(f.title,f.def);const s=[];const add=v=>{v=v.trim();if(v&&!s.includes(v))s.push(v)};add(f.def);(base||POOL[key]||[]).forEach(add);(MINE[key]||[]).forEach(add);return s}
+  function poolFor(f){const key=norm(f.title.trim());const co=f.opts||(cur&&cur.opts&&cur.opts[f.id.split('_').pop()]);const base=co||optsFor(f.title,f.def);const s=[];const add=v=>{v=v.trim();if(v&&!s.includes(v))s.push(v)};(base||POOL[key]||[]).forEach(add);(MINE[key]||[]).forEach(add);if(f.def&&f.def.trim()&&!s.includes(f.def.trim()))s.unshift(f.def.trim());return ordSort(s)}
   const isNum=v=>/^[\dxX*×.,\s]+(mm|cm|h|%|°|ml\/min|UH|points)?$/i.test((v||'').trim())&&/[\dxX]/.test(v);
   let curField=null,wz=null;
   const stopWiz=()=>{wz=null;closeSheet()};
