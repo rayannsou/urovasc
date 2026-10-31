@@ -7250,7 +7250,7 @@ const tokHit=(d,t)=>d._s.includes(t)||(SYN[t]&&SYN[t].some(x=>d._s.includes(x)))
 const REGS=[...new Set(DATA.flatMap(d=>d.regions))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr'));
 let lastFam=null,moreQ='';
 const famMembers=fam=>DATA.flatMap(d=>[...(d.fam===fam?[{d,grp:d.grp||'',var:d.var,fo:d.fo}]:[]),...(d.alts||[]).filter(a=>a.fam===fam).map(a=>({d,grp:a.grp||'',var:a.var,fo:a.fo}))]).sort((a,b)=>a.fo-b.fo);
-const famBlock=(fam,mem)=>{const groups=[...new Set(mem.map(m=>m.grp))];return groups.flatMap(g=>[g?$('h3',{style:'margin:14px 2px 4px;font-size:15px'},g):'',$('div',{class:'cr-list'},...mem.filter(m=>m.grp===g).map(m=>$('button',{class:'cr-item',onclick:()=>{lastFam=fam;open(m.d)}},$('span',{},$('b',{},m.var)),m.d.kind===2?'':$('small',{},KINDS[m.d.kind]))))])};
+const famBlock=(fam,mem)=>{const groups=[...new Set(mem.map(m=>m.grp))];return groups.flatMap(g=>[g?$('h3',{style:'margin:20px 0 8px;padding:9px 12px;font-size:17px;font-weight:700;color:var(--accent-fg,#fff);background:var(--accent,#0f6b5e);border-radius:10px;display:flex;justify-content:space-between;align-items:center'},$('span',{},g),$('span',{style:'font-size:12px;font-weight:500;opacity:.85'},mem.filter(m=>m.grp===g).length+(mem.filter(m=>m.grp===g).length>1?' modèles':' modèle'))):'',$('div',{class:'cr-list'},...mem.filter(m=>m.grp===g).map(m=>$('button',{class:'cr-item',onclick:()=>{lastFam=fam;open(m.d)}},$('span',{},$('b',{},m.var)),m.d.kind===2?'':$('small',{},KINDS[m.d.kind]))))])};
 function openFam(fam){
   cur=null;lastFam=fam;app.replaceChildren();
   const mem=famMembers(fam);
