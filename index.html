@@ -3947,7 +3947,7 @@ const PROTO = [
     const offRows = PARTS.map(part=>({p: OFFP, part, cells: days.map((d,i)=>{
       if (isFerie(dk[i])) return {who: [], texte: part === 'M' ? 'Férié · '+ferieName(dk[i]) : '', ou: false};   /* jour férié : pas de off */
       const ids = new Set(), a = absAt(dk[i], part); Object.values(a).forEach(l=>l.forEach(id=>{ if (inG(id)) ids.add(id); }));
-      sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i]).kind !== 'G' && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
+      sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
       return {who: sdocs.filter(dc=>ids.has(dc.id)).map(dc=>dc.id), texte: '', ou: false};
     })}));
     if (offRows.some(r=>r.cells.some(c=>c.who.length || c.texte))) offRows.forEach(r=>rows.push(r));
