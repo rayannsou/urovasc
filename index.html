@@ -2662,7 +2662,7 @@ const PROTO = [
     const fer = [0,1,2,3,4].map(i=>key(addDays(plStart, i))).filter(isFerie);
     return '<div class="wktools">'
       + (fer.length ? '<p class="hint">🎌 Jour férié : '+fer.map(k=>esc(fmtShort.format(parse(k))+' ('+ferieName(k)+')')).join(', ')+' · aucune vacation à pourvoir, pas de off.</p>' : '')
-      + (un.length ? '<details class="wkun"><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul>'+un.map(x=>'<li>'+esc(x.charAt(0).toUpperCase()+x.slice(1))+'</li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
+      + (un.length ? '<details class="wkun" open><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul>'+un.map(x=>'<li>'+esc(x.charAt(0).toUpperCase()+x.slice(1))+'</li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
       + (n && f < n && !wkClosed() ? '<button type="button" class="astbtn" data-wkclose="1" style="margin-bottom:8px"'+dis+'>✅ Planning terminé (même incomplet)</button>' : '')
       + (wkClosed() && f < n ? '<button type="button" class="astbtn" data-wkclose="0" style="margin-bottom:8px"'+dis+'>↩ Rouvrir le planning ('+(n-f)+' non pourvue'+(n-f > 1 ? 's' : '')+')</button>' : '')
       + (plGrp === 'interne' && offMany().length ? '<button type="button" class="astbtn" data-offopen="1" style="margin-bottom:8px">⚖ '+offMany().length+' interne'+(offMany().length > 1 ? 's ont' : ' a')+' plus de '+offMin()+' off · affecter</button>' : '')
