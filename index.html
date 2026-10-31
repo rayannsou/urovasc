@@ -49,6 +49,16 @@
 #view-cr .cr-sec h4{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 #view-cr .cr-fin{font-size:16px}
 .cr-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--page);padding:8px 14px;border-radius:99px;font-size:14px;z-index:400}
+
+#view-cr .cr-mk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}#view-cr .cr-mk.cr-vide{opacity:.7;font-style:italic}
+.cr-sheet-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:350}
+.cr-sheet{background:var(--surface);color:var(--ink);width:100%;max-width:560px;max-height:85vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.cr-sheet-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.cr-sheet-h b{font-size:15px}
+.cr-sheet-l{font-size:12.5px;color:var(--muted)}.cr-sheet-list{display:flex;flex-direction:column;gap:6px}
+.cr-opt{text-align:left;padding:10px 12px;background:var(--bg)}.cr-opt[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.cr-opt.cr-vide{font-style:italic}
+.cr-sheet-w{display:flex;flex-direction:column;gap:6px}.cr-sheet-w label{font-size:12.5px;color:var(--muted)}.cr-sheet-w textarea{font:inherit;font-size:16px;color:var(--ind-ink);background:var(--ind);border:1.5px solid var(--ind-2);border-radius:8px;padding:10px 12px;box-sizing:border-box;width:100%}
+.cr-sheet-b{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(min-width:720px){.cr-sheet-ov{align-items:center}.cr-sheet{border-radius:16px}}
 </style>
 </head>
 <body>
@@ -7179,35 +7189,35 @@ function open(it){
   const prevs=[];
   const sectionText=d=>{const c=d.body.cloneNode(true);c.querySelectorAll('span.variableTreeSpan').forEach(s=>s.replaceWith(fields.has(s.id)?fields.get(s.id).value:''));c.querySelectorAll('br').forEach(b=>b.replaceWith('\n'));return c.textContent.replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').replace(/ {2,}/g,' ').trim()};
   function fillPrev(el,d){el.replaceChildren();const c=d.body.cloneNode(true);
-    c.querySelectorAll('span.variableTreeSpan').forEach(s=>s.replaceWith(fields.has(s.id)?$('mark',{},fields.get(s.id).value):''));
+    c.querySelectorAll('span.variableTreeSpan').forEach(s=>s.replaceWith(fields.has(s.id)?(v=>$('mark',{class:'cr-mk'+(v.trim()?'':' vide'),'data-id':s.id,role:'button',tabindex:'0','aria-label':'Modifier : '+fields.get(s.id).title.trim()},v.trim()?v:'＋ à compléter'))(fields.get(s.id).value):''));
     c.querySelectorAll('br').forEach(b=>b.replaceWith('\n'));el.append(...c.childNodes)}
   function refresh(){prevs.forEach(([el,d])=>fillPrev(el,d))}
   const full=()=>parsed.map(([n,d])=>(parsed.length>1?n.toUpperCase()+'\n':'')+sectionText(d)).join('\n\n');
-  const fcol=$('div',{class:'cr-card'},$('h3',{},'Options (menu ou saisie libre)'));
-  if(!fields.size)fcol.append($('p',{class:'cr-note'},'Ce modèle n’a pas de champ variable : texte fixe.'));
-  for(const [id,f] of fields){
-    const key=norm(f.title.trim());
-    const base=optsFor(f.title,f.def);const pool=()=>{const s=[];const add=v=>{v=v.trim();if(v&&!s.includes(v))s.push(v)};add(f.def);(base||POOL[key]||[]).forEach(add);(MINE[key]||[]).forEach(add);return s};
-    const sel=$('select',{class:'cr-fin','aria-label':f.title});
-    const ta=$('textarea',{rows:'1','aria-label':f.title+' (saisie libre)',placeholder:'Écrire librement…',oninput:e=>{f.value=e.target.value;sync(false);refresh()}});
-    const save=$('button',{class:'cr-sv',hidden:'',title:'Ajouter cette formulation au menu',onclick:()=>{const v=f.value.trim();if(!v)return;(MINE[key]=MINE[key]||[]).includes(v)||MINE[key].push(v);try{localStorage.setItem('cr_mine',JSON.stringify(MINE))}catch(_){}build();toast('Ajouté au menu')}},'+ Ajouter au menu');
-    function build(){sel.replaceChildren(...pool().map(v=>$('option',{value:v},v.length>70?v.slice(0,68)+'…':v)),$('option',{value:'\u0000'},'— Vide (supprimer) —'),$('option',{value:'\u0001'},'✎ Autre (écrire)'));sync(true)}
-    function sync(setTa){const v=f.value.trim();const p=pool();
-      sel.value=v===''?'\u0000':p.includes(v)?p.find(x=>x===v):'\u0001';
-      save.hidden=!(v&&!p.includes(v));if(setTa)ta.value=f.value}
-    sel.addEventListener('change',()=>{const v=sel.value;if(v==='\u0000')f.value='';else if(v==='\u0001'){ta.focus();ta.select();return}else f.value=v;ta.value=f.value;sync(false);refresh()});
-    build();
-    fcol.append($('div',{class:'cr-f'},$('label',{},f.title.trim()),sel,$('div',{class:'cr-row'},ta,
-      $('button',{title:'Valeur par défaut',onclick:()=>{f.value=f.def;build();refresh()}},'↺')),save));
+  function poolFor(f){const key=norm(f.title.trim());const base=optsFor(f.title,f.def);const s=[];const add=v=>{v=v.trim();if(v&&!s.includes(v))s.push(v)};add(f.def);(base||POOL[key]||[]).forEach(add);(MINE[key]||[]).forEach(add);return s}
+  function closeSheet(){document.querySelectorAll('.cr-sheet-ov').forEach(e=>e.remove());document.removeEventListener('keydown',escK)}
+  function escK(e){if(e.key==='Escape')closeSheet()}
+  function openSheet(id){
+    const f=fields.get(id);if(!f)return;closeSheet();const key=norm(f.title.trim());
+    const list=$('div',{class:'cr-sheet-list'});const ta=$('textarea',{rows:'2',placeholder:'Écrire librement…','aria-label':'Saisie libre',oninput:e=>{f.value=e.target.value;refresh();mark()}});
+    const save=$('button',{class:'cr-sv',hidden:'',onclick:()=>{const v=f.value.trim();if(!v)return;(MINE[key]=MINE[key]||[]).includes(v)||MINE[key].push(v);try{localStorage.setItem('cr_mine',JSON.stringify(MINE))}catch(_){}build();toast('Ajouté au menu')}},'+ Ajouter au menu');
+    function build(){list.replaceChildren(...poolFor(f).map(v=>$('button',{class:'cr-opt','aria-pressed':String(f.value.trim()===v),onclick:()=>{f.value=v;ta.value=v;refresh();closeSheet()}},v)),
+      $('button',{class:'cr-opt cr-vide','aria-pressed':String(f.value.trim()===''),onclick:()=>{f.value='';ta.value='';refresh();closeSheet()}},'— Vide (supprimer ce passage) —'));mark()}
+    function mark(){const v=f.value.trim();save.hidden=!(v&&!poolFor(f).includes(v));list.querySelectorAll('.cr-opt').forEach(b=>{if(!b.classList.contains('cr-vide'))b.setAttribute('aria-pressed',String(b.textContent===v))})}
+    ta.value=f.value;
+    const ov=$('div',{class:'cr-sheet-ov',role:'dialog','aria-label':f.title,onclick:e=>{if(e.target===ov)closeSheet()}},
+      $('div',{class:'cr-sheet'},$('div',{class:'cr-sheet-h'},$('b',{},f.title.trim()),$('button',{class:'cr-sheet-x','aria-label':'Fermer',onclick:closeSheet},'✕')),
+        $('div',{class:'cr-sheet-w'},$('label',{},'Écrire soi-même'),ta,$('div',{class:'cr-sheet-b'},save,
+          $('button',{onclick:()=>{f.value=f.def;ta.value=f.def;refresh();build()}},'↺ Défaut'),$('button',{class:'primary',onclick:closeSheet},'OK'))),$('label',{class:'cr-sheet-l'},'Ou choisir dans la liste'),list));
+    document.body.append(ov);document.addEventListener('keydown',escK);build();
   }
-  const pcol=$('div',{class:'cr-card'},$('h3',{},'Compte rendu'));
+  const pcol=$('div',{class:'cr-card'},$('h3',{},'Compte rendu'),fields.size?$('p',{class:'cr-note'},'Touchez un passage surligné pour le modifier.'):$('p',{class:'cr-note'},'Texte fixe : aucun champ à modifier.'));
+  pcol.addEventListener('click',e=>{const m=e.target.closest('.cr-mk');if(m)openSheet(m.dataset.id)});
+  pcol.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('cr-mk')){e.preventDefault();openSheet(e.target.dataset.id)}});
   parsed.forEach(([n,d])=>{const el=$('div',{class:'cr-prev'});prevs.push([el,d]);pcol.append($('div',{class:'cr-sec'},parsed.length>1?$('h4',{},n):'',el,
     $('div',{},$('button',{onclick:()=>copy(sectionText(d))},'Copier '+n.toLowerCase())))) });
   refresh();
-  app.append($('div',{class:'cr-bar'},$('button',{onclick:home},'← Retour'),$('span',{class:'cr-sp'}),$('button',{class:'primary',onclick:()=>copy(full())},'Tout copier')),
-    $('div',{},$('h2',{},it.name),$('p',{class:'cr-sub'},KINDS[it.kind]+' · '+RN(it.regions.join(', '))+(it.path==='True'?' · pathologique':''))),
-    $('div',{class:'cr-grid'},fields.size?fcol:'',pcol));
-  if(!fields.size)app.querySelector('.cr-grid').style.gridTemplateColumns='minmax(0,1fr)';
+  app.append($('div',{class:'cr-bar'},$('button',{onclick:()=>{closeSheet();home()}},'← Retour'),$('span',{class:'cr-sp'}),$('button',{class:'primary',onclick:()=>copy(full())},'Tout copier')),
+    $('div',{},$('h2',{},it.name),$('p',{class:'cr-sub'},KINDS[it.kind]+' · '+RN(it.regions.join(', '))+(it.path==='True'?' · pathologique':''))),pcol);
 }
 home();
 })();
