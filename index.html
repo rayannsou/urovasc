@@ -3106,6 +3106,7 @@ const PROTO = [
           let slack = supply[h.id] - chosen[h.id] - demand[h.id];
           if (isAuto(d.id)) slack = Math.min(slack, aSup[h.id] - aChosen[h.id] - aDem[h.id]);
           let sc = slack * 10;
+          if (dayInfo(d, h.k).kind === 'G' && !offDays[d.id].some(j=>dayInfo(d, days[j]).kind === 'G')) sc += 25;   /* jour de garde : on essaie de lui laisser une demi-journée pour se reposer */
           offDays[d.id].forEach(j=>{ const dd = Math.abs(j - h.i); if (dd === 0) sc -= 6; else if (dd === 1) sc -= 3; });
           HP.forEach(x=>{ if (dayInfo(d, x.k)[x.part] === 'R') { const dd = Math.abs(x.i - h.i); if (dd === 0) sc -= 6; else if (dd === 1) sc -= 3; } });
           if (sc > bs) { bs = sc; best = h; }
@@ -3948,7 +3949,7 @@ const PROTO = [
     const offRows = PARTS.map(part=>({p: OFFP, part, cells: days.map((d,i)=>{
       if (isFerie(dk[i])) return {who: [], texte: part === 'M' ? 'Férié · '+ferieName(dk[i]) : '', ou: false};   /* jour férié : pas de off */
       const ids = new Set(), a = absAt(dk[i], part); Object.values(a).forEach(l=>l.forEach(id=>{ if (inG(id)) ids.add(id); }));
-      sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i]).kind !== 'G' && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
+      sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
       return {who: sdocs.filter(dc=>ids.has(dc.id)).map(dc=>dc.id), texte: '', ou: false};
     })}));
     if (offRows.some(r=>r.cells.some(c=>c.who.length || c.texte))) offRows.forEach(r=>rows.push(r));
