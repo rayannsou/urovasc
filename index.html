@@ -7331,7 +7331,7 @@ function open(it){
   let curField=null,wz=null;
   const stopWiz=()=>{wz=null;closeSheet()};
   function startWiz(){const ids=[...fields.values()].filter(f=>!/^LES_[CGO]$/.test(f.id)).map(f=>f.id);if(!ids.length){toast('Aucun champ à compléter');return}wz={ids,i:0};stepWiz()}
-  function stepWiz(){if(!wz)return;if(wz.i<0)wz.i=0;if(wz.i>=wz.ids.length){wz=null;toast('Compte rendu complet : relisez puis copiez');refresh();window.scrollTo({top:0,behavior:'smooth'});return}wz.cur=wz.ids[wz.i];const mk=document.querySelector('[data-id="'+wz.cur+'"]');if(mk){window.scrollTo({top:window.scrollY+mk.getBoundingClientRect().top-130})}openSheet(wz.cur)}
+  function stepWiz(){if(!wz)return;if(wz.i<0)wz.i=0;if(wz.i>=wz.ids.length){wz=null;toast('Compte rendu complet : relisez puis copiez');refresh();window.scrollTo({top:0,behavior:'smooth'});return}wz.cur=wz.ids[wz.i];const mk=app.querySelector('[data-id="'+wz.cur+'"]');if(mk){window.scrollTo({top:window.scrollY+mk.getBoundingClientRect().top-130})}openSheet(wz.cur)}
   function closeSheet(){if(curField&&!/^LES_/.test(curField.id)){const v=curField.value.trim();if(v&&v!==curField.def.trim()){const L=lsGet('last',{});L[norm(curField.title.trim())]=v;lsSet('last',L)}}const had=curField;if(curField)curField.seen=true;curField=null;document.querySelectorAll('.cr-sheet-ov').forEach(e=>e.remove());document.removeEventListener('keydown',escK);if(had)refresh();if(wz&&had&&(wz.cur===had.id||(had.id==='LES_O'&&wz.cur==='LES_L1'&&!had.picked))){wz.i++;setTimeout(stepWiz,0)}}
   function escK(e){if(e.key==='Escape')stopWiz()}
   const LORG=[['foie','Lésion hépatique','Foie','foie'],['rate','Lésion splénique','Rate','rate'],['reind','Lésion du rein droit','Rein droit','rein'],['reing','Lésion du rein gauche','Rein gauche','rein']];
@@ -7464,7 +7464,7 @@ function open(it){
       $('button',{class:'cr-opt cr-vide','aria-pressed':String(f.value.trim()===''),onclick:()=>{f.value='';ta.value='';refresh();closeSheet()}},'— Vide (supprimer ce passage) —'));mark()}
     function mark(){const v=f.value.trim();save.hidden=!(v&&!poolFor(f).includes(v));list.querySelectorAll('.cr-opt').forEach(b=>{if(!b.classList.contains('cr-vide'))b.setAttribute('aria-pressed',String((b.dataset.v!==undefined?b.dataset.v:b.textContent)===v))})}
     ta.value=f.value;
-    const ctx=(()=>{const m=document.querySelector('[data-id="'+f.id+'"]');if(!m||!m.parentNode)return '';let b='',a='',fd=false;m.parentNode.childNodes.forEach(n=>{if(n===m){fd=true;return}(fd?(a+=n.textContent):(b+=n.textContent))});
+    const ctx=(()=>{const m=app.querySelector('[data-id="'+f.id+'"]');if(!m||!m.parentNode)return '';let b='',a='',fd=false;m.parentNode.childNodes.forEach(n=>{if(n===m){fd=true;return}(fd?(a+=n.textContent):(b+=n.textContent))});
       b=b.slice(b.lastIndexOf('\n')+1);const k=a.indexOf('\n');if(k>=0)a=a.slice(0,k);const v=f.value.trim()||'…';
       return $('div',{style:'margin:2px 0 10px;padding:9px 11px;border-left:3px solid var(--accent,#0f6b5e);background:var(--soft,rgba(128,128,128,.12));border-radius:8px;font-size:14.5px;line-height:1.45'},$('span',{style:'color:var(--muted)'},b),$('b',{},v),$('span',{style:'color:var(--muted)'},a))})();
     const ov=$('div',{class:'cr-sheet-ov',role:'dialog','aria-label':f.title,onclick:e=>{if(e.target===ov)stopWiz()}},
@@ -7476,7 +7476,7 @@ function open(it){
   const pcol=$('div',{class:'cr-card'},$('h3',{},'Compte rendu'),fields.size?$('p',{class:'cr-note'},'Touchez un passage surligné pour le modifier.'):$('p',{class:'cr-note'},'Texte fixe : aucun champ à modifier.'));
   const real=id=>[...fields.values()].filter(f=>!/^LES_/.test(f.id)||id);
   const unseen=()=>[...fields.values()].filter(f=>!/^LES_/.test(f.id)&&!f.seen);
-  const pill=$('button',{class:'cr-chip',style:'display:none',onclick:()=>{const m=[...document.querySelectorAll('.mk:not(.ok)')].find(x=>!/^LES_/.test(x.dataset.id));if(m){m.scrollIntoView({block:'center',behavior:'smooth'})}}});
+  const pill=$('button',{class:'cr-chip',style:'display:none',onclick:()=>{const m=[...app.querySelectorAll('[data-id]')].find(x=>x.getAttribute('role')==='button'&&!/ok$/.test(x.className)&&!/^LES_/.test(x.dataset.id));if(m){m.scrollIntoView({block:'center',behavior:'smooth'})}}});
   function upPill(){const n=unseen().length;pill.style.display=n?'':'none';pill.textContent='◉ '+n+' à vérifier'}
   const secText=n=>{const p=parsed.find(x=>x[0]===n);return p?sectionText(p[1]):''};
   function audit(){const W=[],body=secText('Résultat'),ccl=secText('Conclusion'),all=full();
