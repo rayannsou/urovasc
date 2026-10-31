@@ -7250,7 +7250,7 @@ const tokHit=(d,t)=>d._s.includes(t)||(SYN[t]&&SYN[t].some(x=>d._s.includes(x)))
 const REGS=[...new Set(DATA.flatMap(d=>d.regions))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr'));
 let lastFam=null,moreQ='';
 const famMembers=fam=>DATA.flatMap(d=>[...(d.fam===fam?[{d,grp:d.grp||'',var:d.var,fo:d.fo}]:[]),...(d.alts||[]).filter(a=>a.fam===fam).map(a=>({d,grp:a.grp||'',var:a.var,fo:a.fo}))]).sort((a,b)=>a.fo-b.fo);
-const famBlock=(fam,mem)=>{const groups=[...new Set(mem.map(m=>m.grp))];return groups.flatMap(g=>[g?$('h3',{style:'margin:20px 0 8px;padding:9px 12px;font-size:17px;font-weight:700;color:var(--accent-fg,#fff);background:var(--accent,#0f6b5e);border-radius:10px;display:flex;justify-content:space-between;align-items:center'},$('span',{},g),$('span',{style:'font-size:12px;font-weight:500;opacity:.85'},mem.filter(m=>m.grp===g).length+(mem.filter(m=>m.grp===g).length>1?' modèles':' modèle'))):'',$('div',{class:'cr-list'},...mem.filter(m=>m.grp===g).map(m=>$('button',{class:'cr-item',onclick:()=>{lastFam=fam;open(m.d)}},$('span',{},$('b',{},m.var)),m.d.kind===2?'':$('small',{},KINDS[m.d.kind]))))])};
+const famBlock=(fam,mem)=>{const groups=[...new Set(mem.map(m=>m.grp))];return groups.flatMap(g=>[g?$('h3',{style:'margin:20px 0 8px;padding:9px 12px;font-size:17px;font-weight:700;color:var(--accent-fg,#fff);background:var(--accent,#0f6b5e);border-radius:10px;display:flex;justify-content:space-between;align-items:center'},$('span',{},g),$('span',{style:'font-size:12px;font-weight:500;opacity:.85'},mem.filter(m=>m.grp===g).length+(mem.filter(m=>m.grp===g).length>1?' modèles':' modèle'))):'',$('div',{class:'cr-list'},...mem.filter(m=>m.grp===g).map(m=>$('div',{style:'display:flex;align-items:center;gap:4px'},$('button',{class:'cr-item',style:'flex:1',onclick:()=>{lastFam=fam;open(m.d)}},$('span',{},$('b',{},m.var)),m.d.kind===2?'':$('small',{},KINDS[m.d.kind])),copyBtn(m.d),starBtn(m.d.id))))])};
 function openFam(fam){
   cur=null;lastFam=fam;app.replaceChildren();
   const mem=famMembers(fam);
@@ -7273,7 +7273,7 @@ function renderList(){
   let r=DATA.filter(d=>(!cat||(d.cat||'Urgences')===cat)&&(!kind||d.kind===kind)&&(!reg||d.regions.includes(reg))&&toks.every(t=>tokHit(d,t)));
   const score=d=>toks.reduce((s,t)=>s+(norm(d.name).includes(t)?2:0),0);
   r.sort((a,b)=>score(b)-score(a));
-  const row=d=>$('div',{style:'display:flex;align-items:center;gap:2px'},$('button',{class:'cr-item',style:'flex:1',onclick:()=>{lastFam=null;open(d)}},$('span',{},$('b',{},d.name)),$('small',{},RN(d.regions[0])+' · '+KINDS[d.kind])),starBtn(d.id,renderList));
+  const row=d=>$('div',{style:'display:flex;align-items:center;gap:2px'},$('button',{class:'cr-item',style:'flex:1',onclick:()=>{lastFam=null;open(d)}},$('span',{},$('b',{},d.name)),$('small',{},RN(d.regions[0])+' · '+KINDS[d.kind])),copyBtn(d),starBtn(d.id,renderList));
   const out=[];
   if(!toks.length&&!kind&&!reg&&!cat){
     const byId=Object.fromEntries(DATA.map(d=>[d.id,d]));
@@ -7297,6 +7297,10 @@ function renderList(){
   L.replaceChildren(...out);
 }
 function toast(m){const t=$('div',{class:'cr-toast',role:'status'},m);document.body.append(t);setTimeout(()=>t.remove(),1600)}
+function defaultText(it){const secs=[['Technique',it.tech||''],['Résultat',it.outcome],['Conclusion',it.conclusion],['Renseignements divers',it.extra]].filter(s=>(s[1]||'').trim());
+  const txt=h=>{const d=new DOMParser().parseFromString('<body>'+h+'</body>','text/html');d.querySelectorAll('span.variableTreeSpan').forEach(s=>s.replaceWith(s.textContent.trim()?s.textContent:'\u0001'));d.querySelectorAll('br').forEach(b=>b.replaceWith('\n'));return d.body.textContent.replace(/^[ \t]*\u0001[ \t\u0001]*\n/gm,'').replace(/\u0001/g,'').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').replace(/ {2,}/g,' ').trim()};
+  return secs.map(([n,h])=>(secs.length>1?n.toUpperCase()+'\n':'')+txt(h)).join('\n\n')}
+const copyBtn=d=>$('button',{'aria-label':'Copier directement le compte rendu','title':'Copier sans ouvrir',style:'flex:none;padding:6px 10px;font-size:13px;line-height:1.2;background:transparent;border:1px solid var(--line);border-radius:8px;color:inherit',onclick:e=>{e.stopPropagation();copy(defaultText(d),' (valeurs par défaut)')}},'⧉ Copier');
 async function copy(text,suf){
   try{await navigator.clipboard.writeText(text);toast('Copié'+(suf||''))}catch(e){
     const ta=$('textarea',{style:'position:fixed;opacity:0'},text);document.body.append(ta);ta.select();
