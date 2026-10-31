@@ -3124,12 +3124,14 @@ const PROTO = [
       (best || []).forEach(h=>{ blocRes[h.id] = d.id; resN[h.id]++; if (isAuto(d.id)) resA[h.id]++; });
     });
     /* affectations, demi-journée par demi-journée */
-    const eqI = eqCounts(), eqMeanP = {}, idsI = ints.map(d=>d.id); trame.postes.forEach(p=>{ eqMeanP[p.id] = idsI.length ? idsI.reduce((a,x)=>a+((eqI.post[p.id] || {})[x] || 0), 0) / idsI.length : 0; });
-    const eqMeanT = idsI.length ? idsI.reduce((a,x)=>a+(eqI.tot[x] || 0), 0) / idsI.length : 0;
+    const eqI = JSON.parse(JSON.stringify(eqCounts())), idsI = ints.map(d=>d.id);   /* copie : les vacations posées pendant cette génération comptent tout de suite dans l'équité */
+    const eqMeanP = {}, eqMeanT = 0;
+    const eqMP = pid => idsI.length ? idsI.reduce((a,x)=>a+((eqI.post[pid] || {})[x] || 0), 0) / idsI.length : 0, eqMT = () => idsI.length ? idsI.reduce((a,x)=>a+(eqI.tot[x] || 0), 0) / idsI.length : 0;
+    const eqAdd = (id, pid)=>{ (eqI.post[pid] = eqI.post[pid] || {})[id] = ((eqI.post[pid] || {})[id] || 0) + 1; eqI.tot[id] = (eqI.tot[id] || 0) + 1; };
     const load = {}, prev = {}, writes = [], noAuto = [], holes = [], relaxed = []; let ouWarn = 0;
     const score = (id, sl)=>{
-      const ep = eqI.post[sl.p.id] || {}, dev = (ep[id] || 0) - (eqMeanP[sl.p.id] || 0), devT = (eqI.tot[id] || 0) - eqMeanT;
-      let sc = -Math.max(-10, Math.min(10, dev * 0.8)) - Math.max(-6, Math.min(6, devT * 0.15)) + Math.min(((freq[id] && freq[id][sl.p.id]) || 0), 4) * 0.3 - (load[id] || 0) * 2;   /* équité sur une longue période : moins on a fait ce poste, plus on est favorisé */
+      const ep = eqI.post[sl.p.id] || {}, dev = (ep[id] || 0) - eqMP(sl.p.id), devT = (eqI.tot[id] || 0) - eqMT();
+      let sc = -Math.max(-30, Math.min(30, dev * 2.5)) - Math.max(-8, Math.min(8, devT * 0.3)) + Math.min(((freq[id] && freq[id][sl.p.id]) || 0), 4) * 0.3 - (load[id] || 0) * 2;   /* équité sur une longue période : moins on a fait ce poste, plus on est favorisé */
       const pv = prev[sl.h.k+'|M'];
       if (sl.h.part === 'AM' && pv && (pv[sl.p.id] || []).includes(id)) sc += (sl.p.id === 'bloc' && R.blocJournee) ? 12 : sl.p.id === 'echo' ? -12 : 2;   /* pas à l'écho toute la journée */
       if (!R.autonomie.includes(sl.p.id) && isAuto(id)) sc -= 1.5;
@@ -3160,7 +3162,7 @@ const PROTO = [
           const cand = pool.slice(), lim = PR.length && R.facultatif.includes(sl.p.id) ? Math.max(0, pool.length - here.filter(o=>!o.keep && o.pick && prioFirst(sl, o)).reduce((n,o)=>n+Math.max(0, capOf(o)-o.pick.length), 0)) : 1e9;
           while (pick.length < Math.min(sl.need, lim) && cand.length) { const b = best(cand); pick.push(b); cand.splice(cand.indexOf(b), 1); }
         }
-        pick.forEach(id=>{ taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
+        pick.forEach(id=>{ taken[h.id].add(id); load[id] = (load[id] || 0) + 1; eqAdd(id, sl.p.id); });
         sl.pick = pick;
         if (pick.length < sl.need && !R.facultatif.includes(sl.p.id)) holes.push(sl);
       });
@@ -3174,7 +3176,7 @@ const PROTO = [
           if (!src) { const c = ints.map(d=>d.id).filter(id=>okc(id) && okAt(id, h) && off[id].has(h.id) && !taken[h.id].has(id)).sort((a,b)=>off[b].size - off[a].size)[0]; if (c) src = {id: c, off: true}; }
           if (!src) break;
           if (src.b) src.b.pick.splice(src.b.pick.indexOf(src.id), 1);
-          else { off[src.id].delete(h.id); relaxed.push(dLabel(src.id)+' ('+fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'AM')+')'); taken[h.id].add(src.id); load[src.id] = (load[src.id] || 0) + 1; }
+          else { off[src.id].delete(h.id); relaxed.push(dLabel(src.id)+' ('+fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'AM')+')'); taken[h.id].add(src.id); load[src.id] = (load[src.id] || 0) + 1; eqAdd(src.id, sl.p.id); }
           sl.pick.push(src.id);
         }
         const hi = holes.indexOf(sl); if (hi >= 0 && sl.pick.length >= sl.need) holes.splice(hi, 1);
@@ -3191,7 +3193,7 @@ const PROTO = [
           if (!src) { const c = ints.map(d=>d.id).filter(id=>okc(id) && okAt(id, h) && off[id].has(h.id) && !taken[h.id].has(id)).sort((a,b)=>off[b].size - off[a].size)[0]; if (c) src = {id: c, off: true}; }
           if (!src) break;
           if (src.b) src.b.pick.splice(src.b.pick.indexOf(src.id), 1);
-          else { off[src.id].delete(h.id); relaxed.push(dLabel(src.id)+' ('+fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'AM')+')'); taken[h.id].add(src.id); load[src.id] = (load[src.id] || 0) + 1; }
+          else { off[src.id].delete(h.id); relaxed.push(dLabel(src.id)+' ('+fmtShort.format(parse(h.k))+' '+(h.part === 'M' ? 'matin' : 'AM')+')'); taken[h.id].add(src.id); load[src.id] = (load[src.id] || 0) + 1; eqAdd(src.id, sl.p.id); }
           sl.pick.push(src.id);
         }
         const hi = holes.indexOf(sl); if (hi >= 0 && sl.pick.length >= sl.need) holes.splice(hi, 1);
@@ -3217,8 +3219,8 @@ const PROTO = [
       const ext = here.filter(sl=>!sl.keep && sl.pick && sl.pick.length >= sl.need && R.extra.includes(sl.p.id) && intNeed[sl.p.id] == null && intNeedHP[sl.p.id+'|'+h.id] == null);   /* effectif choisi explicitement : pas de renfort en plus */
       if (ext.length) {
         const left = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id));
-        left.sort((a,b)=>(load[a]||0) - (load[b]||0));
-        left.forEach(id=>{ const oks = ext.filter(x=>x.pick.length < R.maxRenfort && okFor(id, x.p.id) && (!intOnlyAuto[x.p.id] || isAuto(id)) && !(x.p.id === 'echo' && h.part === 'AM' && ((prev[h.k+'|M'] || {}).echo || []).includes(id))); if (!oks.length) return; oks.sort((a,b)=>a.pick.length - b.pick.length); const sl = oks[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; });
+        left.sort((a,b)=>(load[a]||0) - (load[b]||0) || (eqI.tot[a] || 0) - (eqI.tot[b] || 0));
+        left.forEach(id=>{ const oks = ext.filter(x=>x.pick.length < R.maxRenfort && okFor(id, x.p.id) && (!intOnlyAuto[x.p.id] || isAuto(id)) && !(x.p.id === 'echo' && h.part === 'AM' && ((prev[h.k+'|M'] || {}).echo || []).includes(id))); if (!oks.length) return; oks.sort((a,b)=>(score(id, b) - b.pick.length * 4) - (score(id, a) - a.pick.length * 4)); const sl = oks[0]; sl.pick.push(id); taken[h.id].add(id); load[id] = (load[id] || 0) + 1; eqAdd(id, sl.p.id); });
       }
       /* internes restants, sans poste sur cette demi-journée : off (plus de 2 off possibles) */
       ints.forEach(d=>{ if (okAt(d.id, h) && !taken[h.id].has(d.id) && !off[d.id].has(h.id)) off[d.id].add(h.id); });
