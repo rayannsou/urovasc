@@ -2651,7 +2651,7 @@ const PROTO = [
     const list = offAll(); if (!list.length) return '';
     const tot = list.reduce((a,x)=>a + x.n, 0);
     return '<div class="redoq recap"><p class="aststat"><b>📊 Récap de la semaine · off par interne</b></p><p class="hint">'+tot+' demi-journée'+(tot > 1 ? 's' : '')+' off au total. Touchez « Affecter » pour poster un interne sur une vacation en plus : vous verrez qui est déjà dessus.</p><div class="col" style="gap:6px;text-align:left">'
-      + list.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · <span style="font-weight:700;color:'+(x.n > offMin() && x.slots.some(z=>!z.fixed) ? 'var(--red,#b3392b)' : 'inherit')+'">'+x.n+' off</span>'+(x.n > offMin() && x.slots.some(z=>!z.fixed) ? ' ⚠' : '')+(x.slots.some(z=>z.fixed) ? ' <small style="color:var(--muted);font-weight:400">(dont '+x.slots.filter(z=>z.fixed).length+' indispo / repos)</small>' : '')+'</span>'+(() => { const a = x.slots.some(z=>!z.fixed) ? '<button type="button" class="ghost" data-offopen="'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>＋ Affecter</button>' : '', b = x.n < offMin() && offAssigned(x.id).length ? '<button type="button" class="ghost" data-offopen="less|'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>− Désaffecter</button>' : ''; return (a || b) ? '<span class="astpair" style="flex:none">'+a+b+'</span>' : '<span class="hint">✓</span>'; })()+'</div>').join('')+'</div></div>';
+      + list.map(x=>'<div class="butreq"><span><b>'+esc(dLabel(x.id))+'</b> · <span style="font-weight:700;color:'+(x.n > offMin() + x.slots.filter(z=>z.rdg).length && x.slots.some(z=>!z.fixed) ? 'var(--red,#b3392b)' : 'inherit')+'">'+x.n+' off</span>'+(x.n > offMin() + x.slots.filter(z=>z.rdg).length && x.slots.some(z=>!z.fixed) ? ' ⚠' : '')+(x.slots.some(z=>z.fixed) ? ' <small style="color:var(--muted);font-weight:400">(dont '+x.slots.filter(z=>z.fixed).length+' indispo / repos)</small>' : '')+'</span>'+(() => { const a = x.slots.some(z=>!z.fixed) ? '<button type="button" class="ghost" data-offopen="'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>＋ Affecter</button>' : '', b = x.n < offMin() && offAssigned(x.id).length ? '<button type="button" class="ghost" data-offopen="less|'+esc(x.id)+'"'+(canWrite ? '' : ' disabled')+'>− Désaffecter</button>' : ''; return (a || b) ? '<span class="astpair" style="flex:none">'+a+b+'</span>' : '<span class="hint">✓</span>'; })()+'</div>').join('')+'</div></div>';
   }
   function wkTools(noDel){
     if (!trame) return '';
@@ -3097,7 +3097,7 @@ const PROTO = [
       if (indN) indOff[d.id] = indN;
       offDays[d.id] = []; let kept = 0;
       if (genKeepOff && prevPosted) HP.forEach(h=>{ if (okAt(d.id, h) && !taken[h.id].has(d.id) && !prevPosted[h.id].has(d.id)) { off[d.id].add(h.id); offDays[d.id].push(h.i); chosen[h.id]++; if (isAuto(d.id)) aChosen[h.id]++; kept++; } });   /* off du planning précédent conservés */
-      let n = Math.max(0, offMin() - rest - indN - kept);
+      let n = Math.max(0, offMin() - indN - kept);   /* le repos de garde s'ajoute aux off (compté pour 1) */
       while (n-- > 0) {
         let best = null, bs = -1e9;
         HP.forEach(h=>{
@@ -3947,7 +3947,7 @@ const PROTO = [
     const offRows = PARTS.map(part=>({p: OFFP, part, cells: days.map((d,i)=>{
       if (isFerie(dk[i])) return {who: [], texte: part === 'M' ? 'Férié · '+ferieName(dk[i]) : '', ou: false};   /* jour férié : pas de off */
       const ids = new Set(), a = absAt(dk[i], part); Object.values(a).forEach(l=>l.forEach(id=>{ if (inG(id)) ids.add(id); }));
-      sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
+      sdocs.forEach(dc=>{ if (isOff(dc.id, dk[i], part)) ids.add(dc.id); if (grp !== 'medecin' && isIntId(dc.id) && dayInfo(dc, dk[i]).kind !== 'G' && dayInfo(dc, dk[i])[part] !== 'A' && !(assigned[dk[i]+'_'+part] && assigned[dk[i]+'_'+part].has(dc.id))) ids.add(dc.id); });
       return {who: sdocs.filter(dc=>ids.has(dc.id)).map(dc=>dc.id), texte: '', ou: false};
     })}));
     if (offRows.some(r=>r.cells.some(c=>c.who.length || c.texte))) offRows.forEach(r=>rows.push(r));
@@ -3957,7 +3957,7 @@ const PROTO = [
     const mks = [...new Set([dk[0], dk[4]].map(x=>x.slice(0,7)))], noConf = sdocs.filter(dc=>mks.some(m=>!(dc.conf && dc.conf[m])));
     const chk = bad.length ? {ok: false, t: 'Attention : '+bad.length+' indisponibilité'+(bad.length > 1 ? 's' : '')+' non respectée'+(bad.length > 1 ? 's' : '')+' — '+bad.slice(0,4).join(' ; ')+(bad.length > 4 ? ' …' : '')}
       : {ok: true, t: 'Toutes les indisponibilités '+(grp === 'interne' ? 'des internes' : grp === 'medecin' ? 'des médecins' : 'déclarées')+' ont été prises en compte.'};
-    const offCnt = sdocs.filter(dc=>isIntId(dc.id)).map(dc=>({l: dc.label, n: offRows.reduce((t,r)=>t + r.cells.filter(c=>c.who.includes(dc.id)).length, 0)}));
+    const offCnt = sdocs.filter(dc=>isIntId(dc.id)).map(dc=>({l: dc.label, n: offRows.reduce((t,r)=>t + r.cells.filter(c=>c.who.includes(dc.id)).length, 0) - dk.filter((k2,i2)=>!isFerie(k2) && dayInfo(dc, k2).M === 'R' && dayInfo(dc, k2).AM === 'R').length}));   /* un repos de garde (journée) compte pour 1 demi-journée off */
     g.font = 'bold 26px '+FONT; const offTxt = offCnt.length && grp !== 'medecin' ? 'Nombre d’offs (demi-journées) : '+offCnt.map(o=>o.l+' '+o.n).join(' · ') : '';
     let offLines = []; if (offTxt) { const words = offTxt.split(' '); let ln = ''; words.forEach(w=>{ const t = ln ? ln+' '+w : w; if (g.measureText(t).width > W - 2*M && ln) { offLines.push(ln); ln = w; } else ln = t; }); if (ln) offLines.push(ln); }
     const chk2 = noConf.length ? 'Indisponibilités non renseignées par : '+noConf.map(dc=>dc.label).join(', ')+'.' : '';
@@ -6164,14 +6164,14 @@ const PROTO = [
       PARTS.forEach(part=>{
         const asg = new Set();
         trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>{ const v = vacWho(p.id, k, p.journee ? 'M' : part); if (v) v.who.forEach(id=>asg.add(id)); });
-        ints.forEach(d=>{ const rs = reasonFor(d.id, k, part); if (rs) { if (!/garde|astreinte/.test(rs) || /repos/.test(rs)) (res[d.id] = res[d.id] || []).push({i, k, part, fixed: true}); return; } if (asg.has(d.id)) return; (res[d.id] = res[d.id] || []).push({i, k, part}); });   /* indispo, repos de garde et off = même chose : des demi-journées off */
+        ints.forEach(d=>{ const rs = reasonFor(d.id, k, part); if (rs) { if (!/garde|astreinte/.test(rs) || /repos/.test(rs)) { if (/repos/.test(rs) && part === 'AM' && reasonFor(d.id, k, 'M') && /repos/.test(reasonFor(d.id, k, 'M'))) return;   /* repos de garde sur la journée : 1 seul off */ (res[d.id] = res[d.id] || []).push({i, k, part, fixed: true, rdg: /repos/.test(rs) && part === 'M' && !!reasonFor(d.id, k, 'AM') && /repos/.test(reasonFor(d.id, k, 'AM'))}); } return; } if (asg.has(d.id)) return; (res[d.id] = res[d.id] || []).push({i, k, part}); });   /* indispo, repos de garde et off = même chose : des demi-journées off */
       });
     }
     return res;
   }
   const offAll = () => { const o = intOffs(); return sortedDocs().filter(d=>isIntId(d.id)).map(d=>({id: d.id, n: (o[d.id] || []).length, slots: o[d.id] || []})).sort((a,b)=>b.n - a.n); };
   let offMode = 'many';   /* 'many' : internes à plus de 2 off ; 'all' : récap de tous les internes */
-  const offMany = () => { const o = intOffs(); return Object.keys(o).filter(id=>o[id].length > offMin() && o[id].some(z=>!z.fixed)).map(id=>({id, n: o[id].length, slots: o[id]})).sort((a,b)=>b.n - a.n); };
+  const offMany = () => { const o = intOffs(); return Object.keys(o).filter(id=>o[id].length > offMin() + o[id].filter(z=>z.rdg).length && o[id].some(z=>!z.fixed)).map(id=>({id, n: o[id].length, slots: o[id]})).sort((a,b)=>b.n - a.n); };
   /* vacations de la semaine où l'interne est posté (pour le désaffecter) */
   function offAssigned(id){
     const out = [];
