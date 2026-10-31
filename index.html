@@ -2664,7 +2664,7 @@ const PROTO = [
     const pubBtn = isRim() ? '<button type="button" class="astbtn'+(pubOn ? '' : ' dangerbtn')+'" data-pub="'+pubK+'|'+pubG+'" style="margin-bottom:8px">'+(pubOn ? '📢 Planning publié · dépublier' : '🚫 Non publié (visible des administrateurs seulement) · publier')+'</button>' : '';
     return '<div class="wktools">' + pubBtn
       + (fer.length ? '<p class="hint">🎌 Jour férié : '+fer.map(k=>esc(fmtShort.format(parse(k))+' ('+ferieName(k)+')')).join(', ')+' · aucune vacation à pourvoir, pas de off.</p>' : '')
-      + (un.length ? '<details class="wkun" open><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul>'+un.map(x=>'<li>'+esc(x.charAt(0).toUpperCase()+x.slice(1))+'</li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
+      + (un.length ? '<details class="wkun"'+(un.length <= 6 ? ' open' : '')+'><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul>'+un.map(x=>'<li>'+esc(x.charAt(0).toUpperCase()+x.slice(1))+'</li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
       + '<details class="wkun wkmore"><summary>⚙ Plus d’actions</summary>'
       + (n && f < n && !wkClosed() ? '<button type="button" class="astbtn" data-wkclose="1" style="margin-bottom:8px"'+dis+'>✅ Planning terminé (même incomplet)</button>' : '')
       + (wkClosed() && f < n ? '<button type="button" class="astbtn" data-wkclose="0" style="margin-bottom:8px"'+dis+'>↩ Rouvrir le planning ('+(n-f)+' non pourvue'+(n-f > 1 ? 's' : '')+')</button>' : '')
