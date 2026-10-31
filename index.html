@@ -3959,7 +3959,10 @@ const PROTO = [
     const mks = [...new Set([dk[0], dk[4]].map(x=>x.slice(0,7)))], noConf = sdocs.filter(dc=>mks.some(m=>!(dc.conf && dc.conf[m])));
     const chk = bad.length ? {ok: false, t: 'Attention : '+bad.length+' indisponibilité'+(bad.length > 1 ? 's' : '')+' non respectée'+(bad.length > 1 ? 's' : '')+' — '+bad.slice(0,4).join(' ; ')+(bad.length > 4 ? ' …' : '')}
       : {ok: true, t: 'Toutes les indisponibilités '+(grp === 'interne' ? 'des internes' : grp === 'medecin' ? 'des médecins' : 'déclarées')+' ont été prises en compte.'};
-    const offCnt = sdocs.filter(dc=>isIntId(dc.id)).map(dc=>({l: dc.label, n: offRows.reduce((t,r)=>t + r.cells.filter(c=>c.who.includes(dc.id)).length, 0) - dk.filter((k2,i2)=>!isFerie(k2) && dayInfo(dc, k2).M === 'R' && dayInfo(dc, k2).AM === 'R').length}));   /* un repos de garde (journée) compte pour 1 demi-journée off */
+    const offCnt = sdocs.filter(dc=>isIntId(dc.id)).map(dc=>{   /* off = nombre de demi-journées où l'interne n'est posté nulle part ; un repos de garde (journée) compte pour 1 */
+      let n = 0; dk.forEach(k2=>{ if (isFerie(k2)) return; const inf = dayInfo(dc, k2); PARTS.forEach(pt=>{ if (inf[pt] === 'A') return; const a2 = assigned[k2+'_'+pt]; if (!(a2 && a2.has(dc.id))) n++; }); if (inf.M === 'R' && inf.AM === 'R') n--; });
+      return {l: dc.label, n};
+    });
     g.font = 'bold 26px '+FONT; const offTxt = offCnt.length && grp !== 'medecin' ? 'Nombre d’offs (demi-journées) : '+offCnt.map(o=>o.l+' '+o.n).join(' · ') : '';
     let offLines = []; if (offTxt) { const words = offTxt.split(' '); let ln = ''; words.forEach(w=>{ const t = ln ? ln+' '+w : w; if (g.measureText(t).width > W - 2*M && ln) { offLines.push(ln); ln = w; } else ln = t; }); if (ln) offLines.push(ln); }
     const chk2 = noConf.length ? 'Indisponibilités non renseignées par : '+noConf.map(dc=>dc.label).join(', ')+'.' : '';
