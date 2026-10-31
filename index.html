@@ -15,6 +15,7 @@
 <link rel="apple-touch-icon" href="icon.png?v=2">
 <link rel="icon" type="image/png" href="icon.png?v=2">
 <style>*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}body{margin:0}  .butmore{margin-top:12px}.butmore>summary{cursor:pointer;color:var(--muted,#667);padding:8px 0}
+  .info{margin:4px 0}.info>summary{cursor:pointer;font-size:12px;color:var(--muted,#667);list-style:none;padding:4px 0}.info>summary::-webkit-details-marker{display:none}
 </style>
 </head>
 <body>
@@ -688,7 +689,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         <button type="button" class="ghost backreg" id="backReg">‹ Retour aux réglages</button>
         <div class="card">
           <h2>Créer le planning d’une semaine</h2>
-          <p class="hint">Choisissez la semaine, puis ouvrez chaque poste (échographie, scanner…) et choisissez les médecins jour par jour dans les menus. Le plus rapide : importer le fichier Excel du planning du mois ci-dessous.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez la semaine, puis ouvrez chaque poste (échographie, scanner…) et choisissez les médecins jour par jour dans les menus. Le plus rapide : importer le fichier Excel du planning du mois ci-dessous.</p></details>
           <div class="weekbar">
             <button type="button" id="cwPrev" aria-label="Semaine précédente">‹</button>
             <h2 id="cwLabel"></h2>
@@ -701,7 +702,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         <div id="impSlotC"></div>
         <div class="card" id="cwImport">
           <details class="cardfold" id="fImp" open><summary>Importer un planning</summary>
-          <p class="hint">Importez le fichier du service (une feuille par semaine : postes, congés, absences, astreintes, notes). Toutes les semaines du fichier sont créées d’un coup et les médecins inconnus sont ajoutés à la liste. Un tableau simple (postes en lignes, jours en colonnes) est aussi accepté.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Importez le fichier du service (une feuille par semaine : postes, congés, absences, astreintes, notes). Toutes les semaines du fichier sont créées d’un coup et les médecins inconnus sont ajoutés à la liste. Un tableau simple (postes en lignes, jours en colonnes) est aussi accepté.</p></details>
           <fieldset data-edit id="xlSet">
             <button type="button" class="ghost srcx" id="goImpOther">📄 PDF, 📷 photo ou 🔗 Google Sheet…</button>
             <label class="filebtn primary srcx" for="xlFile">Choisir un fichier Excel…</label>
@@ -727,7 +728,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         <div id="cwPostes" class="col"></div>
         <form id="cwExcep" class="card" onsubmit="return false">
           <h2>Ajout rapide d’une vacation</h2>
-          <p class="hint">Choisissez le poste, le jour, le créneau et le médecin. Vous pouvez aussi remplir directement les postes ci-dessus.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez le poste, le jour, le créneau et le médecin. Vous pouvez aussi remplir directement les postes ci-dessus.</p></details>
           <fieldset data-edit id="cxSet">
             <div class="row3">
               <div class="f"><label for="cxPoste">Poste</label><select id="cxPoste"></select></div>
@@ -792,14 +793,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </form>
           <div class="card">
             <details class="cardfold" id="inFold3"><summary>3) Exporter</summary>
-            <p class="hint">Un fichier avec les indisponibilités, gardes et Off de toute l'équipe pour le mois affiché.</p>
+            <details class="info"><summary>ⓘ Infos</summary><p class="hint">Un fichier avec les indisponibilités, gardes et Off de toute l'équipe pour le mois affiché.</p></details>
             <p class="hint">Sous quelle forme ?</p>
             <div class="exfmt" id="exIndispQuick"><button type="button" class="primary" data-exq="xlsx">📊 Excel</button><button type="button" class="primary" data-exq="pdf">📄 PDF</button><button type="button" class="primary" data-exq="png">📷 Photo</button></div>
             </details>
           </div>
           <div class="card" id="inImpCard" hidden>
             <details class="cardfold" id="inFold4"><summary>4) Importer des indisponibilités</summary>
-            <p class="hint">Importez un tableau d’indisponibilités (vacations en semaine, samedis pour l’astreinte, gardes) depuis un fichier ou une photo. Plusieurs mois d’un coup possibles. Le mois est lu dans le fichier ; ne le choisissez ici que si le tableau n’a que des numéros de jours. Vous vérifiez avant d’enregistrer.</p>
+            <details class="info"><summary>ⓘ Infos</summary><p class="hint">Importez un tableau d’indisponibilités (vacations en semaine, samedis pour l’astreinte, gardes) depuis un fichier ou une photo. Plusieurs mois d’un coup possibles. Le mois est lu dans le fichier ; ne le choisissez ici que si le tableau n’a que des numéros de jours. Vous vérifiez avant d’enregistrer.</p></details>
             <div class="f"><label for="iiMonth">Mois du tableau</label><select id="iiMonth"></select></div>
             <div class="exfmt" id="iiBtns"><button type="button" class="primary" data-iipick="iiFx">📊 Excel</button><button type="button" class="primary" data-iipick="iiFp">📄 PDF</button><button type="button" class="primary" data-iipick="iiFi">📷 Photo</button></div>
             <input type="file" id="iiFx" accept=".xlsx,.xls,.csv" hidden><input type="file" id="iiFp" accept="application/pdf,.pdf" hidden><input type="file" id="iiFi" accept="image/*" hidden>
@@ -836,7 +837,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </ul>
           <form id="edForm" class="card" onsubmit="return false">
             <h2>Modifier une vacation</h2>
-            <p class="hint">Touchez une case du tableau ou choisissez ci-dessous. Le changement vaut pour ce jour seulement : la trame de la semaine type ne bouge pas.</p>
+            <details class="info"><summary>ⓘ Infos</summary><p class="hint">Touchez une case du tableau ou choisissez ci-dessous. Le changement vaut pour ce jour seulement : la trame de la semaine type ne bouge pas.</p></details>
             <fieldset data-edit id="edSet">
               <div class="row3">
                 <div class="f"><label for="edPoste">Poste</label><select id="edPoste"></select></div>
@@ -881,7 +882,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <div class="subtabs" id="gaGrpBar" role="group" aria-label="Afficher"><button type="button" data-ggrp="" aria-pressed="true">Tous</button><button type="button" data-ggrp="medecin" aria-pressed="false">🩺 Seniors</button><button type="button" data-ggrp="interne" aria-pressed="false">🎓 Internes</button></div>
           <div id="gaList" class="col"></div>
           <details class="cardfold" id="gaExp" style="margin-top:12px"><summary>📄 Exporter ou supprimer les astreintes</summary>
-            <p class="hint">Choisissez la période, puis le format. Le fichier contient le planning et un bilan (indisponibilités respectées, nombre d’astreintes par personne).</p>
+            <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez la période, puis le format. Le fichier contient le planning et un bilan (indisponibilités respectées, nombre d’astreintes par personne).</p></details>
             <div class="f"><label for="gaExFrom">De</label><select id="gaExFrom"></select></div>
             <div class="f"><label for="gaExTo">À</label><select id="gaExTo"></select></div>
             <div class="exfmt" id="gaExPre"><button type="button" data-gapre="view">Période affichée</button><button type="button" data-gapre="m0">Ce mois</button><button type="button" data-gapre="m3">3 prochains mois</button><button type="button" data-gapre="m6">6 prochains mois</button></div>
@@ -913,7 +914,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <form id="swForm" class="card">
             <h2>Échanger deux vacations</h2>
             <div id="swSteps"></div>
-            <p class="hint">Votre confrère reçoit la demande et doit l’accepter : l’échange n’est appliqué au planning qu’à ce moment-là. Vous pouvez annuler la demande tant qu’il n’a pas répondu.</p>
+            <details class="info"><summary>ⓘ Infos</summary><p class="hint">Votre confrère reçoit la demande et doit l’accepter : l’échange n’est appliqué au planning qu’à ce moment-là. Vous pouvez annuler la demande tant qu’il n’a pas répondu.</p></details>
             <fieldset data-edit id="swSet">
               <div class="f swraw"><label for="swMine">Ma vacation</label><select id="swMine"></select></div>
               <div class="f swraw"><label for="swWith">Échanger avec</label><select id="swWith"></select></div>
@@ -949,12 +950,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       <div class="col" id="setCol">
         <div class="card mp">
           <details class="cardfold" id="fMp"><summary>Mon profil</summary>
-          <p class="hint">Choisissez votre nom : l’accueil vous dira « Bonjour » avec votre nom et affichera votre semaine.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez votre nom : l’accueil vous dira « Bonjour » avec votre nom et affichera votre semaine.</p></details>
     <div class="who-box mpbox">
       <label for="who">Je suis</label>
       <select id="who"><option value="">Chargement…</option></select>
       <div class="phbox"><span id="phPrev"><span class="phe">🩻</span></span><button type="button" class="ghost" id="phPick">📷 Choisir une photo de profil</button><button type="button" class="ghost" id="phDel" hidden>Retirer</button><input type="file" id="phFile" accept="image/*" hidden></div>
-      <p class="hint">Sans photo, l’emoji radiologie s’affiche en haut à droite de l’accueil.</p>
+      <details class="info"><summary>ⓘ Infos</summary><p class="hint">Sans photo, l’emoji radiologie s’affiche en haut à droite de l’accueil.</p></details>
       <div id="autoBox" hidden><p class="hint"><b>Votre niveau</b> (obligatoire) : utilisé pour créer le planning des internes.</p><div class="phbox"><button type="button" class="ghost" data-autoset="1">Autonome</button><button type="button" class="ghost" data-autoset="0">Pas autonome</button></div><p class="plwhy" id="autoMiss" hidden>À choisir : autonome ou pas autonome.</p></div>
       <div id="intBox" hidden><div class="phbox"><button type="button" class="ghost" id="intBtn">Interventionnel</button></div><p class="hint">Facultatif, en plus du niveau : vous passez en priorité au bloc lors de la création automatique.</p></div>
       <button type="button" id="renMe" class="renme" hidden>✎ Modifier mon prénom</button>
@@ -971,7 +972,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         </div>
         <div class="card" id="statCard" hidden>
           <details class="cardfold" id="statFold"><summary>📊 Affectations par poste</summary>
-          <p class="hint">Nombre de demi-journées où chaque personne est postée, sur la période choisie (échanges conclus inclus).</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Nombre de demi-journées où chaque personne est postée, sur la période choisie (échanges conclus inclus).</p></details>
           <div class="row3">
             <div class="f"><label for="stFrom">Depuis le</label><input type="date" id="stFrom"></div>
             <div class="f"><label for="stTo">Jusqu’au</label><input type="date" id="stTo"></div>
@@ -1014,24 +1015,24 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         </div>
         <div class="card" id="protoCard" hidden>
           <div class="annh"><h2>📋 Protocoles</h2></div>
-          <p class="hint">Extraits du livret de l’interne : scanner, IRM, urétro-cystographie rétrograde, échographie.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Extraits du livret de l’interne : scanner, IRM, urétro-cystographie rétrograde, échographie.</p></details>
           <input type="text" id="protoQ" placeholder="Rechercher (ex. hématurie, prostate, greffe)…" autocomplete="off" aria-label="Rechercher un protocole">
           <div id="protoBody"></div>
         </div>
         <div class="card" id="livretCard" hidden>
           <div class="annh"><h2>📘 Livret de l’interne</h2></div>
-          <p class="hint">Livret d’accueil des internes du service d’imagerie uro-vasculaire · semestre novembre 2026 – mai 2027 (27 pages).</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Livret d’accueil des internes du service d’imagerie uro-vasculaire · semestre novembre 2026 – mai 2027 (27 pages).</p></details>
           <a class="primary livretbtn" href="livret-interne-2026.pdf" target="_blank" rel="noopener">Ouvrir le livret (PDF)</a>
         </div>
         <div class="card" id="histCard" hidden>
           <details class="cardfold" id="histFold"><summary>🕘 Historique des modifications</summary>
-          <p class="hint">Les 25 dernières modifications du planning (générations, suppressions, changements manuels). « Restaurer » remet les jours concernés comme avant.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Les 25 dernières modifications du planning (générations, suppressions, changements manuels). « Restaurer » remet les jours concernés comme avant.</p></details>
           <div id="histBody"></div>
           </details>
         </div>
         <div class="card" id="msgCard" hidden>
           <details class="cardfold" id="fMsg"><summary>Envoyer un rappel</summary>
-          <p class="hint">Envoyez une notification à des collègues (ex. rappeler de remplir leurs indisponibilités). Elle part dans les 10 à 15 minutes.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Envoyez une notification à des collègues (ex. rappeler de remplir leurs indisponibilités). Elle part dans les 10 à 15 minutes.</p></details>
           <div class="plc" style="margin-bottom:8px"><button type="button" class="ghost" id="msgMiss">Ceux sans indispos</button><button type="button" class="ghost" id="msgAll">Tous</button><button type="button" class="ghost" id="msgNone">Aucun</button></div>
           <div id="msgWho"></div>
           <div class="f"><label for="msgTxt">Message</label><textarea id="msgTxt" rows="3" maxlength="200" placeholder="Bonjour, merci de renseigner vos indisponibilités dans le planning."></textarea></div>
@@ -1041,7 +1042,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         </div>
         <div class="card">
           <details class="cardfold" id="fApp"><summary>Apparence</summary>
-          <p class="hint">Choisissez le mode clair ou sombre, ou laissez l’appareil décider.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez le mode clair ou sombre, ou laissez l’appareil décider.</p></details>
           <div class="thm" role="group" aria-label="Mode d’affichage"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Clair</button><button type="button" data-theme-set="dark">Sombre</button></div>
           <p class="hint" style="margin-top:12px">Palette de couleurs (propre à cet appareil).</p>
           <div class="pals" id="palBox" role="group" aria-label="Palette de couleurs"></div>
@@ -1049,7 +1050,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         </div>
         <div class="card" id="creerCard">
           <details class="cardfold" id="fCre"><summary>Planning du mois</summary>
-          <p class="hint">Créer une semaine, importer un fichier Excel ou ajouter une vacation exceptionnelle.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Créer une semaine, importer un fichier Excel ou ajouter une vacation exceptionnelle.</p></details>
           <button type="button" class="primary" id="goCreer">Créer ou modifier un planning</button>
           </details>
         </div>
@@ -1057,7 +1058,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         <p class="hint" style="text-align:center;opacity:.7">Version du 19/10/2026</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
-          <p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
           <div class="f"><label id="exFmtL">Format</label><div class="exfmt" role="group" aria-labelledby="exFmtL"><button type="button" data-exfmt="xlsx">Excel</button><button type="button" data-exfmt="pdf">PDF</button><button type="button" data-exfmt="csv">CSV</button></div></div>
           <div class="f"><label for="exMonth">Mois</label><select id="exMonth"></select></div>
           <button type="button" class="primary" id="exIndisp">Indisponibilités, gardes et Off</button>
@@ -1069,7 +1070,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         </div>
         <div class="card" id="teamCard">
           <details class="cardfold" id="fTeam"><summary>Équipe</summary>
-          <p class="hint">Ajoutez un médecin, un interne ou toute autre personne. Pour renommer, modifiez le nom puis validez (Entrée). Les vacations et indisponibilités sont conservées.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Ajoutez un médecin, un interne ou toute autre personne. Pour renommer, modifiez le nom puis validez (Entrée). Les vacations et indisponibilités sont conservées.</p></details>
           <details class="teamfold" id="teamFold"><summary>👥 Liste de l’équipe <b class="acn" id="teamN"></b></summary><ul id="people" class="people team-list"></ul></details>
           <form id="addForm" class="addrow wrapf">
             <fieldset data-edit id="aSet" class="addset">
@@ -1082,18 +1083,18 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         </div>
         <div class="card" id="pubCard" hidden>
           <details class="cardfold" id="pubFold"><summary>📢 Publication du planning</summary>
-          <p class="hint">Une semaine non publiée n’est visible que par les administrateurs. Par défaut tout est publié.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Une semaine non publiée n’est visible que par les administrateurs. Par défaut tout est publié.</p></details>
           <div id="pubBody"></div>
           </details>
         </div>
         <div class="card" id="chefCard" hidden>
           <div class="annh"><h2>🩺 Trame des chefs</h2></div>
-          <p class="hint">Importe la trame hebdomadaire des seniors (document « planning chefs ») : vacations fixes de chacun, avec alternance semaine par semaine quand le document l’indique. Un aperçu s’affiche avant toute modification.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Importe la trame hebdomadaire des seniors (document « planning chefs ») : vacations fixes de chacun, avec alternance semaine par semaine quand le document l’indique. Un aperçu s’affiche avant toute modification.</p></details>
           <button type="button" class="primary" id="chefGo">Importer la trame des chefs</button>
         </div>
         <div class="card" id="trameCfg" hidden>
           <details class="cardfold" id="trameFold"><summary>🗓 Trame du planning (sans personne)</summary>
-          <p class="hint">Deux trames distinctes : <b>senior</b> et <b>interne</b>. Choisissez les vacations qui existent chaque semaine (poste, jour, matin / après-midi), sans y poster personne. Au moment de créer un planning, la première question est « Utiliser la trame ? ». Une vacation cochée apparaît « non pourvue » tant que personne n’y est posté.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Deux trames distinctes : <b>senior</b> et <b>interne</b>. Choisissez les vacations qui existent chaque semaine (poste, jour, matin / après-midi), sans y poster personne. Au moment de créer un planning, la première question est « Utiliser la trame ? ». Une vacation cochée apparaît « non pourvue » tant que personne n’y est posté.</p></details>
           <div class="astpair" id="trameGrp"><button type="button" class="astbtn" data-trg="medecin">🩺 Trame senior</button><button type="button" class="astbtn" data-trg="interne">🎓 Trame interne</button></div>
           <div id="trameCfgBody"></div>
           </details>
@@ -1112,7 +1113,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         </div>
         <div class="card">
           <details class="cardfold" id="fCal"><summary>Mon calendrier</summary>
-          <p class="hint">Vos vacations, gardes et repos de garde des 12 prochaines semaines, dans un fichier calendrier (.ics) pour l'iPhone, Google Agenda ou Outlook.</p>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Vos vacations, gardes et repos de garde des 12 prochaines semaines, dans un fichier calendrier (.ics) pour l'iPhone, Google Agenda ou Outlook.</p></details>
           <button type="button" class="primary" id="icsBtn">Importer mon emploi du temps sur le calendrier</button>
           <p class="hint">Sur iPhone : ouvrez le fichier reçu puis touchez « Ajouter tout ». Réimporter met le calendrier à jour sans doublon.</p>
           <details class="hours"><summary>Horaires des vacations</summary>
@@ -1749,6 +1750,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     $('#butBody').innerHTML = (butGrps().length > 1 ? '<div class="exfmt"><button type="button" data-butgrp="sen" aria-pressed="'+(g === 'sen')+'">Seniors</button><button type="button" data-butgrp="int" aria-pressed="'+(g === 'int')+'">Internes</button></div>' : '')
       + '<div class="exfmt"><button type="button" data-butkind="sem" aria-pressed="'+(butKind === 'sem')+'">Semaine</button><button type="button" data-butkind="ast" aria-pressed="'+(butKind === 'ast')+'">Astreinte</button></div>'
       + '<h4 class="asth">Date butoir '+BUT_KIND[butKind]+' '+gl+'</h4>'
+      + '<details class="info"><summary>ⓘ Infos</summary><p class="hint">Vous gérez la date butoir '+gl+'. Après cette date, chacun ne peut plus modifier ses indisponibilités du mois, sauf si vous l’y autorisez. Mois par mois ; laissez vide pour ne pas fixer de date. « Mois affichés » : si « Mois en cours » est choisi, le nombre de mois s’applique. « Même date pour une période » : une même date butoir pour tous les mois de la période.</p></details>'
       + butAdmMonths().map(m=>'<label class="butrow"><span>'+esc(monthLbl(m))+'</span><input type="date" data-butm="'+m+'" value="'+esc(((butoir.d[gk]) || {})[m] || '')+'"></label>').join('')
       + '<details class="butmore"><summary>Mois affichés</summary><div class="f"><label for="butVa">Du mois de</label><select id="butVa"><option value="">Mois en cours (automatique)</option>'+butAdmMonths().map(m=>'<option value="'+m+'"'+(butoir.vfrom === m ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butVb">Au mois de</label><select id="butVb">'+butAdmMonths().map(m=>'<option value="'+m+'"'+(butoir.vto === m ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butNm">Nombre de mois (si automatique)</label><select id="butNm">'+[...Array(12)].map((_,i)=>'<option value="'+(i+1)+'"'+(i+1 === nm ? ' selected' : '')+'>'+(i+1)+' mois</option>').join('')+'</select></div></details>'
       + '<details class="butmore"><summary>Même date pour une période</summary><div class="f"><label for="butPa">Du mois de</label><select id="butPa">'+butAdmMonths().map(m=>'<option value="'+m+'">'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butPb">Au mois de</label><select id="butPb">'+butAdmMonths().map((m,i,ar)=>'<option value="'+m+'"'+(i === ar.length-1 ? ' selected' : '')+'>'+esc(monthLbl(m))+'</option>').join('')+'</select></div><div class="f"><label for="butPd">Date (vide = retirer)</label><input type="date" id="butPd"></div><button type="button" class="primary" data-butper>Appliquer</button></details>'
