@@ -1072,6 +1072,17 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Livret d’accueil des internes du service d’imagerie uro-vasculaire · semestre novembre 2026 – mai 2027 (27 pages).</p></details>
           <a class="primary livretbtn" href="livret-interne-2026.pdf" target="_blank" rel="noopener">Ouvrir le livret (PDF)</a>
         </div>
+        <div class="card" id="coursCard" hidden>
+          <div class="annh"><h2>🎓 Cours</h2></div>
+          <div id="coursBody"></div>
+          <details class="cardfold" id="coursAdd" hidden><summary>＋ Ajouter un cours</summary>
+            <div class="f"><label for="coT">Titre</label><input type="text" id="coT" maxlength="80" autocomplete="off"></div>
+            <div class="f"><label for="coF">Fichier (PDF ou image, 700 Ko max)</label><input type="file" id="coF" accept="application/pdf,image/*"></div>
+            <div class="f"><label for="coU">ou lien (Drive, site…)</label><input type="url" id="coU" placeholder="https://"></div>
+            <p class="codeerr" id="coErr" hidden></p>
+            <button type="button" class="primary" id="coOk">Ajouter</button>
+          </details>
+        </div>
         <div class="card" id="histCard" hidden>
           <details class="cardfold" id="histFold"><summary>🕘 Historique des modifications</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Les 25 dernières modifications du planning (générations, suppressions, changements manuels). « Restaurer » remet les jours concernés comme avant.</p></details>
@@ -2354,7 +2365,7 @@ const PROTO = [
   }
 
   function renderAll(){
-    renderRenMe(); renderBut(); renderAnnu(); { const it = !!me && isIntId(me); ['#protoCard','#livretCard'].forEach(q=>{ const el = $(q); if (el) el.hidden = !it; }); { const ch = $('#chefCard'); if (ch) ch.hidden = !isRim(); const pc = $('#pubCard'); if (pc) pc.hidden = !isRim(); renderPub(); } } if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderBut(); renderAnnu(); renderCours(); { const it = !!me && isIntId(me); ['#protoCard','#livretCard'].forEach(q=>{ const el = $(q); if (el) el.hidden = !it; }); { const ch = $('#chefCard'); if (ch) ch.hidden = !isRim(); const pc = $('#pubCard'); if (pc) pc.hidden = !isRim(); renderPub(); } } if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
 
@@ -6627,9 +6638,70 @@ const PROTO = [
   }
   iiInit();
   /* Réglages « à la iPhone » : menu de thèmes, puis sous-pages */
+
+  /* ---------- cours des internes ---------- */
+  let cours = {};
+  function renderCours(){
+    const c = $('#coursCard'); if (!c) return;
+    const it = !!me && isIntId(me); c.hidden = !(it || isRim());
+    const add = $('#coursAdd'); if (add) add.hidden = !isRim();
+    const l = Object.keys(cours).map(id=>Object.assign({id}, cours[id])).sort((a,b)=>(b.d || 0) - (a.d || 0));
+    $('#coursBody').innerHTML = l.length ? l.map(x=>'<div class="butreq"><span><b>'+esc(x.t)+'</b><br><small>'+esc(new Date(x.d || 0).toLocaleDateString('fr-FR'))+'</small></span><span style="display:flex;gap:6px"><button type="button" class="primary" data-coopen="'+esc(x.id)+'">Ouvrir</button>'+(isRim() ? '<button type="button" class="ghost" data-codel="'+esc(x.id)+'" aria-label="Supprimer">🗑</button>' : '')+'</span></div>').join('') : '<p class="hint">Aucun cours pour le moment.</p>';
+  }
+  function coErr(m){ const e = $('#coErr'); e.textContent = m; e.hidden = !m; }
+  function coRead(f){
+    return new Promise((res, rej)=>{
+      const fr = new FileReader(); fr.onerror = ()=>rej(new Error('lecture')); 
+      if (f.type.startsWith('image/')) {
+        fr.onload = ()=>{ const im = new Image(); im.onload = ()=>{ const k = Math.min(1, 1600/Math.max(im.width, im.height)); const cv = document.createElement('canvas'); cv.width = Math.round(im.width*k); cv.height = Math.round(im.height*k); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); res({type:'image/jpeg', data: cv.toDataURL('image/jpeg', .8).split(',')[1]}); }; im.onerror = ()=>rej(new Error('image')); im.src = fr.result; };
+      } else fr.onload = ()=>res({type: f.type || 'application/pdf', data: String(fr.result).split(',')[1]});
+      fr.readAsDataURL(f);
+    });
+  }
+  $('#coOk').addEventListener('click', async ()=>{
+    coErr('');
+    const t = $('#coT').value.trim(), f = $('#coF').files[0], u = $('#coU').value.trim();
+    if (!t) return coErr('Donnez un titre au cours.');
+    if (!f && !/^https?:\/\//i.test(u)) return coErr('Choisissez un fichier ou collez un lien.');
+    if (!db || !canWrite) return coErr('Lecture seule : ajout impossible.');
+    if (!(await ensureCode('ajouter un cours'))) return;
+    const id = 'c'+Date.now().toString(36);
+    try {
+      let item = {t, d: Date.now()};
+      if (f) {
+        const r = await coRead(f);
+        if (r.data.length > 950000) return coErr('Fichier trop volumineux : réduisez-le ou utilisez un lien.');
+        await db.doc('meta/cf_'+id).set({type: r.type, data: r.data});
+        item.f = 1;
+      } else item.u = u;
+      const ref = db.doc('meta/cours');
+      await ref.update({items: {[id]: item}});
+      $('#coT').value = ''; $('#coF').value = ''; $('#coU').value = ''; $('#coursAdd').open = false; notify('Cours ajouté.');
+    } catch(e) { handleErr(e); }
+  });
+  $('#coursCard').addEventListener('click', async e=>{
+    const o = e.target.closest('[data-coopen]'), d = e.target.closest('[data-codel]');
+    if (o) {
+      const x = cours[o.dataset.coopen]; if (!x) return;
+      if (x.u) return void window.open(x.u, '_blank', 'noopener');
+      const w = window.open('', '_blank');
+      try {
+        const s = await db.doc('meta/cf_'+o.dataset.coopen).get(); const v = s.data() || {};
+        const bin = atob(v.data || ''), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+        const url = URL.createObjectURL(new Blob([a], {type: v.type || 'application/pdf'}));
+        if (w) w.location = url; else location.href = url;
+      } catch(err) { if (w) w.close(); handleErr(err); }
+    } else if (d && isRim()) {
+      if (!(await ensureCode('supprimer un cours'))) return;
+      const id = d.dataset.codel;
+      try { await db.doc('meta/cours').update({items: {[id]: null}}); if (cours[id] && cours[id].f) await db.doc('meta/cf_'+id).delete(); notify('Cours supprimé.'); } catch(err) { handleErr(err); }
+    }
+  });
+
   const SET_GRPS = [
     {id:'compte', ic:'👤', bg:'#3B82F6', t:'Mon compte', sub:'Profil, apparence, calendrier, rappels, administrateurs', sel:['#fMp','#fApp','#instBtn','#remCard','#fCal','#admCard']},
     {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#pubCard','#chefCard','#trameCfg','#creerCard','#impSlotR','#exportCard']},
+    {id:'cours', ic:'🎓', bg:'#F59E0B', t:'Cours', sub:'Cours et supports pour les internes', sel:['#coursCard']},
     {id:'annuaire', ic:'📞', bg:'#8B5CF6', t:'Annuaire', sub:'Numéros utiles du service', sel:['#annuCard']},
     {id:'protocoles', ic:'📋', bg:'#14B8A6', t:'Protocoles', sub:'Scanner, IRM, UCR, échographie', sel:['#protoCard']},
     {id:'livret', ic:'📘', bg:'#0EA5E9', t:'Livret de l’interne', sub:'Livret d’accueil, semestre nov. 2026 – mai 2027', sel:['#livretCard']},
@@ -6758,6 +6830,7 @@ const PROTO = [
       maybeSeed(); maybePatch();
     }, err=>{});
     db.doc('meta/publication').onSnapshot(s=>{ pubDoc = s.exists ? (s.data() || {}) : {}; renderPub(); if (typeof renderAll === 'function') renderAll(); try { renderCompose(); } catch(e) {} }, err=>{});
+    db.doc('meta/cours').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; cours = {}; Object.keys(v.items || {}).forEach(k=>{ if (v.items[k]) cours[k] = v.items[k]; }); renderCours(); }, err=>{});
     db.doc('meta/annonces').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; annon = v.items && typeof v.items === 'object' ? v.items : {}; renderAnn(); renderToday(); }, err=>{});
     /* CR : modifications permanentes des comptes rendus (administrateurs) */
     window.CR_ADMIN = {
