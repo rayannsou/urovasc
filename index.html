@@ -7472,8 +7472,8 @@ function open(it){
   function refresh(){prevs.forEach(([el,d])=>fillPrev(el,d));if(typeof upPill==='function')upPill()}
   const full=()=>parsed.map(([n,d])=>(parsed.length>1?n.toUpperCase()+'\n':'')+sectionText(d)).join('\n\n');
   const escH=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const fullHtml=()=>'<div style="font-family:Arial,sans-serif;font-size:11pt">'+parsed.map(([n,d])=>{const nm=(/^résultat$/i.test(n)?'RÉSULTATS':n.toUpperCase())+' :';const hd=/^conclusion/i.test(n)?'<span style="background-color:#ffff00">'+nm+'</span>':nm;
-    return (parsed.length>1?'<div><b><u>'+hd+'</u></b></div>':'')+'<div>'+escH(sectionText(d)).replace(/\n/g,'<br>')+'</div>'}).join('<div><br></div>')+'</div>';
+  const fullHtml=()=>'<div style="font-family:Arial,Helvetica,sans-serif;font-size:10pt">'+parsed.map(([n,d])=>{const nm=(/^résultat$/i.test(n)?'RÉSULTATS':n.toUpperCase())+' :';const hd=nm;
+    return (parsed.length>1?'<div style="font-family:Arial,Helvetica,sans-serif;font-size:10pt"><b><u>'+hd+'</u></b></div>':'')+'<div style="font-family:Arial,Helvetica,sans-serif;font-size:10pt">'+escH(sectionText(d)).replace(/\n/g,'<br>')+'</div>'}).join('<div style="font-family:Arial,Helvetica,sans-serif;font-size:10pt"><br></div>')+'</div>';
   function poolFor(f){const key=norm(f.title.trim());const co=f.opts||(cur&&cur.opts&&cur.opts[f.id.split('_').pop()]);const base=co||optsFor(f.title,f.def);const s=[];const add=v=>{v=v.trim();if(v&&!s.includes(v))s.push(v)};(base||POOL[key]||[]).forEach(add);(MINE[key]||[]).forEach(add);if(f.def&&f.def.trim()&&!s.includes(f.def.trim()))s.unshift(f.def.trim());return ordSort(s)}
   const isNum=v=>/^[\dxX*×.,\s]+(mm|cm|h|%|°|ml\/min|UH|points)?$/i.test((v||'').trim())&&/[\dxX]/.test(v);
   let curField=null,wz=null;
