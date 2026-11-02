@@ -103,6 +103,7 @@ button.ghost{background:none}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
 .notice{border:1.5px solid var(--ind-2);background:var(--ind);color:var(--ind-ink);border-radius:10px;padding:10px 14px}
 .tabs{display:flex;gap:4px;border-bottom:1.5px solid var(--line)}
+.cronly .tabs,.cronly header.top{display:none!important}
 .tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font-weight:600;color:var(--muted);margin-bottom:-1.5px}
 .tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -6859,6 +6860,8 @@ const PROTO = [
     db.doc('meta/patch-oct12').onSnapshot(s=>{ patchState = s.exists ? 'done' : 'absent'; maybePatch(); }, err=>{});
     db.doc('meta/seed2').onSnapshot(s=>{ seedState = s.exists ? 'done' : 'absent'; maybeSeed(); jumpToData(); }, err=>{});
   })();
+  /* Mode « outil CR seul » : adresse …/?cr — ouvre directement les comptes rendus, sans le planning */
+  try { if (/(^|[?&#])cr(\b|=|$)/.test(location.search + location.hash)) { document.body.classList.add('cronly'); const goCr = ()=>{ try { showTab('cr'); } catch(e){} }; goCr(); setTimeout(goCr, 700); setTimeout(goCr, 2000); } } catch(e){}
 })();
 </script>
 
