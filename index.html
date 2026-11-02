@@ -7343,7 +7343,7 @@ function plain(html){ // -> text
   const d=new DOMParser().parseFromString('<body>'+html.replace(/<br\s*\/?>/gi,'\n')+'</body>','text/html');
   return d.body.textContent.replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
 }
-function searchText(it){return norm(it.name+' '+(KINDS[it.kind]||'')+' '+plain(it.tech||'')+' '+plain(it.outcome)+' '+plain(it.conclusion)+' '+plain(it.extra))}
+function searchText(it){return norm(it.name+' '+(KINDS[it.kind]||'')+' '+plain(it.tech||'')+' '+plain(it.outcome)+' '+plain(it.conclusion)+' '+plain(it.extra)+' '+Object.values(it.opts||{}).flat().join(' '))}
 DATA.forEach(d=>{d.regions=d.regions||[d.region];d._s=searchText(d);d._w=[...new Set(d._s.split(/[^a-z0-9]+/).filter(w=>w.length>=4))]});
 const modOf=d=>{const t=norm(d.name+' '+(d.tech||'').replace(/<[^>]+>/g,' '));return d.regions.includes('Échographie')||/echograph|doppler|\becho\b/.test(t)?'Écho':/\birm\b|resonance/.test(t)?'IRM':'Scanner'};
 const ORIG={},OK=['name','tech','outcome','conclusion','extra'];
@@ -7381,7 +7381,7 @@ function renderList(){
   let r=DATA.filter(d=>(!dom||(d.regions.includes('Radiologie_interventionnelle')?'Interventionnel':'Diagnostique')===dom)&&(!cat||(d.cat||'Urgences')===cat)&&(!kd||d.kind===kd)&&(!mod||d._m===mod)&&(!reg||d.regions.includes(reg))&&toks.every(t=>tokHit(d,t)));
   const score=d=>toks.reduce((s,t)=>s+(norm(d.name).includes(t)?2:0),0);
   r.sort((a,b)=>score(b)-score(a));
-  const row=d=>$('div',{style:CARD},$('button',{class:'cr-item',style:BTN,onclick:()=>{lastFam=null;open(d)}},$('span',{style:'display:flex;gap:12px;align-items:center'},$('span',{style:'font-size:26px;line-height:1'},EM(d.regions[0]).trim()||'📄'),$('span',{style:'display:flex;flex-direction:column;gap:2px'},$('b',{style:'font-size:16px'},d.name),$('small',{},RN(d.regions[0])+(d.kind===1?' · Paragraphe':d.kind===4?' · Info':'')+(d.cat==='Programmé'?' · Programmé':''))))),$('div',{style:ACT},copyBtn(d),starBtn(d.id,renderList)));
+  const row=d=>$('div',{style:CARD},$('button',{class:'cr-item',style:BTN,onclick:()=>{lastFam=null;open(d)}},$('span',{style:'display:flex;gap:12px;align-items:center'},$('span',{style:'font-size:26px;line-height:1'},EM(d.regions[0]).trim()||'📄'),$('span',{style:'display:flex;flex-direction:column;gap:2px'},$('b',{style:'font-size:16px'},d.name),$('small',{},RN(d.regions[0])+(d.kind===1?' · Paragraphe':d.kind===4?' · Info':'')+(d.cat==='Programmé'?' · Programmé':'')),(()=>{const tk=norm(q).split(/\s+/).filter(Boolean);if(!tk.length||tk.some(x=>norm(d.name).includes(x)))return '';const ln=[d.tech,d.outcome,d.conclusion,d.extra].flatMap(h=>plain(h||'').split(/\n|(?<=[.!?])\s+/));const hit=ln.find(l=>tk.some(x=>norm(l).includes(x)))||ln.find(l=>tk.some(x=>(SYN[x]||[]).some(y=>norm(l).includes(y))));return hit?$('small',{style:'font-style:italic;opacity:.8'},'… '+hit.trim().slice(0,110)+(hit.length>110?'…':'')):''})()))),$('div',{style:ACT},copyBtn(d),starBtn(d.id,renderList)));
   const out=[];
   if(!toks.length&&!kind&&!reg&&!cat&&!dom){
     const byId=Object.fromEntries(DATA.map(d=>[d.id,d]));
