@@ -59,6 +59,7 @@
 .cr-sheet-w{display:flex;flex-direction:column;gap:6px}.cr-sheet-w label{font-size:12.5px;color:var(--muted)}.cr-sheet-w textarea,.cr-sheet-w input{font:inherit;font-size:16px;color:var(--ind-ink);background:var(--ind);border:1.5px solid var(--ind-2);border-radius:8px;padding:10px 12px;box-sizing:border-box;width:100%}
 .cr-sheet-b{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 @media(min-width:720px){.cr-sheet-ov{align-items:center}.cr-sheet{border-radius:16px}}
+  .telk{color:inherit;font-weight:600;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -1878,7 +1879,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const vacHtml = (k)=>dayVacs(me,k).map(v=>{
       const r = reasonFor(me,k,v.part);
       const who = v.ou ? 'à confirmer : '+v.who.map(dLabel).join(' ou ') : withTxt(v, false);
-      return '<div class="vac'+(r ? ' bad' : '')+'"><span class="vp"'+(r ? '' : ' style="background:'+posteColor(v.poste)+';color:#fff;border-color:'+posteColor(v.poste)+'"')+'>'+v.part+'</span><span>'+esc(postName(v.poste,k))+' <small>'+esc(who)+(r ? (who ? ' · ' : '')+'conflit : vous êtes '+esc(r) : '')+'</small></span></div>';
+      return '<div class="vac'+(r ? ' bad' : '')+'"><span class="vp"'+(r ? '' : ' style="background:'+posteColor(v.poste)+';color:#fff;border-color:'+posteColor(v.poste)+'"')+'>'+v.part+'</span><span>'+esc(postName(v.poste,k))+' <small>'+telify(esc(who))+(r ? (who ? ' · ' : '')+'conflit : vous êtes '+esc(r) : '')+'</small></span></div>';
     }).join('');
     const rowWrap = (d,i,k,head,body)=>'<div class="dayrow'+(k === todayK ? ' today' : '')+(i > 4 ? ' we' : '')+'"><div class="dr-head">'+head+'</div>'+(body ? '<div class="dr-body">'+body+'</div>' : '')+'</div>';
     const dateTxt = (d,k)=>esc(fmtShort.format(d))+(k === todayK ? ' <span class="tag">aujourd’hui</span>' : '');
@@ -1984,7 +1985,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       if (!vs.length && !st) return '<div class="'+cls+'"'+sty+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what lone">'+what+'</span></div>';
       const acts = vs.length && st ? '<span class="cfhint">'+(acc ? 'Acceptée · toucher pour modifier ›' : 'Toucher pour accepter ou refuser ›')+'</span>' : '';
       const cfa = vs.length && st ? ' role="button" tabindex="0" data-cfo="'+kk+'|'+part+'"' : '';
-      return '<div class="'+cls+'"'+sty+cfa+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what">'+what+'</span>'+(sub ? '<span class="with">'+esc(sub)+'</span>' : '')+acts+'</div>';
+      return '<div class="'+cls+'"'+sty+cfa+'><span class="when">'+PLAB[part]+(showHours ? ' · '+hr[part] : '')+'</span><span class="what">'+what+'</span>'+(sub ? '<span class="with">'+telify(esc(sub))+'</span>' : '')+acts+'</div>';
     };
     const startD = addDays(mondayOf(now), 7*wkOff);
     const tomorrowK = key(addDays(now,1));
@@ -4582,6 +4583,7 @@ const PROTO = [
   /* qui est avec moi : l'interne(s) pour un senior, le senior pour un interne */
   const isIntId = id => { const d = doctors[id]; return !!(d && d.role === 'Interne'); };
   const isSrId = id => { const d = doctors[id]; return !!(d && d.role !== 'Interne' && d.role !== 'Autre'); };   /* senior = rôle « Médecin » */
+  const telify = h=>h.replace(/📞 (\d{3,})/g, '<a class="telk" href="tel:$1" onclick="event.stopPropagation()">📞 $1</a>');
   function srPhone(id){
     const lt = norm(dLabel(id)).replace(/^dr\.?\s+/, '').split(/[\s.\-]+/).filter(t=>t.length > 1); if (!lt.length) return '';
     const hit = annuItems().filter(x=>x.c === 'm' && x.p).find(x=>{ const nt = norm(x.n).split(/[\s.\-]+/); return lt.every(t=>nt.includes(t)); });
