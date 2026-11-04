@@ -59,7 +59,7 @@
 .cr-sheet-w{display:flex;flex-direction:column;gap:6px}.cr-sheet-w label{font-size:12.5px;color:var(--muted)}.cr-sheet-w textarea,.cr-sheet-w input{font:inherit;font-size:16px;color:var(--ind-ink);background:var(--ind);border:1.5px solid var(--ind-2);border-radius:8px;padding:10px 12px;box-sizing:border-box;width:100%}
 .cr-sheet-b{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 @media(min-width:720px){.cr-sheet-ov{align-items:center}.cr-sheet{border-radius:16px}}
-  .telk{color:inherit;font-weight:600;text-decoration:underline}
+  .telk{color:var(--accent,#2563eb);font-weight:700;text-decoration:underline;padding:6px 2px;display:inline-block}
 </style>
 </head>
 <body>
@@ -4583,7 +4583,7 @@ const PROTO = [
   /* qui est avec moi : l'interne(s) pour un senior, le senior pour un interne */
   const isIntId = id => { const d = doctors[id]; return !!(d && d.role === 'Interne'); };
   const isSrId = id => { const d = doctors[id]; return !!(d && d.role !== 'Interne' && d.role !== 'Autre'); };   /* senior = rôle « Médecin » */
-  const telify = h=>h.replace(/📞 (\d{3,})/g, '<a class="telk" href="tel:$1" onclick="event.stopPropagation()">📞 $1</a>');
+  const telify = h=>h.replace(/📞 ([\d][\d .]*\d)/g, (m, n)=>'<a class="telk" href="tel:'+n.replace(/[^\d]/g,'')+'" onclick="event.stopPropagation()">📞 '+n+'</a>');
   function srPhone(id){
     try {
       const nz = t=>String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
