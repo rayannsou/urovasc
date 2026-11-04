@@ -2070,6 +2070,27 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     box.innerHTML = '<div class="annh"><h2>📣 Annonces de la semaine</h2>'+(adm ? '<button type="button" class="ghost" data-annadd="1">＋ Annonce</button>' : '')+'</div>'
       + (days.length ? days.map(k=>'<p class="annd">'+esc(fmtLong.format(parse(k)).replace(/^./, c=>c.toUpperCase()))+'</p>'+annHtml(k, false, adm)).join('') : '<p class="hint">Aucune annonce cette semaine. Ajoutez un cours, une réunion… : elle s’affichera avant le planning du jour.</p>');
   }
+
+  /* ---------- nouvelle annonce : ouverture automatique (comme une notification) ---------- */
+  let annLoaded = false, annPop = false;
+  const annSeenGet = ()=>{ try { const v = localStorage.getItem('planning-annseen'); return v === null ? null : JSON.parse(v) || []; } catch(e) { return []; } };
+  const annSeenSet = a=>{ try { localStorage.setItem('planning-annseen', JSON.stringify(a.slice(-200))); } catch(e) {} };
+  function annSeenAdd(ids){ const c = annSeenGet() || []; annSeenSet(c.concat(ids.filter(i=>!c.includes(i)))); }
+  function annPopup(){
+    if (annPop || !annLoaded || !loaded || !doctors[me]) return;
+    const seen = annSeenGet();
+    if (seen === null) { annSeenSet(Object.keys(annon)); return; }   /* première ouverture : les annonces déjà là ne sont pas ré-affichées */
+    const today = key(new Date());
+    const fresh = Object.keys(annon).map(id=>Object.assign({id}, annon[id])).filter(x=>x && x.t && x.d && !seen.includes(x.id) && (!x.g || (x.g === 'int') === isIntId(me)) && ((Number(x.r) || 0) ? (!x.e || x.e >= today) : x.d >= today)).sort((a,b)=>String(a.d).localeCompare(String(b.d)) || String(a.a || '').localeCompare(String(b.a || '')));
+    if (!fresh.length) return;
+    annPop = true;
+    const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+    w.innerHTML = '<div class="codebox annf" style="max-height:80vh;overflow:auto"><p><b>📣 '+(fresh.length > 1 ? 'Nouvelles annonces' : 'Nouvelle annonce')+'</b></p>'
+      + fresh.map(x=>'<div class="ptx-i" style="margin:8px 0"><b>'+esc(x.t)+'</b><br><small>'+esc(fmtLong.format(parse(x.d)).replace(/^./, c=>c.toUpperCase()))+' · '+esc(annTime(x))+(Number(x.r) ? ' · 🔁 répétée' : '')+'</small></div>').join('')
+      + '<div class="asb"><button type="button" class="primary" data-annpopok>OK</button></div></div>';
+    document.body.appendChild(w);
+    w.querySelector('[data-annpopok]').addEventListener('click', ()=>{ annSeenAdd(fresh.map(x=>x.id)); w.remove(); annPop = false; });
+  }
   function annOpen(id, defK){
     const x = id ? annon[id] : null; if (id && !x) return;
     const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
@@ -2088,7 +2109,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       if (!db || !canWrite) return err('Lecture seule : modification impossible.');
       if (!(await ensureCode('modifier les annonces'))) return;
       const nid = id || ('a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5));
-      try { await db.doc('meta/annonces').update({items: {[nid]: val}}); w.remove(); notify(val ? 'Annonce enregistrée.' : 'Annonce supprimée.'); } catch(e) { handleErr(e); }
+      try { await db.doc('meta/annonces').update({items: {[nid]: val}}); annSeenAdd([nid]); w.remove(); notify(val ? 'Annonce enregistrée.' : 'Annonce supprimée.'); } catch(e) { handleErr(e); }
     };
     w.addEventListener('change', e=>{ if (e.target.id === 'anR') w.querySelector('#anEw').hidden = !Number(e.target.value); });
     w.addEventListener('click', e=>{
@@ -2367,7 +2388,7 @@ const PROTO = [
   }
 
   function renderAll(){
-    renderRenMe(); renderBut(); renderAnnu(); renderCours(); { const it = !!me && isIntId(me); ['#protoCard','#livretCard'].forEach(q=>{ const el = $(q); if (el) el.hidden = !it; }); { const ch = $('#chefCard'); if (ch) ch.hidden = !isRim(); const pc = $('#pubCard'); if (pc) pc.hidden = !isRim(); renderPub(); } } if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderBut(); renderAnnu(); renderCours(); annPopup(); { const it = !!me && isIntId(me); ['#protoCard','#livretCard'].forEach(q=>{ const el = $(q); if (el) el.hidden = !it; }); { const ch = $('#chefCard'); if (ch) ch.hidden = !isRim(); const pc = $('#pubCard'); if (pc) pc.hidden = !isRim(); renderPub(); } } if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
 
@@ -6842,7 +6863,7 @@ const PROTO = [
     }, err=>{});
     db.doc('meta/publication').onSnapshot(s=>{ pubDoc = s.exists ? (s.data() || {}) : {}; renderPub(); if (typeof renderAll === 'function') renderAll(); try { renderCompose(); } catch(e) {} }, err=>{});
     db.doc('meta/cours').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; cours = {}; Object.keys(v.items || {}).forEach(k=>{ if (v.items[k]) cours[k] = v.items[k]; }); renderCours(); }, err=>{});
-    db.doc('meta/annonces').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; annon = v.items && typeof v.items === 'object' ? v.items : {}; renderAnn(); renderToday(); }, err=>{});
+    db.doc('meta/annonces').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; annon = v.items && typeof v.items === 'object' ? v.items : {}; annLoaded = true; renderAnn(); annPopup(); renderToday(); }, err=>{});
     /* CR : modifications permanentes des comptes rendus (administrateurs) */
     window.CR_ADMIN = {
       isAdmin: () => { try { return !!isRim(); } catch(e) { return false; } },
