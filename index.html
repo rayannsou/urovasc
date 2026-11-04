@@ -4585,9 +4585,12 @@ const PROTO = [
   const isSrId = id => { const d = doctors[id]; return !!(d && d.role !== 'Interne' && d.role !== 'Autre'); };   /* senior = rôle « Médecin » */
   const telify = h=>h.replace(/📞 (\d{3,})/g, '<a class="telk" href="tel:$1" onclick="event.stopPropagation()">📞 $1</a>');
   function srPhone(id){
-    const lt = norm(dLabel(id)).replace(/^dr\.?\s+/, '').split(/[\s.\-]+/).filter(t=>t.length > 1); if (!lt.length) return '';
-    const hit = annuItems().filter(x=>x.c === 'm' && x.p).find(x=>{ const nt = norm(x.n).split(/[\s.\-]+/); return lt.every(t=>nt.includes(t)); });
-    return hit ? hit.p : '';
+    try {
+      const nz = t=>String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const lt = nz(dLabel(id)).replace(/^dr\.?\s+/, '').split(/[\s.\-]+/).filter(t=>t.length > 1); if (!lt.length) return '';
+      const hit = annuItems().filter(x=>x.c === 'm' && x.p).find(x=>{ const nt = nz(x.n).split(/[\s.\-]+/); return lt.every(t=>nt.includes(t)); });
+      return hit ? hit.p : '';
+    } catch(e) { return ''; }
   }
   function withTxt(v, up){
     /* seniors : ceux posés sur la vacation ; à défaut, ceux de la trame des médecins (vacation non modifiée par un planning d'internes) */
