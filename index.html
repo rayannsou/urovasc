@@ -6948,7 +6948,7 @@ window.dispatchEvent(new Event('claude-ready'));
 const DATA=JSON.parse(document.getElementById('crData').textContent);
 let TPL=[];try{TPL=JSON.parse(localStorage.getItem('cr_tpl')||'[]')||[]}catch(e){TPL=[]}
 const tplEsc=t=>String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\r/g,'').replace(/\n/g,'<br />');
-const tplItem=t=>({id:t.id,kind:2,name:t.name,tech:tplEsc(t.tech),outcome:tplEsc(t.outcome),conclusion:tplEsc(t.conclusion),extra:'',path:'',region:t.region,regions:[t.region],cat:'Programmé',_tpl:true,_raw:t});
+const tplItem=t=>{let n=0;const opts={};const H=x=>{let out='',last=0;String(x||'').replace(/\[([^\[\]:]+?)\s*:\s*([^\[\]]+)\]/g,(m,ti,ch,at)=>{const L=ch.split('|').map(v=>v.trim()).filter(Boolean);if(L.length<2)return m;n++;const k='c'+n;opts[k]=L;out+=tplEsc(x.slice(last,at))+'<span id="UT'+n+'_'+k+'" class="variableTreeSpan" title="'+tplEsc(ti.trim()).replace(/"/g,'&quot;')+'">'+tplEsc(L[0])+'</span>';last=at+m.length;return m});return out+tplEsc(String(x||'').slice(last))};const o={id:t.id,kind:2,name:t.name,tech:H(t.tech),outcome:H(t.outcome),conclusion:H(t.conclusion),extra:'',path:'',region:t.region,regions:[t.region],cat:'Programmé',_tpl:true,_raw:t,opts};o.opts=opts;return o};
 const tplSave=()=>{try{localStorage.setItem('cr_tpl',JSON.stringify(TPL))}catch(e){}};
 TPL.forEach(t=>DATA.push(tplItem(t)));
 const KINDS={1:'Paragraphes',2:'Comptes rendus complets',4:'Renseignements divers'};
@@ -7406,9 +7406,12 @@ function tplForm(t){
   const ta=(ph,v,h)=>$('textarea',{placeholder:ph,rows:String(h||4),style:'width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:inherit'},v||'');
   const te=ta('Technique (facultatif)',t&&t.tech,2),ou=ta('Résultat : une ligne par phrase',t&&t.outcome,7),co=ta('Conclusion',t&&t.conclusion,3);
   const lab=x=>$('div',{style:'font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 2px 4px'},x);
+  let lastTa=ou;[te,ou,co].forEach(x=>x.addEventListener('focus',()=>{lastTa=x}));
+  const mb=$('button',{type:'button',class:'cr-chip',style:'margin:8px 0',onclick:()=>{const ins='[Titre : choix 1 | choix 2 | choix 3]';const a=lastTa.selectionStart||lastTa.value.length;lastTa.value=lastTa.value.slice(0,a)+ins+lastTa.value.slice(lastTa.selectionEnd||a);lastTa.focus();const p=lastTa.value.indexOf('Titre',a);lastTa.setSelectionRange(p,p+5)}},'＋ Insérer un menu déroulant');
+  const hn=$('p',{class:'cr-note'},'Menu déroulant : écrivez [Titre : choix 1 | choix 2 | choix 3] dans le texte. Le premier choix est celui par défaut.');
   const err=$('p',{class:'cr-note',style:'color:#b91c1c',hidden:''});
   app.append($('div',{class:'cr-bar'},$('button',{onclick:home},'← Retour')),$('h2',{},t?'Modifier le CR type':'Créer un CR type'),
-    lab('Nom'),nm,lab('Région'),rg,lab('Technique'),te,lab('Résultat'),ou,lab('Conclusion'),co,err,
+    lab('Nom'),nm,lab('Région'),rg,lab('Technique'),te,lab('Résultat'),ou,lab('Conclusion'),co,mb,hn,err,
     $('div',{class:'cr-bar',style:'margin-top:14px'},$('button',{class:'primary',onclick:()=>{
       const name=nm.value.trim(),o=ou.value.trim();
       if(!name||!o){err.textContent='Donnez un nom et un résultat.';err.hidden=false;return}
