@@ -4582,12 +4582,17 @@ const PROTO = [
   /* qui est avec moi : l'interne(s) pour un senior, le senior pour un interne */
   const isIntId = id => { const d = doctors[id]; return !!(d && d.role === 'Interne'); };
   const isSrId = id => { const d = doctors[id]; return !!(d && d.role !== 'Interne' && d.role !== 'Autre'); };   /* senior = rôle « Médecin » */
+  function srPhone(id){
+    const lt = norm(dLabel(id)).replace(/^dr\.?\s+/, '').split(/[\s.\-]+/).filter(t=>t.length > 1); if (!lt.length) return '';
+    const hit = annuItems().filter(x=>x.c === 'm' && x.p).find(x=>{ const nt = norm(x.n).split(/[\s.\-]+/); return lt.every(t=>nt.includes(t)); });
+    return hit ? hit.p : '';
+  }
   function withTxt(v, up){
     /* seniors : ceux posés sur la vacation ; à défaut, ceux de la trame des médecins (vacation non modifiée par un planning d'internes) */
     let srs = v.others.filter(isSrId);
     if (!srs.length && isIntId(me) && trame && v.k) { const c = trame.cases[tk(v.poste, (parse(v.k).getDay()+6)%7, v.part)]; if (c && Array.isArray(c.who)) srs = c.who.filter(x=>x !== me && isSrId(x)); }
-    const nm = a=>a.map(dLabel).join(', '), ints = v.others.filter(isIntId), rest = v.others.filter(x=>!isIntId(x) && !isSrId(x)), w = up ? 'Avec ' : 'avec ', out = [];
-    if (isIntId(me)) { out.push(srs.length ? (srs.length > 1 ? 'Seniors : ' : 'Senior : ')+nm(srs) : 'Senior : aucun médecin posté (vacation ouverte)'); const o = ints.concat(rest); if (o.length) out.push(w+nm(o)); }
+    const nm = a=>a.map(dLabel).join(', '), nmp = a=>a.map(x=>{ const p = srPhone(x); return dLabel(x)+(p ? ' 📞 '+p : ''); }).join(', '), ints = v.others.filter(isIntId), rest = v.others.filter(x=>!isIntId(x) && !isSrId(x)), w = up ? 'Avec ' : 'avec ', out = [];
+    if (isIntId(me)) { out.push(srs.length ? (srs.length > 1 ? 'Seniors : ' : 'Senior : ')+nmp(srs) : 'Senior : aucun médecin posté (vacation ouverte)'); const o = ints.concat(rest); if (o.length) out.push(w+nm(o)); }
     else { if (ints.length) out.push((ints.length > 1 ? 'Internes : ' : 'Interne : ')+nm(ints)); const o = srs.concat(rest); if (o.length) out.push(w+nm(o)); }
     return out.join(' · ');
   }
