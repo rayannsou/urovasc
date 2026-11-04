@@ -6946,6 +6946,11 @@ window.dispatchEvent(new Event('claude-ready'));
 <script>
 (function(){
 const DATA=JSON.parse(document.getElementById('crData').textContent);
+let TPL=[];try{TPL=JSON.parse(localStorage.getItem('cr_tpl')||'[]')||[]}catch(e){TPL=[]}
+const tplEsc=t=>String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\r/g,'').replace(/\n/g,'<br />');
+const tplItem=t=>({id:t.id,kind:2,name:t.name,tech:tplEsc(t.tech),outcome:tplEsc(t.outcome),conclusion:tplEsc(t.conclusion),extra:'',path:'',region:t.region,regions:[t.region],cat:'Programmé',_tpl:true,_raw:t});
+const tplSave=()=>{try{localStorage.setItem('cr_tpl',JSON.stringify(TPL))}catch(e){}};
+TPL.forEach(t=>DATA.push(tplItem(t)));
 const KINDS={1:'Paragraphes',2:'Comptes rendus complets',4:'Renseignements divers'};
 const RN=r=>(r||'').replace(/_/g,' ');
 const EMO_R={'Échographie':'🔊','Crâne':'🧠','Cou':'🧣','Thorax':'🫁','Abdominopelvien':'🩺','TAP':'🩻','Bodyscanner':'🧍','Aorte_et_vasculaire':'🫀','Etages_multiples':'🧩','Rachis_et_ortho':'🦴','Uro-génital':'💧','Radiologie_interventionnelle':'💉'};
@@ -7394,11 +7399,30 @@ function openFam(fam){
   const mem=famMembers(fam);
   app.append($('div',{class:'cr-bar'},$('button',{onclick:home},'← Retour')),$('div',{},$('h2',{},EM((famMembers(fam)[0]||{d:{regions:[]}}).d.regions[0])+fam),$('p',{class:'cr-sub'},'Choisissez la variante : '+mem.length+' modèles')),...famBlock(fam,mem));
 }
+function tplForm(t){
+  cur=null;app.replaceChildren();
+  const nm=$('input',{type:'text',maxlength:'80',placeholder:'Ex. Scanner abdominal post-opératoire',value:t?t.name:'','aria-label':'Nom du CR type'});
+  const rg=$('select',{'aria-label':'Région'},...REGS.map(r=>$('option',{value:r},RN(r))));rg.value=t&&REGS.includes(t.region)?t.region:(REGS[0]||'');
+  const ta=(ph,v,h)=>$('textarea',{placeholder:ph,rows:String(h||4),style:'width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:inherit'},v||'');
+  const te=ta('Technique (facultatif)',t&&t.tech,2),ou=ta('Résultat : une ligne par phrase',t&&t.outcome,7),co=ta('Conclusion',t&&t.conclusion,3);
+  const lab=x=>$('div',{style:'font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 2px 4px'},x);
+  const err=$('p',{class:'cr-note',style:'color:#b91c1c',hidden:''});
+  app.append($('div',{class:'cr-bar'},$('button',{onclick:home},'← Retour')),$('h2',{},t?'Modifier le CR type':'Créer un CR type'),
+    lab('Nom'),nm,lab('Région'),rg,lab('Technique'),te,lab('Résultat'),ou,lab('Conclusion'),co,err,
+    $('div',{class:'cr-bar',style:'margin-top:14px'},$('button',{class:'primary',onclick:()=>{
+      const name=nm.value.trim(),o=ou.value.trim();
+      if(!name||!o){err.textContent='Donnez un nom et un résultat.';err.hidden=false;return}
+      const rec={id:t?t.id:'u'+Date.now().toString(36),name,region:rg.value,tech:te.value.trim(),outcome:o,conclusion:co.value.trim()};
+      if(t){const i=TPL.findIndex(x=>x.id===t.id);if(i>=0)TPL[i]=rec;const j=DATA.findIndex(x=>x.id===t.id);if(j>=0)DATA[j]=tplItem(rec);delete ORIG[t.id]}
+      else{TPL.push(rec);DATA.push(tplItem(rec))}
+      tplSave();applyOvr();toast('CR type enregistré');home()}},'Enregistrer'),$('button',{onclick:home},'Annuler')));
+}
+const tplBtns=it=>$('span',{style:'display:flex;gap:6px'},$('button',{onclick:()=>tplForm(it._raw)},'✎'),$('button',{'aria-label':'Supprimer',onclick:()=>{if(!confirm('Supprimer ce CR type ?'))return;TPL=TPL.filter(x=>x.id!==it.id);const j=DATA.findIndex(x=>x.id===it.id);if(j>=0)DATA.splice(j,1);tplSave();toast('CR type supprimé');home()}},'🗑'));
 function home(){
   cur=null;lastFam=null;app.replaceChildren();
   const inp=$('input',{type:'search',placeholder:'Rechercher : appendicite, occlusion, colique…',value:q,'aria-label':'Rechercher un compte rendu',oninput:e=>{q=e.target.value;try{localStorage.setItem('cr_q',q)}catch(_){}renderList()}});
   const chips=$('div',{class:'cr-chips'});const rchips=$('div',{class:'cr-chips'});const cchips=$('div',{class:'cr-chips'});const fwrap=$('div',{style:'display:'+((reg||kind!==2)?'flex':'none')+';flex-direction:column;gap:8px'},rchips,chips);
-  app.append($('header',{class:'cr-head'},$('div',{},$('h2',{class:'cr-h'},'Comptes rendus'),$('p',{class:'cr-sub'},DATA.length+' modèles · '+REGS.length+' régions'))),inp,cchips,fwrap,$('div',{class:'cr-list',id:'crList'}),
+  app.append($('header',{class:'cr-head'},$('div',{},$('h2',{class:'cr-h'},'Comptes rendus'),$('p',{class:'cr-sub'},DATA.length+' modèles · '+REGS.length+' régions'))),inp,$('button',{class:'cr-chip',style:'align-self:flex-start;margin:4px 0',onclick:()=>tplForm()},'＋ Créer un CR type'),cchips,fwrap,$('div',{class:'cr-list',id:'crList'}),
     $('p',{class:'cr-note'},'Les options des menus sont des propositions à relire avant usage.'));
   const opts=[[0,'Tous'],...Object.entries(KINDS).map(([k,v])=>[+k,v])];
   function drawChips(){chips.replaceChildren(...opts.map(([k,l])=>$('button',{class:'cr-chip','aria-pressed':String(kind===k),onclick:()=>{kind=k;drawChips();renderList()}},l)))}
@@ -7810,7 +7834,7 @@ function open(it){
       $('p',{class:'cr-note',style:'margin-top:8px'},'Protocoles de l’onglet « Protocoles » ; le rapprochement avec ce modèle est proposé par mes soins : à vérifier.')))})();
   if(it.ref&&it.ref.length)pcol.append($('details',{style:'margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px'},$('summary',{style:'cursor:pointer;font-weight:600'},'📚 Rappel des valeurs et définitions'),...it.ref.map(refLine),$('p',{class:'cr-note',style:'margin-top:8px'},'Résumé par mes soins à partir des sources ci-dessous : à relire.')));
   if(it.src&&it.src.length)pcol.append($('p',{class:'cr-note'},'Sources : ',...it.src.flatMap(([t,u],i)=>[i?' · ':'',u?$('a',{href:u,target:'_blank',rel:'noopener'},t):t])));
-  app.append($('div',{class:'cr-bar'},$('button',{onclick:()=>{closeSheet();lastFam?openFam(lastFam):home()}},'← Retour'),$('span',{class:'cr-sp'}),starBtn(it.id),it.qt?$('button',{onclick:()=>qtImage()},'Image'):'',$('button',{class:'primary',onclick:()=>copyChecked()},'Tout copier')),
+  app.append($('div',{class:'cr-bar'},$('button',{onclick:()=>{closeSheet();lastFam?openFam(lastFam):home()}},'← Retour'),$('span',{class:'cr-sp'}),starBtn(it.id),it._tpl?tplBtns(it):'',it.qt?$('button',{onclick:()=>qtImage()},'Image'):'',$('button',{class:'primary',onclick:()=>copyChecked()},'Tout copier')),
     $('div',{},$('h2',{},it.name),$('p',{class:'cr-sub'},(it._ed?'✎ modifié · ':'')+(it.cat||'Urgences')+' · '+KINDS[it.kind]+' · '+RN(it.regions.join(', '))+(it.path==='True'?' · pathologique':''))),pcol);
 }
 home();
