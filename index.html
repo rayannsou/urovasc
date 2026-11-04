@@ -4583,7 +4583,7 @@ const PROTO = [
   /* qui est avec moi : l'interne(s) pour un senior, le senior pour un interne */
   const isIntId = id => { const d = doctors[id]; return !!(d && d.role === 'Interne'); };
   const isSrId = id => { const d = doctors[id]; return !!(d && d.role !== 'Interne' && d.role !== 'Autre'); };   /* senior = rôle « Médecin » */
-  const telify = h=>h.replace(/📞 ([\d][\d .]*\d)/g, (m, n)=>'<a class="telk" href="tel:'+n.replace(/[^\d]/g,'')+'" onclick="event.stopPropagation()">📞 '+n+'</a>');
+  const telify = h=>h;
   function srPhone(id){
     try {
       const nz = t=>String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
