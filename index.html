@@ -5254,6 +5254,22 @@ const PROTO = [
     const pl = from ? planSince(pl0, key(new Date())) : pl0;
     if (!pl.weeks.length) return notify('Rien à importer à partir d’aujourd’hui.', true);
     const ad = importAdds(pl), nAbs = pl.weeks.reduce((n,w)=>n + w.absences.length, 0);
+    let exist = 0;
+    pl.weeks.forEach(w=>w.cells.forEach(c=>{ const p = findPost(c.poste); if (!p || (p.journee && c.part === 'AM')) return; const v = vacWho(c.poste, c.date, c.part); if (v && !v.ou && v.who.filter(inGrp).length) exist++; }));
+    if (exist) {
+      const ch = await new Promise(res=>{
+        const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+        w.innerHTML = '<div class="codebox annf"><p><b>Ce planning existe déjà</b></p><p class="hint" style="color:var(--ink)">'+exist+' vacation'+(exist > 1 ? 's sont déjà remplies' : ' est déjà remplie')+' sur cette période. Voulez-vous le réactualiser avec le fichier ?</p><div class="asb" style="flex-direction:column;align-items:stretch"><button type="button" class="primary" data-ch="replace">Réactualiser (remplacer par le fichier)</button><button type="button" class="ghost" data-ch="add">Ajouter seulement les personnes absentes</button><button type="button" class="ghost" data-ch="no">Annuler</button></div></div>';
+        document.body.appendChild(w);
+        w.addEventListener('click', e=>{ const b = e.target.closest('[data-ch]'); if (!b) return; w.remove(); res(b.dataset.ch); });
+      });
+      if (ch === 'no') return;
+      if (ch === 'replace') {
+        if (!(await ensureCode('réactualiser le planning'))) return;
+        const ok = await applyWeeks(pl); if (!ok) { renderPlan(); return; }
+        importFinish(pl); return notify('Planning réactualisé avec le fichier.');
+      }
+    }
     if (!ad.writes.length) {
       if (nAbs) { if (!askCode('importer')) return; const ok = await applyWeeks(pl, {extrasOnly: true}); if (!ok) { renderPlan(); return; } importFinish(pl); return notify('Aucune personne à ajouter ('+ad.present+' déjà sur le planning). Absences du fichier enregistrées.'); }
       xlPlan = null; renderPlan(); return notify('Rien à ajouter : toutes les personnes du fichier sont déjà sur le planning.');
