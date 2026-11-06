@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 21h20</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 21h35</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2095,13 +2095,14 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const presHtml = (x, k, edit) => {
     if (!x.p) return '';
     const l = presOf(x, k), pk = presKey(x, k), mine = l.some(d=>d.id === me), canInt = isIntId(me) && !!doctors[me], cap = Math.max(1, Number(x.p) || 1), libre = Math.max(0, cap - l.length);
-    let h = '<span style="flex-basis:100%;display:block;margin-top:4px;font-size:13px">🎤 '+(l.length ? 'Présenté par <b>'+l.map(d=>esc(dLabel(d.id))).join(', ')+'</b>' : '<i>Présentateur : libre</i>')+(l.length && libre ? ' <i>· '+libre+' place'+(libre > 1 ? 's' : '')+' libre'+(libre > 1 ? 's' : '')+'</i>' : '');
+    const txt = '🎤 '+(l.length ? 'Présenté par <b>'+l.map(d=>esc(dLabel(d.id))).join(', ')+'</b>' : '<i>Présentateur : libre</i>')+(l.length && libre ? ' <i style="opacity:.75">· '+libre+' place'+(libre > 1 ? 's' : '')+' libre'+(libre > 1 ? 's' : '')+'</i>' : '');
+    let b = '';
     if (!edit) {
-      if (mine) h += ' <button type="button" class="ghost" data-annpres="'+esc(pk)+'|'+esc(me)+'|0" style="padding:2px 8px;min-height:0;font-size:12px">Me retirer</button>';
-      else if (canInt && libre) h += ' <button type="button" class="primary" data-annpres="'+esc(pk)+'|'+esc(me)+'|1" style="padding:3px 10px;min-height:0;font-size:12px">Je présente</button>';
-      else if (isRim() && l.length) h += l.map(d=>' <button type="button" class="ghost" data-annpres="'+esc(pk)+'|'+esc(d.id)+'|0" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Retirer '+esc(dLabel(d.id))+'">✕ '+esc(dLabel(d.id))+'</button>').join('');
+      if (mine) b = '<button type="button" class="ghost" data-annpres="'+esc(pk)+'|'+esc(me)+'|0" style="padding:5px 12px;min-height:0;font-size:13px;white-space:nowrap">Me retirer</button>';
+      else if (canInt && libre) b = '<button type="button" class="primary" data-annpres="'+esc(pk)+'|'+esc(me)+'|1" style="padding:6px 14px;min-height:0;font-size:14px;white-space:nowrap">Je présente</button>';
+      else if (isRim() && l.length) b = l.map(d=>'<button type="button" class="ghost" data-annpres="'+esc(pk)+'|'+esc(d.id)+'|0" style="padding:4px 10px;min-height:0;font-size:12px;white-space:nowrap" aria-label="Retirer '+esc(dLabel(d.id))+'">✕ '+esc(dLabel(d.id))+'</button>').join('');
     }
-    return h+'</span>';
+    return '<span style="flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08);font-size:14px"><span style="min-width:0">'+txt+'</span>'+(b ? '<span style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">'+b+'</span>' : '')+'</span>';
   };
   const annHtml = (k, grpOnly, edit)=>{ const l = annList(k, grpOnly); return (grpOnly ? rapHtml(k) : '') + l.map(x=>{ const inner = '<b>📣 '+esc(annTime(x))+'</b>'+(Number(x.r) ? '<small>🔁</small>' : '')+'<span>'+esc(x.t)+'</span>'+(!grpOnly && annGrpTxt(x.g) ? '<small>'+annGrpTxt(x.g)+'</small>' : '')+presHtml(x, k, edit); const wr = x.p ? ' style="flex-wrap:wrap"' : ''; return edit ? '<button type="button" class="annc" data-annedit="'+esc(x.id)+'"'+wr+'>'+inner+'<small>✎</small></button>' : '<div class="annc"'+wr+'>'+inner+'</div>'; }).join(''); };
   function renderAnn(){
