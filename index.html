@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 19h45</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 20h00</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2353,7 +2353,7 @@ const PROTO = [
 
   /* ---------- import de la trame des chefs (document « planning chefs ») ---------- */
   const CHEF_NOMS = {nicolas:['nicolas','nico','pangon'], clement:['clement','marcelin','cm'], eva:['eva','fourage'], antoine:['antoine','martin'], henri:['henri','remy'], ima:['ima','isabelle','molina'], yann:['yann','lebras','ylb'], amandine:['amandine','crombe'], rim:['rim','rm','maaloum'], rayann:['rayann']};
-  const CHEF_POSTES = {bloc:['Bloc'], echo:['Échographie'], echosa:['Écho SA'], cs:['Consultation'], irm:['IRM'], ext:['Scanner externes'], rdc:['Scanner RDC / RI'], urg:['Scanner urgences'], sa:['Scanner SA'], rcp:['RCP']};
+  const CHEF_POSTES = {bloc:['Bloc'], echo:['Échographie'], echosa:['Écho SA'], cs:['Consultation'], irm:['IRM'], ext:['Scanner externes'], rdc:['Scanner RDC / RI'], urg:['Scanner urgences'], sa:['Scanner SA'], xa:['Scanner XA (Lyric)'], rcp:['RCP']};
   /* [jour 0=lundi, partie, poste, personnes, options {rot: alternance, t: mention}] */
   const CHEF_TRAME = [
     [0,'M','rdc',['nicolas','rim','henri']], [0,'AM','cs',['nicolas']], [0,'M','rcp',[],{rot:['rim','antoine']}],
@@ -2371,8 +2371,8 @@ const PROTO = [
   function chefPlan(){
     const docs = sortedDocs(), who = {}, miss = new Set(), noPost = new Set(), put = {};
     Object.keys(CHEF_NOMS).forEach(k=>{ const al = CHEF_NOMS[k]; const d = docs.find(x=>al.includes(plNorm(x.label)) || al.includes(x.id)) || docs.find(x=>al.some(a=>a.length > 3 && plNorm(x.label).startsWith(a))); if (d) who[k] = d.id; });
-    const posts = trame.postes.filter(p=>!p.info), pick = {}, rx = {bloc:/\bbloc\b/, echosa:/(echo|echographie).*\bsa\b/, cs:/consult/, irm:/\birm\b(?!.*urg)/, ext:/(scanner|tdm).*ext/, rdc:/(scanner|tdm).*(rdc|\bri\b|interv)|(rdc|\bri\b)/, urg:/(scanner|tdm).*urg/, sa:/(scanner|tdm).*\bsa\b|photonique|\bxa\b/, rcp:/\brcp\b/};
-    Object.keys(CHEF_POSTES).forEach(k=>{ pick[k] = posts.find(p=>{ const t = plNorm(p.id+' '+p.label); if (k === 'echo') return /(echo|echographie)/.test(t) && !/\bsa\b/.test(t); if (k === 'sa') return rx.sa.test(t) && !/echo/.test(t); if (k === 'irm') return /\birm\b/.test(t) && !/urg/.test(t); return rx[k].test(t); }) || null; });
+    const posts = trame.postes.filter(p=>!p.info), pick = {}, rx = {bloc:/\bbloc\b/, echosa:/(echo|echographie).*\bsa\b/, cs:/consult/, irm:/\birm\b(?!.*urg)/, ext:/(scanner|tdm).*ext/, rdc:/(scanner|tdm).*(rdc|\bri\b|interv)|(rdc|\bri\b)/, urg:/(scanner|tdm).*urg/, sa:/(scanner|tdm).*\bsa\b/, xa:/photonique|\bxa\b|lyric/, rcp:/\brcp\b/};
+    Object.keys(CHEF_POSTES).forEach(k=>{ pick[k] = posts.find(p=>{ const t = plNorm(p.id+' '+p.label); if (k === 'echo') return /(echo|echographie)/.test(t) && !/\bsa\b/.test(t); if (k === 'sa') return rx.sa.test(t) && !/echo|photonique|\bxa\b/.test(t); if (k === 'irm') return /\birm\b/.test(t) && !/urg/.test(t); return rx[k].test(t); }) || null; });
     CHEF_TRAME.forEach(([dow, part, pk, names, o])=>{
       const po = pick[pk]; const lbl = CHEF_POSTES[pk][0];
       if (!po) { noPost.add(lbl); return; }
@@ -2874,7 +2874,7 @@ const PROTO = [
   function chefRulesHtml(){
     return '<details class="cardfold" style="margin-top:10px" open><summary><b>📋 Règles de création automatique des chefs</b></summary><p class="hint">Ces règles guident la génération : la trame ci-dessus est la base, le reste sert quand il manque quelqu’un.</p>'
       + CHEF_REGLES.map(r=>'<p class="hint" style="margin:6px 0"><b>'+esc(r[0])+'</b> · '+esc(chefRegOv[r[0]] != null ? chefRegOv[r[0]] : r[1])+(isRim() ? ' <button type="button" class="ghost" data-chefrl="'+esc(r[0])+'" style="padding:2px 8px;min-height:0;font-size:12px">✎</button>' : '')+(chefRegOv[r[0]] != null && chefUnknown(chefRegOv[r[0]]).length ? '<br><span class="codeerr" style="display:block">⚠ Je ne suis pas sûre de comprendre : '+esc(chefUnknown(chefRegOv[r[0]]).join(', '))+' (précise-le, par ex. « Lyric = Scanner SA »)</span>' : '')+'</p>').join('')
-      + '<details class="info"><summary>ⓘ Abréviations comprises</summary><p class="hint">TDM urg. / scan urgences = Scanner des urgences · TDM hospit. / scan hospit. = scanner des patients hospitalisés (RDC / RI) · TDM externe / scan externe = Scanner externes · scan SA / TDM SA / Lyric (photonique) = Scanner SA · IRM 7 / IRM 8 = IRM (7h / 8h) · SA = site SA · RCP · écho = Échographie · IMA, CCA, DJ = abréviations du service.</p></details></details>';
+      + '<details class="info"><summary>ⓘ Abréviations comprises</summary><p class="hint">TDM urg. / scan urgences = Scanner des urgences · TDM hospit. / scan hospit. = scanner des patients hospitalisés (RDC / RI) · TDM externe / scan externe = Scanner externes · scan SA / TDM SA = Scanner SA · Lyric = XA = Scanner photonique XA (poste distinct du Scanner SA) · IRM 7 / IRM 8 = IRM (7h / 8h) · SA = site SA · RCP · écho = Échographie · IMA, CCA, DJ = abréviations du service.</p></details></details>';
   }
   function chefLoadHtml(){
     if (plGrp === 'interne' || !isRim()) return '';
