@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 21h35</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 21h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -3052,7 +3052,7 @@ const PROTO = [
   function chefRulesHtml(){
     return '<details class="cardfold" style="margin-top:10px" open><summary><b>📋 Règles de création automatique des chefs</b></summary><p class="hint">Ces règles guident la génération : la trame ci-dessus est la base, le reste sert quand il manque quelqu’un.</p>'
       + chefTblHtml()
-      + CHEF_REGLES.map(r=>'<p class="hint" style="margin:6px 0"><b>'+esc(r[0])+'</b> · '+esc(chefRegOv[r[0]] != null ? chefRegOv[r[0]] : r[1])+(isRim() ? ' <button type="button" class="ghost" data-chefrl="'+esc(r[0])+'" style="padding:2px 8px;min-height:0;font-size:12px">✎</button>' : '')+(chefRegOv[r[0]] != null && chefUnknown(chefRegOv[r[0]]).length ? '<br><span class="codeerr" style="display:block">⚠ Je ne suis pas sûre de comprendre : '+esc(chefUnknown(chefRegOv[r[0]]).join(', '))+' (précise-le, par ex. « Lyric = Scanner SA »)</span>' : '')+'</p>').join('')
+      + '<details class="info" id="chefTxtD" style="margin-top:10px"><summary><b>✍️ Règles écrites par chef</b> (mémo, modifiable)</summary>' + CHEF_REGLES.map(r=>'<p class="hint" style="margin:6px 0"><b>'+esc(r[0])+'</b> · '+esc(chefRegOv[r[0]] != null ? chefRegOv[r[0]] : r[1])+(isRim() ? ' <button type="button" class="ghost" data-chefrl="'+esc(r[0])+'" style="padding:2px 8px;min-height:0;font-size:12px">✎</button>' : '')+(chefRegOv[r[0]] != null && chefUnknown(chefRegOv[r[0]]).length ? '<br><span class="codeerr" style="display:block">⚠ Je ne suis pas sûre de comprendre : '+esc(chefUnknown(chefRegOv[r[0]]).join(', '))+' (précise-le, par ex. « Lyric = Scanner SA »)</span>' : '')+'</p>').join('') + '</details>'
       + '<details class="info"><summary>ⓘ Abréviations comprises</summary><p class="hint">TDM urg. / scan urgences = Scanner des urgences · TDM hospit. / scan hospit. = scanner des patients hospitalisés (RDC / RI) · TDM externe / scan externe = Scanner externes · scan SA / TDM SA = Scanner SA · Lyric = XA = Scanner photonique XA (poste distinct du Scanner SA) · IRM 7 / IRM 8 = IRM (7h / 8h) · SA = site SA · RCP · écho = Échographie · IMA, CCA, DJ = abréviations du service.</p></details></details>';
   }
   function chefLoadHtml(){
