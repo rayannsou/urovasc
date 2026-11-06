@@ -6848,10 +6848,11 @@ const PROTO = [
     if (vers) $('#setMenu').dataset.vers = vers.textContent, vers.remove();
     renderSetMenu();
     new MutationObserver(()=>{ if (!setGrp) renderSetMenu(); }).observe(col, {attributes: true, attributeFilter: ['hidden'], subtree: true});
+    new MutationObserver(()=>{ if (!setGrp) renderSetMenu(); }).observe(document.body, {attributes: true, attributeFilter: ['class']});
   }
   function renderSetMenu(){
     const m = $('#setMenu'); if (!m) return;
-    const rows = SET_GRPS.filter(g=>{ const w = $('#sg-'+g.id); return w && [...w.children].some(c=>c.tagName !== 'H2' && !c.hidden && (c.id !== 'impSlotR' || c.children.length)); });
+    const rows = SET_GRPS.filter(g=>{ const w = $('#sg-'+g.id); return w && [...w.children].some(c=>c.tagName !== 'H2' && !c.hidden && getComputedStyle(c).display !== 'none' && (c.id !== 'impSlotR' || c.children.length)); });
     const html = '<div class="setlist">'+rows.map(g=>'<button type="button" class="setrow" data-setgrp="'+g.id+'"><span class="setic" style="background:'+g.bg+'">'+g.ic+'</span><span class="settx">'+g.t+'<small>'+g.sub+'</small></span><span class="setch">›</span></button>').join('')+'</div>';
     if (m.dataset.h !== html) { m.dataset.h = html; m.innerHTML = html; }
   }
