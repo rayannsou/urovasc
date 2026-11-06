@@ -7457,7 +7457,7 @@ function searchText(it){return norm(it.name+' '+(KINDS[it.kind]||'')+' '+plain(i
 DATA.forEach(d=>{d.regions=d.regions||[d.region];d._s=searchText(d);d._w=[...new Set(d._s.split(/[^a-z0-9]+/).filter(w=>w.length>=4))]});
 const modOf=d=>{const t=norm(d.name+' '+(d.tech||'').replace(/<[^>]+>/g,' '));return d.regions.includes('Échographie')||/echograph|doppler|\becho\b/.test(t)?'Écho':/\birm\b|resonance/.test(t)?'IRM':'Scanner'};
 const ORIG={},OK=['name','tech','outcome','conclusion','extra'];
-function applyOvr(){const o=window.CR_OVR||{};DATA.forEach(d=>{if(!ORIG[d.id])ORIG[d.id]=Object.fromEntries(OK.map(x=>[x,d[x]||'']));const v=o[d.id];OK.forEach(x=>{d[x]=v&&typeof v[x]==='string'?v[x]:ORIG[d.id][x]});d._ed=!!(v&&typeof v==='object');d._m=modOf(d);d._s=searchText(d);d._w=[...new Set(d._s.split(/[^a-z0-9]+/).filter(w=>w.length>=4))]})}
+function applyOvr(){const o=window.CR_OVR||{};DATA.forEach(d=>{if(!ORIG[d.id])ORIG[d.id]=Object.fromEntries(OK.map(x=>[x,d[x]||'']));const v=o[d.id];OK.forEach(x=>{d[x]=v&&typeof v[x]==='string'?v[x]:ORIG[d.id][x]});if(!ORIG[d.id]._o)ORIG[d.id]._o=d.opts||null;d.opts=(v&&v.opts&&typeof v.opts==='object')?Object.assign({},ORIG[d.id]._o||{},v.opts):ORIG[d.id]._o;d._ed=!!(v&&typeof v==='object');d._m=modOf(d);d._s=searchText(d);d._w=[...new Set(d._s.split(/[^a-z0-9]+/).filter(w=>w.length>=4))]})}
 window.CR_APPLY=()=>{applyOvr();const L=document.getElementById('crList');if(L&&typeof renderList==='function')renderList()};
 applyOvr();
 const SYN={tap:['thoraco-abdomino','thoraco'],ep:['embolie'],cck:['cholecyst'],hsa:['meningee'],avc:['avc','ischemique'],tdm:['scanner'],ct:['scanner'],irm:['irm'],us:['echographie'],echo:['echographie'],lca:['croise anterieur'],lcp:['croise posterieur'],ldh:['lombaire'],hernie:['hernie','discale'],pneumo:['pneumothorax'],hic:['hypertension intracranienne'],fracture:['fracture'],trauma:['trauma'],appendicite:['appendic'],pancreatite:['pancreat'],diverticulite:['sigmoid','diverticul'],colique:['nephretique','lithiase'],rcc:['rein'],hcc:['hepatocellulaire','li-rads'],pirads:['pi-rads'],virads:['vi-rads'],tirads:['tirads']};
@@ -7551,11 +7551,24 @@ async function copy(text,suf,html){
     let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();toast(ok?'Copié'+(suf||''):'Sélectionne le texte et copie à la main')}
 }
 const TOKR=/⟦([^|⟧]+)\|([^⟧]*)⟧/g;
-function toEdit(html){const d=new DOMParser().parseFromString('<body>'+(html||'').replace(/\s*\n\s*/g,' ')+'</body>','text/html');
-  d.querySelectorAll('span.variableTreeSpan').forEach(s=>s.replaceWith('⟦'+s.id+'|'+s.textContent+'⟧'));
+function toEdit(html,opts){const d=new DOMParser().parseFromString('<body>'+(html||'').replace(/\s*\n\s*/g,' ')+'</body>','text/html');
+  d.querySelectorAll('span.variableTreeSpan').forEach(s=>{const L=(opts&&opts[s.id.split('_').pop()])||[];const def=s.textContent;const more=L.length>1&&L.length<=8?L.filter(v=>v!==def):[];
+    s.replaceWith('⟦'+(s.getAttribute('title')||'Champ').replace(/[⟦⟧|]/g,' ')+' : '+[def,...more].join(' | ')+'⟧')});
   d.querySelectorAll('br').forEach(s=>s.replaceWith('\n'));return d.body.innerHTML.replace(/&nbsp;/g,' ')}
-function fromEdit(t,titles){const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  return t.replace(/\r/g,'').replace(TOKR,(m,id,def)=>titles[id]!=null?'<span id="'+id+'" class="variableTreeSpan" title="'+esc(titles[id])+'">'+esc(def)+'</span>':esc(def)).replace(/\n/g,'<br />').trim()}
+function fromEdit(t,titles,ctx){const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  ctx=ctx||{};const used=ctx.used||(ctx.used=new Set());const nopts=ctx.opts||(ctx.opts={});const P=[];
+  const idOf=ti=>Object.keys(titles).find(i=>!used.has(i)&&(titles[i]||'').trim()===ti.trim());
+  const ph=h=>'\u0001'+P.push(h)+'\u0002';
+  const tk=t.replace(/\r/g,'').replace(/⟦([^⟧]*)⟧/g,(m,x)=>{
+    const k=x.indexOf(' : ');const bar=x.indexOf('|');
+    if(k<0&&bar>0&&titles[x.slice(0,bar)]!=null){const id=x.slice(0,bar);used.add(id);return ph('<span id="'+id+'" class="variableTreeSpan" title="'+esc(titles[id])+'">'+esc(x.slice(bar+1))+'</span>')}
+    if(k<0)return ph(esc(x));
+    const ti=x.slice(0,k).trim();const parts=x.slice(k+3).split('|').map(v=>v.trim()).filter(Boolean);const def=parts[0]||'…';
+    let id=idOf(ti);
+    if(!id){let nid;do{ctx.n=(ctx.n||0)+1;nid=(ctx.prefix||'NEW')+'_n'+ctx.n}while(titles[nid]!=null);id=nid;titles[id]=ti}
+    used.add(id);if(parts.length>1)nopts[id.split('_').pop()]=parts;
+    return ph('<span id="'+id+'" class="variableTreeSpan" title="'+esc(titles[id])+'">'+esc(def)+'</span>')});
+  return esc(tk).replace(/\u0001(\d+)\u0002/g,(m,i)=>P[i-1]).replace(/\n/g,'<br />').trim()}
 const ROMV={I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8,IX:9,X:10};
 function ordKey(v){const m=v.match(/^(?:[A-Za-zÀ-ÿ'’\-]+ )?(\d+(?:[.,]\d+)?|VIII|VII|VI|IV|IX|III|II|I|V|X)([a-dF])?(?![A-Za-zÀ-ÿ0-9])/);if(!m)return null;const n=/^\d/.test(m[1])?parseFloat(m[1].replace(',','.')):ROMV[m[1]];return n==null?null:[n,(m[2]||'').toLowerCase()]}
 function ordSort(s){if(s.length<3)return s;const k=s.map(ordKey);if(k.some(x=>!x)||new Set(k.map(x=>x[0]+x[1])).size<2)return s;return s.map((v,i)=>[v,k[i],i]).sort((x,y)=>x[1][0]-y[1][0]||(x[1][1]<y[1][1]?-1:x[1][1]>y[1][1]?1:0)||x[2]-y[2]).map(x=>x[0])}
@@ -7875,17 +7888,17 @@ function open(it){
     const titles={};OK.slice(1).forEach(k=>new DOMParser().parseFromString('<body>'+(it[k]||'')+'</body>','text/html').querySelectorAll('span.variableTreeSpan').forEach(s=>{titles[s.id]=s.getAttribute('title')||''}));
     const st='width:100%;box-sizing:border-box;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:inherit';
     const name=$('input',{type:'text',value:it.name,style:st});
-    const T={};const rows=[['tech',it.tnm||'Technique'],['outcome','Résultat'],['conclusion','Conclusion'],['extra','Renseignements divers']].filter(([k])=>k!=='extra'||(it.extra||'').trim()).flatMap(([k,l])=>{T[k]=$('textarea',{style:st+';min-height:'+(k==='tech'?70:k==='extra'?70:170)+'px'});T[k].value=toEdit(it[k]);return [$('b',{style:'display:block;margin:12px 0 4px'},l),T[k]]});
+    const T={};const rows=[['tech',it.tnm||'Technique'],['outcome','Résultat'],['conclusion','Conclusion'],['extra','Renseignements divers']].filter(([k])=>k!=='extra'||(it.extra||'').trim()).flatMap(([k,l])=>{T[k]=$('textarea',{style:st+';min-height:'+(k==='tech'?70:k==='extra'?70:170)+'px'});T[k].value=toEdit(it[k],it.opts);return [$('b',{style:'display:block;margin:12px 0 4px'},l),T[k],$('button',{type:'button',style:'margin-top:4px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;font-size:13px',onclick:()=>{const t=T[k],p=t.selectionStart==null?t.value.length:t.selectionStart;const ins='⟦Nouveau menu : choix 1 | choix 2 | choix 3⟧';t.value=t.value.slice(0,p)+ins+t.value.slice(t.selectionEnd==null?p:t.selectionEnd);t.focus();const a=p+1;t.setSelectionRange(a,a+'Nouveau menu'.length)}},'＋ Menu déroulant')]});
     const msg=$('p',{class:'cr-note',style:'min-height:1.2em'},'');
     const save=async v=>{msg.textContent='Enregistrement…';try{if(!(await CR_ADMIN.code('modifier un compte rendu pour tous')))return void(msg.textContent='');
         await CR_ADMIN.save(it.id,v);(window.CR_OVR=window.CR_OVR||{})[it.id]=v;applyOvr();closeSheet();toast(v?'Modèle enregistré pour tous':'Modèle d’origine rétabli');open(it)}catch(e){msg.textContent='Échec de l’enregistrement ('+((e&&(e.code||e.message))||'erreur')+')'}};
     const ov=$('div',{class:'cr-sheet-ov',role:'dialog','aria-label':'Modifier le modèle',onclick:e=>{if(e.target===ov)closeSheet()}},$('div',{class:'cr-sheet'},
       $('div',{class:'cr-sheet-h'},$('b',{},'🛡 Modifier ce modèle pour tous'),$('button',{class:'cr-sheet-x',onclick:closeSheet},'✕')),
       $('div',{style:'padding:0 14px 14px;overflow:auto'},
-        $('p',{class:'cr-note'},'Les champs à cocher s’écrivent ⟦identifiant|valeur par défaut⟧ : modifie la valeur par défaut ou supprime le champ, mais ne change pas l’identifiant. Un retour à la ligne = nouvelle ligne du compte rendu.'),
+        $('p',{class:'cr-note'},'Un menu déroulant s’écrit ⟦Titre : choix par défaut | autre choix | autre choix⟧. Modifie le titre ou les choix à l’intérieur, ou supprime tout le bloc ⟦…⟧ pour retirer le champ. Pour en créer un, touche « ＋ Menu déroulant » sous la zone de texte. Un retour à la ligne = nouvelle ligne du compte rendu.'),
         $('b',{style:'display:block;margin:8px 0 4px'},'Titre'),name,...rows,msg,
         $('div',{style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px'},
-          $('button',{class:'primary',onclick:()=>{const v={name:name.value.trim()||it.name,by:CR_ADMIN.who(),at:Date.now()};OK.slice(1).forEach(k=>{v[k]=T[k]?fromEdit(T[k].value,titles):(it[k]||'')});save(v)}},'Enregistrer pour tous'),
+          $('button',{class:'primary',onclick:()=>{const v={name:name.value.trim()||it.name,by:CR_ADMIN.who(),at:Date.now()};const ctx={prefix:it.id};OK.slice(1).forEach(k=>{v[k]=T[k]?fromEdit(T[k].value,titles,ctx):(it[k]||'')});if(Object.keys(ctx.opts||{}).length)v.opts=Object.assign({},(window.CR_OVR&&CR_OVR[it.id]&&CR_OVR[it.id].opts)||{},ctx.opts);save(v)}},'Enregistrer pour tous'),
           ...(it._ed?[(window.__rb=$('button',{onclick:()=>{const rb=window.__rb;if(rb.dataset.s!=='1'){rb.dataset.s='1';rb.textContent='Confirmer le retour à l’original';return}save(null)}},'↺ Rétablir l’original'))]:[]),
           $('button',{onclick:closeSheet},'Annuler')))));
     closeSheet();document.body.append(ov);document.addEventListener('keydown',escK)}
