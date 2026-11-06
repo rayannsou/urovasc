@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 18h45</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 19h00</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4636,7 +4636,7 @@ const PROTO = [
     if (pubOff(k) && !isRim()) { const w2 = who.filter(id=>!pubHidden(k, id)); if (!w2.length && who.length) return null; who.length = 0; w2.forEach(x=>who.push(x)); }
     /* RCP du lundi matin et du mardi après-midi : un des internes d'écho y est affiché aussi (désactivable dans Réglages → Trame) */
     if (postId === 'rcp' && !trame.rcpOff && ((dow === 0 && part === 'M') || (dow === 1 && part === 'AM')) && !who.some(id=>!isSrId(id))) {
-      const ev = vacWho('echo', k, part), it = ev && !ev.ou ? ev.who.find(id=>!isSrId(id) && doctors[id]) : '';
+      const ev = vacWho('echo', k, part), cand = ev && !ev.ou ? ev.who.filter(id=>!isSrId(id) && doctors[id]).sort() : [], it = cand.length ? cand[(Math.floor(parse(k).getTime() / 604800000) * 2 + (dow === 0 ? 0 : 1)) % cand.length] : '';   /* tour de rôle d'une semaine à l'autre */
       if (it && !(pubOff(k) && !isRim() && pubHidden(k, it))) who.push(it);
     }
     return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : ''), edited: !!(ov && c), open: !!ov && !who.length && !ov.x && !ov.dl, dl: !!(ov && ov.dl)};
@@ -6290,7 +6290,7 @@ const PROTO = [
     if (INT) $('#trameCfgBody').innerHTML += '<div class="intq trprio"><p class="aststat"><b>🎯 Ordre de priorité des vacations</b></p><p class="hint">Les internes sont répartis d’abord sur les vacations du haut (ex. échographie avant bloc). Proposé à chaque génération, modifiable semaine par semaine.</p>'+prioHtml(prioList0(), canWrite ? 'data-trprio' : 'data-x', absList0())+'</div>';
     $('#trameCfgBody').innerHTML = '<div class="intq"><button type="button" class="astbtn" data-trfill="1">📥 Préremplir d’après le planning en cours</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Coche automatiquement les vacations qui existent dans la semaine en cours (ou la plus proche qui contient des vacations) ; tu peux ensuite en cocher ou décocher. Chaque case est enregistrée pour toutes les semaines à venir.</p></details></div>' + $('#trameCfgBody').innerHTML;
     if (!INT) $('#trameCfgBody').innerHTML += chefRulesHtml();
-    if (trame.postes.some(p=>p.id === 'rcp')) $('#trameCfgBody').innerHTML += '<div class="intq trrcp"><p class="aststat"><b>🩺 RCP : un interne d’écho affiché</b></p><button type="button" class="astbtn" data-trrcp="1" aria-pressed="'+!trame.rcpOff+'"'+(canWrite ? '' : ' disabled')+'>'+(trame.rcpOff ? 'Désactivé · toucher pour activer' : '✓ Activé · toucher pour désactiver')+'</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Le lundi matin et le mardi après-midi, un des internes de l’écho (le premier de la liste) est aussi affiché sur la vacation RCP.</p></details></div>';
+    if (INT && trame.postes.some(p=>p.id === 'rcp')) $('#trameCfgBody').innerHTML += '<div class="intq trrcp"><p class="aststat"><b>🩺 RCP : un interne d’écho affiché</b></p><button type="button" class="astbtn" data-trrcp="1" aria-pressed="'+!trame.rcpOff+'"'+(canWrite ? '' : ' disabled')+'>'+(trame.rcpOff ? 'Désactivé · toucher pour activer' : '✓ Activé · toucher pour désactiver')+'</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Le lundi matin et le mardi après-midi, un des internes de l’écho (à tour de rôle, d’une semaine à l’autre) est aussi affiché sur la vacation RCP.</p></details></div>';
     $('#trameCfgBody').innerHTML += '<form id="trAdd" class="trnew"><b>➕ Nouvelle vacation</b><div class="f"><label for="trNewName">Nom</label><input type="text" id="trNewName" maxlength="40" autocomplete="off" placeholder="ex. Scanner interventionnel"></div><div class="f"><label for="trNewKind">Durée</label><select id="trNewKind"><option value="">Matin et après-midi</option><option value="j">Journée entière</option></select></div><button type="submit" class="primary"'+(canWrite ? '' : ' disabled')+'>Ajouter la vacation</button></form>';
   }
   /* renommer / ajouter / supprimer une vacation depuis la trame */
