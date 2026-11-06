@@ -2895,10 +2895,10 @@ const PROTO = [
     }
     else if (s === 'echo') {
       const nd = id=>intNeed[id] != null ? intNeed[id] : (INT_RULES.need[id] != null ? INT_RULES.need[id] : INT_RULES.defaut);
-      body = '<div class="intq"><p class="aststat"><b>Combien d’internes à l’échographie et au scanner des urgences ?</b></p><p class="hint">Choisissez l’effectif, puis (si 2) autonome ou non. Par défaut : 1 autonome + 1 autre (autonome ou non).</p>'
+      body = '<div class="intq"><p class="aststat"><b>Combien d’internes à l’échographie et au scanner des urgences ?</b></p><p class="hint">Choisissez l’effectif (1 à 4), puis (si 2 ou plus) l’autonomie. Par défaut : 1 autonome + les autres (autonomes ou non).</p>'
         + [['echo','Échographie'],['scanner-urg','Scanner des urgences']].filter(x=>trame.postes.some(p=>p.id === x[0])).map(x=>{ const c = nd(x[0]);
-          return '<div class="intqr"><span>'+x[1]+'</span><div class="astpair">'+[1,2].map(k=>'<button type="button" class="astbtn" data-intcnt="'+x[0]+'|'+k+'" aria-pressed="'+(c === k)+'">'+k+' interne'+(k > 1 ? 's' : '')+'</button>').join('')+'</div>'
-          + (c >= 2 ? '<div class="astpair" style="margin-top:6px"><button type="button" class="astbtn" data-intauto="'+x[0]+'|1" aria-pressed="'+!!intOnlyAuto[x[0]]+'">Que des autonomes</button><button type="button" class="astbtn" data-intauto="'+x[0]+'|0" aria-pressed="'+(!intOnlyAuto[x[0]] && !intNon[x[0]])+'">1 autonome + 1 autre</button>'+'<button type="button" class="astbtn" data-intauto="'+x[0]+'|2" aria-pressed="'+!!intNon[x[0]]+'">2 non autonomes possibles</button>'+'</div>' : '<p class="hint" style="margin:6px 0 0">1 seul interne : autonome ou non, selon les disponibilités.</p>')+'</div>'; }).join('')+'</div>' + next;
+          return '<div class="intqr"><span>'+x[1]+'</span><div class="astpair">'+[1,2,3,4].map(k=>'<button type="button" class="astbtn" data-intcnt="'+x[0]+'|'+k+'" aria-pressed="'+(c === k)+'">'+k+' interne'+(k > 1 ? 's' : '')+'</button>').join('')+'</div>'
+          + (c >= 2 ? '<div class="astpair" style="margin-top:6px"><button type="button" class="astbtn" data-intauto="'+x[0]+'|1" aria-pressed="'+!!intOnlyAuto[x[0]]+'">Que des autonomes</button><button type="button" class="astbtn" data-intauto="'+x[0]+'|0" aria-pressed="'+(!intOnlyAuto[x[0]] && !intNon[x[0]])+'">1 autonome + autres</button>'+'<button type="button" class="astbtn" data-intauto="'+x[0]+'|2" aria-pressed="'+!!intNon[x[0]]+'">Non autonomes possibles (aucun autonome exigé)</button>'+'</div>' : '<p class="hint" style="margin:6px 0 0">1 seul interne : autonome ou non, selon les disponibilités.</p>')+'</div>'; }).join('')+'</div>' + next;
     }
     else if (s === 'prio') body = '<div class="intq"><p class="aststat"><b>Quelles vacations remplir en priorité&nbsp;?</b></p><p class="hint">Les internes sont répartis d’abord sur les vacations du haut de la liste (ex. l’échographie avant le bloc). Le bloc ne prend alors que les internes qui restent. 🔒 <b>Priorité absolue</b> : la vacation est pourvue avant tout le reste, quitte à reprendre un interne en off ou en trop ailleurs. L’ordre se règle aussi par défaut dans Réglages → Trame.</p>'+prioHtml(prioList(), 'data-prio', absList())+'</div>' + next;
     else if (s === 'custom') body = '<div class="intq"><div class="offline"><b>🏝 Off minimum par interne</b><div class="astpair offstep"><button type="button" class="astbtn" data-offmin="-1" aria-label="Moins"'+(offMin() <= 0 ? ' disabled' : '')+'>−</button><b class="offv">'+offMin()+' off</b><button type="button" class="astbtn" data-offmin="1" aria-label="Plus"'+(offMin() >= 6 ? ' disabled' : '')+'>＋</button></div></div><details class="info"><summary>ⓘ Infos</summary><p class="hint">Demi-journées sans vacation garanties à chacun cette semaine (une indispo ou un repos de garde compte comme un off). Effectifs : par défaut 2 internes à l’écho et au scanner des urgences, 1 sur chaque autre vacation de la trame ; personnalisez poste par poste avec « Personnalisé », ou générez directement.</p></details></div>' + intCustomBtn(true) + (intCustom ? intNeedUI() : '') + gen;
@@ -3331,8 +3331,9 @@ const PROTO = [
           else if (!autos.length) { noAuto.push(sl); }
           else {
             const a1 = best(autos); pick.push(a1);
-            const rest = nons.length ? nons : autos.filter(id=>id !== a1);
-            const a2 = rest.length ? best(rest) : null; if (a2) pick.push(a2);
+            const rest = (nons.length ? nons : autos.filter(id=>id !== a1)).slice();
+            while (pick.length < sl.need && rest.length) { const b = best(rest); pick.push(b); rest.splice(rest.indexOf(b), 1); }
+            if (pick.length < sl.need) { const more = autos.filter(id=>!pick.includes(id)); while (pick.length < sl.need && more.length) { const b = best(more); pick.push(b); more.splice(more.indexOf(b), 1); } }
           }
         } else {
           const cand = pool.slice(), lim = PR.length && R.facultatif.includes(sl.p.id) ? Math.max(0, pool.length - here.filter(o=>!o.keep && o.pick && prioFirst(sl, o)).reduce((n,o)=>n+Math.max(0, capOf(o)-o.pick.length), 0)) : 1e9;
