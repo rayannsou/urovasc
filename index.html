@@ -2346,7 +2346,7 @@ const PROTO = [
   document.addEventListener('click', async e=>{
     const t = e.target.closest('[data-pub]'); if (!t || !db || !isRim()) return;
     const [k, g] = t.dataset.pub.split('|'), cur = !!(pubDoc[k] && pubDoc[k][g]);
-    if (!askCode((cur ? 'publier' : 'dépublier')+' le planning')) return;
+    if (!(await ensureCode((cur ? 'publier' : 'dépublier')+' le planning'))) return;
     try { await db.doc('meta/publication').update({[k]: {[g]: !cur}}); notify((g === 's' ? 'Seniors' : 'Internes')+', semaine du '+fmtShort.format(parse(k))+' : '+(cur ? 'publié.' : 'non publié (visible uniquement par les administrateurs).')); } catch(err) { handleErr(err); }
   });
 
@@ -6246,7 +6246,7 @@ const PROTO = [
   async function saveTrame(mut, noCode){
     if (!db || !canWrite || !trame) { notify('Lecture seule : modification impossible.', true); return false; }
     if (!isRim()) { notify(NOADM_MSG, true); return false; }
-    if (!noCode && !askCode('modifier les postes du service')) return false;
+    if (!noCode && !(await ensureCode('modifier les postes du service'))) return false;
     const t = JSON.parse(JSON.stringify(trame)); mut(t);
     try { await db.doc('trame/semaine').set(t); return true; } catch(err) { handleErr(err); return false; }
   }
