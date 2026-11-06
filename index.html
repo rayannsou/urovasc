@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 21h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 22h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2460,12 +2460,15 @@ const PROTO = [
     if (!trame) return '';
     const ed = isRim(), cx = chefCtx(), nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); }, keys = Object.keys(CHEF_NOMS);
     const slotTxt = k => { const a = k.split('|'); return a.length === 3 ? DAYL[a[0]]+' '+PART_TXT[a[1]]+' · '+CHEF_POSTES[a[2]][0] : 'Tous les jours · '+CHEF_POSTES[k][0]+' (dernier recours)'; };
-    let h = '<div class="chtbl"><p class="aststat" style="margin:10px 0 4px"><b>🗓 Jours off des chefs</b></p><p class="hint" style="margin:0 0 6px">Touche une case pour changer : <b>·</b> libre → <b>Off</b> (jamais sollicité) → <b>Mob.</b> (mobilisable en dernier recours).</p><div style="overflow-x:auto"><table class="team" style="min-width:440px;font-size:12px"><thead><tr><th class="who" rowspan="2">Chef</th>'+TDN.map(t=>'<th colspan="2" class="end">'+t+'</th>').join('')+'</tr><tr class="sub">'+TDN.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>';
+    const SHORT = {bloc:'Bloc', echo:'Écho', echosa:'Écho SA', cs:'Cs', irm:'IRM', ext:'Ext.', rdc:'RDC', urg:'Urg.', sa:'SA', xa:'Lyric', rcp:'RCP'};
+    const postsOf = (id, d, pt) => trame.postes.filter(p=>!p.info && !isSam(p) && !(p.journee && pt !== 'M')).filter(p=>{ const c = trame.cases[tk(p.id, d, pt)]; return c && ((Array.isArray(c.who) && c.who.includes(id)) || (Array.isArray(c.rot) && c.rot.includes(id))); });
+    let h = '<div class="chtbl"><p class="aststat" style="margin:10px 0 4px"><b>🗓 Trame et jours off des chefs</b></p><p class="hint" style="margin:0 0 6px">Un seul tableau : chaque case montre la vacation du chef (trame) ou son statut (<b>Off</b> = jamais sollicité, <b>Mob.</b> = mobilisable en dernier recours, <b>·</b> = libre). Touche une case pour la modifier : la trame et les règles sont mises à jour ensemble.</p><div style="overflow-x:auto"><table class="team" style="min-width:520px;font-size:12px"><thead><tr><th class="who" rowspan="2">Chef</th>'+TDN.map(t=>'<th colspan="2" class="end">'+t+'</th>').join('')+'</tr><tr class="sub">'+TDN.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>';
     keys.forEach(x=>{
-      if (CHEF_SEUL[x]) { h += '<tr><th class="who">'+esc(nm(x))+'</th><td colspan="10" style="text-align:left;padding:4px 8px"><small>Seulement : '+CHEF_SEUL[x].map(k=>{ const a = k.split('|'); return esc(DAYL[a[0].charAt(0)].slice(0,3)+' '+(a[0].slice(1) === 'M' ? 'matin' : 'après-midi')+' '+CHEF_POSTES[a[1]][0]); }).join(' · ')+' (ne remplace personne)</small></td></tr>'; return; }
-      const o = CHEF_OFF[x] || {};
-      h += '<tr><th class="who">'+esc(nm(x))+'</th>'+[0,1,2,3,4].map(d=>PARTS.map((pt,j)=>{ const sk = d+pt, st = (o.hard || []).includes(sk) ? 'h' : (o.soft || []).includes(sk) ? 's' : '';
-        return '<td class="v'+(j ? ' end' : '')+'" style="padding:2px;text-align:center">'+(ed ? '<button type="button" class="ghost" data-choff="'+x+'|'+sk+'" style="padding:2px 5px;min-height:0;font-size:11px;min-width:34px'+(st === 'h' ? ';background:#f3d6d6' : st === 's' ? ';background:#f6e7c8' : '')+'">'+(st === 'h' ? 'Off' : st === 's' ? 'Mob.' : '·')+'</button>' : (st === 'h' ? 'Off' : st === 's' ? 'Mob.' : '·'))+'</td>'; }).join('')).join('')+'</tr>'; });
+      const id = cx.who[x], o = CHEF_OFF[x] || {}, seul = CHEF_SEUL[x];
+      h += '<tr><th class="who">'+esc(nm(x))+'</th>'+[0,1,2,3,4].map(d=>PARTS.map((pt,j)=>{ const sk = d+pt, ps = id ? postsOf(id, d, pt) : [], st = (o.hard || []).includes(sk) ? 'h' : (o.soft || []).includes(sk) ? 's' : '';
+        const txt = ps.length ? ps.map(p=>esc(SHORT[cx.pk[p.id]] || p.label.slice(0, 6))).join('+') : st === 'h' ? 'Off' : st === 's' ? 'Mob.' : seul ? '—' : '·';
+        const bg = ps.length ? 'background:rgba(46,125,90,.2);font-weight:600' : st === 'h' ? 'background:#f3d6d6' : st === 's' ? 'background:#f6e7c8' : '';
+        return '<td class="v'+(j ? ' end' : '')+'" style="padding:2px;text-align:center">'+(ed && id ? '<button type="button" class="ghost" data-chcell="'+x+'|'+d+'|'+pt+'" style="padding:3px 4px;min-height:0;font-size:11px;min-width:44px;line-height:1.2;'+bg+'">'+txt+'</button>' : txt)+'</td>'; }).join('')).join('')+'</tr>'; });
     h += '</tbody></table></div>';
     h += '<p class="aststat" style="margin:14px 0 4px"><b>👥 Jamais seuls sur une vacation</b></p><p class="hint" style="margin:0 0 6px">Ces chefs sont toujours posés avec un autre senior (ex. Rayann avec Clément le lundi).</p><div class="intgrid" style="flex-wrap:wrap;gap:6px">'+keys.filter(x=>!CHEF_SEUL[x]).map(x=>ed ? '<button type="button" class="astbtn'+(CHEF_ACC.includes(x) ? ' ov' : '')+'" data-chacc="'+x+'" aria-pressed="'+CHEF_ACC.includes(x)+'">'+esc(nm(x))+'</button>' : (CHEF_ACC.includes(x) ? '<b>'+esc(nm(x))+'</b>' : '')).join('')+'</div>';
     CHEF_ACC.forEach(x=>{ (CHEF_ACCX[x] || []).forEach(k=>{ const a = k.split('|'); h += '<p class="hint" style="margin:4px 0">✔ <b>'+esc(nm(x))+'</b> peut être seul : '+DAYL[a[0]]+' '+PART_TXT[a[1]]+' · '+esc((CHEF_POSTES[a[2]] || [a[2]])[0])+(ed ? ' <button type="button" class="ghost" data-chxdel="'+x+'|'+esc(k)+'" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Supprimer">✕</button>' : '')+'</p>'; }); });
@@ -2544,7 +2547,38 @@ const PROTO = [
   $('#chefGo').addEventListener('click', chefOpen);
   /* édition du tableau des règles des chefs */
   document.addEventListener('click', async e=>{
-    const t = e.target.closest('[data-chxdel],[data-chxad],[data-chacc],[data-choff],[data-chrdel],[data-chred],[data-chmdel],[data-chmad],[data-chreset]'); if (!t || !isRim()) return;
+    const t = e.target.closest('[data-chcell],[data-chxdel],[data-chxad],[data-chacc],[data-choff],[data-chrdel],[data-chred],[data-chmdel],[data-chmad],[data-chreset]'); if (!t || !isRim()) return;
+    if (t.dataset.chcell) {
+      if (!trame) return;
+      const [x, dd, pt] = t.dataset.chcell.split('|'), d = Number(dd), cx0 = chefCtx(), id = cx0.who[x]; if (!id) return;
+      const SH = {bloc:'Bloc', echo:'Échographie', echosa:'Écho SA', cs:'Consultation', irm:'IRM', ext:'Scanner externes', rdc:'Scanner RDC / RI', urg:'Scanner urgences', sa:'Scanner SA', xa:'Lyric', rcp:'RCP'};
+      const pl = trame.postes.filter(p=>!p.info && !isSam(p) && !(p.journee && pt !== 'M'));
+      const has = p => { const c = trame.cases[tk(p.id, d, pt)]; return !!(c && ((Array.isArray(c.who) && c.who.includes(id)) || (Array.isArray(c.rot) && c.rot.includes(id)))); };
+      const sk = d+pt, o0 = CHEF_OFF[x] || {};
+      let sel = new Set(pl.filter(has).map(p=>p.id)), st = (o0.hard || []).includes(sk) ? 'h' : (o0.soft || []).includes(sk) ? 's' : '';
+      const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+      const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>'+esc(dLabel(id))+' · '+DAYL[d]+' '+PART_TXT[pt]+'</b></p><p class="hint">Vacation(s) à pourvoir par cette personne (touche pour poser / retirer) :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'
+        + pl.map(p=>'<button type="button" class="astbtn'+(sel.has(p.id) ? ' ov' : '')+'" data-cep="'+esc(p.id)+'" aria-pressed="'+sel.has(p.id)+'">'+esc(p.label)+'</button>').join('')+'</div>'
+        + (sel.size ? '' : '<p class="hint" style="margin:10px 0 4px">Sans vacation, cette demi-journée est :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[['','Libre'],['h','Off (jamais sollicité)'],['s','Mobilisable']].map(a=>'<button type="button" class="astbtn'+(st === a[0] ? ' ov' : '')+'" data-ces="'+a[0]+'" aria-pressed="'+(st === a[0])+'">'+a[1]+'</button>').join('')+'</div>')
+        + '<div class="asb"><button type="button" class="primary" data-ceok>Enregistrer</button><button type="button" class="ghost" data-ceno>Annuler</button></div></div>'; };
+      draw(); document.body.appendChild(w);
+      w.addEventListener('click', async ev=>{
+        if (ev.target === w || ev.target.closest('[data-ceno]')) { w.remove(); return; }
+        const bp = ev.target.closest('[data-cep]'); if (bp) { const v = bp.dataset.cep; if (sel.has(v)) sel.delete(v); else sel.add(v); draw(); return; }
+        const bs = ev.target.closest('[data-ces]'); if (bs) { st = bs.dataset.ces; draw(); return; }
+        if (!ev.target.closest('[data-ceok]')) return;
+        const before = new Set(pl.filter(has).map(p=>p.id)), changed = pl.some(p=>before.has(p.id) !== sel.has(p.id));
+        let ok = true;
+        if (changed) ok = await saveTrame(tr=>{ pl.forEach(p=>{ if (before.has(p.id) === sel.has(p.id)) return; const k = tk(p.id, d, pt), c = tr.cases[k] = tr.cases[k] || {who: []}; c.who = Array.isArray(c.who) ? c.who : [];
+          if (sel.has(p.id)) { if (!c.who.includes(id)) c.who.push(id); } else { c.who = c.who.filter(y=>y !== id); if (Array.isArray(c.rot)) { c.rot = c.rot.filter(y=>y !== id); if (!c.rot.length) delete c.rot; } } }); });
+        if (!ok) return;
+        const o = CHEF_OFF[x] = CHEF_OFF[x] || {}; o.hard = (o.hard || []).filter(y=>y !== sk); o.soft = (o.soft || []).filter(y=>y !== sk);
+        if (!sel.size) { if (st === 'h') o.hard.push(sk); else if (st === 's') o.soft.push(sk); }
+        else if (!(CHEF_OFF[x].hard.length + CHEF_OFF[x].soft.length) && !Object.keys(CHEF_OFF[x]).length) delete CHEF_OFF[x];
+        if (await chefRuSave()) { w.remove(); trSig = ''; try { renderTrameCfg(); renderCompose(); } catch(er) {} notify('Case enregistrée.'); }
+      });
+      return;
+    }
     if (t.dataset.chacc) { const x = t.dataset.chacc; CHEF_ACC = CHEF_ACC.includes(x) ? CHEF_ACC.filter(y=>y !== x) : CHEF_ACC.concat(x); if (await chefRuSave()) { try { renderTrameCfg(); renderCompose(); } catch(er) {} } return; }
     if (t.dataset.chxdel) { const [x, k] = t.dataset.chxdel.split(/\|(.+)/); CHEF_ACCX[x] = (CHEF_ACCX[x] || []).filter(y=>y !== k); if (await chefRuSave()) { try { renderTrameCfg(); renderCompose(); } catch(er) {} } return; }
     if (t.dataset.choff) { const [x, sk] = t.dataset.choff.split('|'), o = CHEF_OFF[x] = CHEF_OFF[x] || {}; o.hard = o.hard || []; o.soft = o.soft || [];
