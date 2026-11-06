@@ -2073,9 +2073,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
 
   /* ---------- rappels personnels (visibles seulement par la personne, comme une annonce) ---------- */
-  const rapOf = ()=>{ const d = doctors[me]; return d && d.rap && typeof d.rap === 'object' ? Object.keys(d.rap).filter(i=>d.rap[i] && d.rap[i].t && d.rap[i].d).map(i=>Object.assign({id: i}, d.rap[i])) : []; };
-  const rapFrom = x=>x.f && doctors[x.f] && x.f !== me ? 'De '+dLabel(x.f)+' : ' : '';
-  const rapHtml = k=>rapOf().filter(x=>x.d === k).sort((a,b)=>String(a.a || '').localeCompare(String(b.a || ''))).map(x=>'<button type="button" class="annc" data-rapedit="'+esc(x.id)+'"><b>🔔 '+esc(x.a ? x.a.replace(':','h') : 'Toute la journée')+'</b><span>'+esc(rapFrom(x)+x.t)+'</span><small>✎</small></button>').join('');
+  const rapOf = ()=>{ try { return rapOf0(); } catch(e) { return []; } };
+  const rapOf0 = ()=>{ const d = doctors[me]; return d && d.rap && typeof d.rap === 'object' ? Object.keys(d.rap).filter(i=>d.rap[i] && d.rap[i].t && d.rap[i].d).map(i=>Object.assign({id: i}, d.rap[i])) : []; };
+  const rapFrom = x=>{ try { return x.f && doctors[x.f] && x.f !== me ? 'De '+dLabel(x.f)+' : ' : ''; } catch(e) { return ''; } };
+  const rapHtml = k=>{ try { return rapHtml0(k); } catch(e) { return ''; } };
+  const rapHtml0 = k=>rapOf().filter(x=>x.d === k).sort((a,b)=>String(a.a || '').localeCompare(String(b.a || ''))).map(x=>'<button type="button" class="annc" data-rapedit="'+esc(x.id)+'"><b>🔔 '+esc(x.a ? x.a.replace(':','h') : 'Toute la journée')+'</b><span>'+esc(rapFrom(x)+x.t)+'</span><small>✎</small></button>').join('');
   function rapOpen(id, defK){
     if (!doctors[me]) return notify('Choisissez d’abord votre nom dans Réglages.', true);
     const x = id ? rapOf().find(r=>r.id === id) : null; if (id && !x) return;
@@ -2107,7 +2109,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   /* le jour J, le rappel s'ouvre une fois à l'ouverture de l'appli */
   let rapPop = false;
-  function rapPopup(){
+  function rapPopup(){ try { rapPopup0(); } catch(e) {} }
+  function rapPopup0(){
     if (rapPop || !loaded || !doctors[me]) return;
     const k = key(new Date()); let seen = []; try { seen = JSON.parse(localStorage.getItem('planning-rapseen') || '[]') || []; } catch(e) {}
     const fresh = rapOf().filter(x=>x.d === k && !seen.includes(x.id+'|'+k)); if (!fresh.length) return;
@@ -2123,7 +2126,8 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const annSeenGet = ()=>{ try { const v = localStorage.getItem('planning-annseen'); return v === null ? null : JSON.parse(v) || []; } catch(e) { return []; } };
   const annSeenSet = a=>{ try { localStorage.setItem('planning-annseen', JSON.stringify(a.slice(-200))); } catch(e) {} };
   function annSeenAdd(ids){ const c = annSeenGet() || []; annSeenSet(c.concat(ids.filter(i=>!c.includes(i)))); }
-  function annPopup(){
+  function annPopup(){ try { annPopup0(); } catch(e) { annPop = false; } }
+  function annPopup0(){
     if (annPop || !annLoaded || !loaded || !doctors[me]) return;
     const seen = annSeenGet();
     if (seen === null) { annSeenSet(Object.keys(annon)); return; }   /* première ouverture : les annonces déjà là ne sont pas ré-affichées */
