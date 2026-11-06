@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 17h05</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 17h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -6267,6 +6267,7 @@ const PROTO = [
         + '<div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = isOn(p.id, i, pt); return '<button type="button" data-trc="'+esc(p.id+'|'+i+'|'+pt)+'" class="'+(on ? 'ov' : '')+'" aria-pressed="'+on+'" aria-label="'+TDN[i]+' '+(p.journee ? 'journée' : PART_TXT[pt])+'"'+(canWrite ? '' : ' disabled')+'>'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div></div>'; }).join('') || '<p class="hint">Aucun poste.</p>';
     if (INT) $('#trameCfgBody').innerHTML += '<div class="intq troff"><p class="aststat"><b>🏝 Off minimum par interne et par semaine</b></p><p class="hint">Valeur par défaut de la génération (modifiable à chaque génération). Une indispo ou un repos de garde compte comme un off.</p><div class="astpair offstep"><button type="button" class="astbtn" data-troffmin="-1"'+(canWrite && trOff() > 0 ? '' : ' disabled')+' aria-label="Moins">−</button><b class="offv">'+trOff()+' off</b><button type="button" class="astbtn" data-troffmin="1"'+(canWrite && trOff() < 6 ? '' : ' disabled')+' aria-label="Plus">＋</button></div></div>';
     if (INT) $('#trameCfgBody').innerHTML += '<div class="intq trprio"><p class="aststat"><b>🎯 Ordre de priorité des vacations</b></p><p class="hint">Les internes sont répartis d’abord sur les vacations du haut (ex. échographie avant bloc). Proposé à chaque génération, modifiable semaine par semaine.</p>'+prioHtml(prioList0(), canWrite ? 'data-trprio' : 'data-x', absList0())+'</div>';
+    $('#trameCfgBody').innerHTML = '<div class="intq"><button type="button" class="astbtn" data-trfill="1">📥 Préremplir d’après le planning en cours</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Coche automatiquement les vacations qui existent dans la semaine en cours (ou la plus proche qui contient des vacations) ; tu peux ensuite en cocher ou décocher. Chaque case est enregistrée pour toutes les semaines à venir.</p></details></div>' + $('#trameCfgBody').innerHTML;
     if (!INT) $('#trameCfgBody').innerHTML += chefRulesHtml();
     if (trame.postes.some(p=>p.id === 'rcp')) $('#trameCfgBody').innerHTML += '<div class="intq trrcp"><p class="aststat"><b>🩺 RCP : un interne d’écho affiché</b></p><button type="button" class="astbtn" data-trrcp="1" aria-pressed="'+!trame.rcpOff+'"'+(canWrite ? '' : ' disabled')+'>'+(trame.rcpOff ? 'Désactivé · toucher pour activer' : '✓ Activé · toucher pour désactiver')+'</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Le lundi matin et le mardi après-midi, un des internes de l’écho (le premier de la liste) est aussi affiché sur la vacation RCP.</p></details></div>';
     $('#trameCfgBody').innerHTML += '<form id="trAdd" class="trnew"><b>➕ Nouvelle vacation</b><div class="f"><label for="trNewName">Nom</label><input type="text" id="trNewName" maxlength="40" autocomplete="off" placeholder="ex. Scanner interventionnel"></div><div class="f"><label for="trNewKind">Durée</label><select id="trNewKind"><option value="">Matin et après-midi</option><option value="j">Journée entière</option></select></div><button type="submit" class="primary"'+(canWrite ? '' : ' disabled')+'>Ajouter la vacation</button></form>';
@@ -6876,6 +6877,14 @@ const PROTO = [
     const withPeople = INT ? [] : todo.filter(x=>!x[3] && (((trame.cases[tk(x[0], x[1], x[2])] || {}).who) || []).length);
     if (withPeople.length && !window.confirm(withPeople.length+' vacation'+(withPeople.length > 1 ? 's' : '')+' avec des personnes postées resteront telles quelles (seules les cases vides sont retirées).')) return;
     if (await saveTrame(t=>{ if (INT) { t.intSet = true; t.casesInt = t.casesInt || {}; if (seed) Object.keys(t.cases).forEach(k=>{ t.casesInt[k] = 1; }); todo.forEach(([po, i, pt, on])=>{ const k = tk(po, i, pt); if (on) t.casesInt[k] = 1; else delete t.casesInt[k]; }); return; } todo.forEach(([po, i, pt, on])=>{ const k = tk(po, i, pt), c = t.cases[k]; if (on) { if (!c) t.cases[k] = {who: []}; } else if (c && !(c.who || []).length && !c.texte) delete t.cases[k]; }); })) { trSig = ''; notify('Trame enregistrée.'); }
+  });
+  $('#trameCfgBody').addEventListener('click', async e=>{
+    if (!e.target.closest('[data-trfill]') || !trame) return;
+    const INT = trGrp === 'interne', mon = mondayOf(new Date());
+    const scan = off=>{ const on = []; trame.postes.forEach(po=>{ [0,1,2,3,4].forEach(i=>{ (po.journee ? ['M'] : PARTS).forEach(pt=>{ const v = vacWho(po.id, key(addDays(mon, off*7+i)), pt); if (v && !v.ou && v.who.some(id=>INT ? isIntId(id) : !isIntId(id))) on.push(tk(po.id, i, pt)); }); }); }); return on; };
+    let on = [], wk = 0; for (const off of [0, 1, 2, -1, 3]) { on = scan(off); if (on.length) { wk = off; break; } }
+    if (!on.length) { notify('Aucune vacation trouvée dans les semaines proches.', true); return; }
+    if (await saveTrame(t=>{ if (INT) { t.intSet = true; t.casesInt = {}; on.forEach(k=>{ t.casesInt[k] = 1; }); } else on.forEach(k=>{ if (!t.cases[k]) t.cases[k] = {who: []}; }); })) { trSig = ''; notify(on.length+' vacations cochées d’après la semaine du '+fmtShort.format(addDays(mon, wk*7))+' · enregistrées pour les semaines à venir.'); }
   });
   $('#postesList').addEventListener('change', async e=>{
     const pmn = e.target.closest('select[data-pmin]');
