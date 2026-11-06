@@ -1050,6 +1050,17 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <div id="stOut"></div>
           </details>
         </div>
+        <div class="card" id="presCard" hidden>
+          <details class="cardfold" id="presFold"><summary>🎤 Présentations des internes</summary>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Nombre de fois où chaque interne s’est inscrit comme présentateur sur une annonce (ex. cas cliniques), sur la période choisie.</p></details>
+          <div class="row3">
+            <div class="f"><label for="prFrom">Depuis le</label><input type="date" id="prFrom"></div>
+            <div class="f"><label for="prTo">Jusqu’au</label><input type="date" id="prTo"></div>
+            <div class="f"><label for="prAnn">Annonce</label><select id="prAnn"></select></div>
+          </div>
+          <div id="prOut"></div>
+          </details>
+        </div>
         <div class="card" id="butCard" hidden>
           <details class="cardfold" id="butFold"><summary>📅 Date butoir indispo <b class="acn" id="butN" hidden></b></summary>
           <div id="butBody"></div>
@@ -1131,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 21h00</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 21h20</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2642,7 +2653,7 @@ const PROTO = [
   }
 
   function renderAll(){
-    renderRenMe(); renderBut(); renderAnnu(); renderCours(); annPopup(); rapPopup(); { const it = !!me && isIntId(me); ['#protoCard','#livretCard'].forEach(q=>{ const el = $(q); if (el) el.hidden = !it; }); { const ch = $('#chefCard'); if (ch) ch.hidden = !isRim(); const pc = $('#pubCard'); if (pc) pc.hidden = !isRim(); renderPub(); } } if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
+    renderRenMe(); renderBut(); renderAnnu(); renderCours(); annPopup(); rapPopup(); { const it = !!me && isIntId(me); ['#protoCard','#livretCard'].forEach(q=>{ const el = $(q); if (el) el.hidden = !it; }); { const ch = $('#chefCard'); if (ch) ch.hidden = !isRim(); const pc = $('#pubCard'); if (pc) pc.hidden = !isRim(); renderPub(); } } if (!protoDone) { protoDone = true; renderProto(); } renderAdminTabs(); renderHist(); renderAdm(); try { renderPres(); } catch(e) {} if ($('#statFold') && $('#statFold').open) renderStats(); else if ($('#statCard')) $('#statCard').hidden = !(isRim() && trame); { const fm = $('#fMp'); if (fm && !me) fm.open = true; } renderHello(); renderPostes(); renderPicker(); renderTrameCfg(); renderNotice(); renderMe(); renderToday(); renderTeam(); renderManage(); renderSwaps(); renderBadge(); renderSwapForm(); renderGLabel(); renderTrame(); renderConflicts(); applyRO();
   }
 
 
@@ -6565,6 +6576,26 @@ const PROTO = [
       return '<div class="butreq"><span>'+head+detail+'</span></div>';
     }).join('') + '</div>';
   }
+  /* suivi des présentations (annonces avec présentateurs) */
+  let prInit = false;
+  function renderPres(){
+    const card = $('#presCard'); if (!card) return; card.hidden = !isRim(); if (card.hidden) return;
+    if (!prInit) { prInit = true; const t = new Date(); $('#prTo').value = key(addDays(t, 120)); $('#prFrom').value = key(addDays(t, -365)); }
+    const titles = [...new Set(Object.keys(annon).filter(i=>annon[i] && annon[i].p && annon[i].t).map(i=>annon[i].t))].sort((a,b)=>a.localeCompare(b, 'fr')), cur = $('#prAnn').value;
+    $('#prAnn').innerHTML = '<option value="">Toutes les annonces</option>'+titles.map(t=>'<option value="'+esc(t)+'"'+(t === cur ? ' selected' : '')+'>'+esc(t)+'</option>').join('');
+    const from = $('#prFrom').value, to = $('#prTo').value, flt = $('#prAnn').value, out = $('#prOut'), today = key(new Date());
+    if (!from || !to || from > to) { out.innerHTML = '<p class="hint">Choisissez une période valide.</p>'; return; }
+    const fd = new Intl.DateTimeFormat('fr-FR', {day:'numeric', month:'long'});
+    const list = sortedDocs().filter(d=>isIntId(d.id)).map(d=>{
+      const its = Object.keys(d.pres || {}).filter(pk=>d.pres[pk]).map(pk=>{ const m = /^(.+)_(\d{4})(\d{2})(\d{2})$/.exec(pk); if (!m) return null; const a = annon[m[1]], dk = m[2]+'-'+m[3]+'-'+m[4]; return {dk, t: a && a.t ? a.t : 'Annonce supprimée'}; })
+        .filter(x=>x && x.dk >= from && x.dk <= to && (!flt || x.t === flt)).sort((a,b)=>a.dk.localeCompare(b.dk));
+      return {d, its, past: its.filter(x=>x.dk <= today).length};
+    }).sort((a,b)=>b.its.length - a.its.length || a.d.label.localeCompare(b.d.label, 'fr'));
+    if (!list.length) { out.innerHTML = '<p class="hint">Aucun interne.</p>'; return; }
+    out.innerHTML = '<div class="col" style="gap:6px">'+list.map(x=>'<div class="butreq"><span>'+esc(x.d.label)+' : <b>'+x.its.length+' présentation'+(x.its.length > 1 ? 's' : '')+'</b>'+(x.its.length > x.past ? ' <small style="color:var(--muted)">('+x.past+' faite'+(x.past > 1 ? 's' : '')+', '+(x.its.length - x.past)+' à venir)</small>' : '')+(x.its.length ? '<small style="display:block;color:var(--muted);margin-top:2px">'+x.its.map(i=>esc(i.t)+' '+esc(fd.format(parse(i.dk)))+(i.dk > today ? ' (à venir)' : '')).join(' · ')+'</small>' : '')+'</span></div>').join('')+'</div>';
+  }
+  ['prFrom','prTo','prAnn'].forEach(id=>$('#'+id).addEventListener('change', renderPres));
+  $('#presFold').addEventListener('toggle', ()=>{ if ($('#presFold').open) renderPres(); });
   ['stFrom','stTo','stGrp','stPost','stWho'].forEach(id=>$('#'+id).addEventListener('change', renderStats));
   $('#statFold').addEventListener('toggle', ()=>{ if ($('#statFold').open) renderStats(); });
 
@@ -7053,7 +7084,7 @@ const PROTO = [
     {id:'protocoles', ic:'📋', bg:'#14B8A6', t:'Protocoles', sub:'Scanner, IRM, UCR, échographie', sel:['#protoCard']},
     {id:'livret', ic:'📘', bg:'#0EA5E9', t:'Livret de l’interne', sub:'Livret d’accueil, semestre nov. 2026 – mai 2027', sel:['#livretCard']},
     {id:'equipe', ic:'👥', bg:'#10B981', t:'Équipe et postes', sub:'Personnes, postes du service', sel:['#teamCard','#postCard']},
-    {id:'suivi', ic:'🔔', bg:'#EF4444', t:'Suivi', sub:'Date butoir, rappels, historique, statistiques', sel:['#butCard','#msgCard','#histCard','#statCard']}
+    {id:'suivi', ic:'🔔', bg:'#EF4444', t:'Suivi', sub:'Date butoir, rappels, historique, statistiques', sel:['#butCard','#msgCard','#histCard','#statCard','#presCard']}
   ];
   let setGrp = '';
   function setCards(g){ return g.sel.map(q=>{ const el = document.querySelector(q); return el ? (el.classList.contains('card') || el.id === 'impSlotR' ? el : el.closest('.card')) : null; }).filter(Boolean); }
