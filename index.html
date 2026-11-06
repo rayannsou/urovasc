@@ -3321,10 +3321,10 @@ const PROTO = [
       const order = sl=>(sl.p.id === 'bloc' && blocRes[h.id]) ? -20 : ABS.has(sl.p.id) ? -30 + prRank(sl.p.id) * 0.1 : PR.includes(sl.p.id) ? -10 + prRank(sl.p.id) * 0.1 : R.autonomie.includes(sl.p.id) ? R.priorite.indexOf(sl.p.id) * 0.1 : R.facultatif.includes(sl.p.id) ? 3 : 2;
       here.slice().sort((a,b)=>order(a)-order(b)).forEach(sl=>{
         if (sl.keep) { prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = sl.keep; return; }
-        const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id) && okFor(id, sl.p.id));
+        const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id) && okFor(id, sl.p.id) && (sl.p.id === 'bloc' || blocRes[h.id] !== id));   /* l'interne réservé au bloc n'est pas repris ailleurs sur la même demi-journée */
         const best = list => list.slice().sort((a,b)=>score(b, sl) - score(a, sl))[0];
         let pick = [];
-        if (sl.p.id === 'bloc' && blocRes[h.id]) pick = [blocRes[h.id]];
+        if (sl.p.id === 'bloc' && blocRes[h.id]) pick = taken[h.id].has(blocRes[h.id]) ? [] : [blocRes[h.id]];
         else if (R.autonomie.includes(sl.p.id) && sl.need >= 2 && !intNon[sl.p.id]) {
           const autos = pool.filter(isAuto), nons = pool.filter(id=>!isAuto(id));
           if (intOnlyAuto[sl.p.id]) { const cand = autos.slice(); while (pick.length < sl.need && cand.length) { const b = best(cand); pick.push(b); cand.splice(cand.indexOf(b), 1); } if (!pick.length) noAuto.push(sl); }
@@ -3400,6 +3400,8 @@ const PROTO = [
       }
       /* internes restants, sans poste sur cette demi-journée : off (plus de 2 off possibles) */
       ints.forEach(d=>{ if (okAt(d.id, h) && !taken[h.id].has(d.id) && !off[d.id].has(h.id)) off[d.id].add(h.id); });
+      { const seen = new Set(); here.forEach(sl=>{ if (sl.keep) sl.keep.forEach(x=>seen.add(x)); });   /* garde-fou : jamais le même interne à deux postes sur la même demi-journée */
+        here.slice().sort((a,b)=>order(a)-order(b)).forEach(sl=>{ if (sl.keep || !sl.pick) return; sl.pick = sl.pick.filter(x=>!seen.has(x) && (seen.add(x), true)); }); }
       here.forEach(sl=>{
         if (sl.keep || !sl.pick) return;
         const pick = sl.pick;
