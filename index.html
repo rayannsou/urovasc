@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 19h00</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 19h15</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4639,7 +4639,7 @@ const PROTO = [
       const ev = vacWho('echo', k, part), cand = ev && !ev.ou ? ev.who.filter(id=>!isSrId(id) && doctors[id]).sort() : [], it = cand.length ? cand[(Math.floor(parse(k).getTime() / 604800000) * 2 + (dow === 0 ? 0 : 1)) % cand.length] : '';   /* tour de rôle d'une semaine à l'autre */
       if (it && !(pubOff(k) && !isRim() && pubHidden(k, it))) who.push(it);
     }
-    return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : ''), edited: !!(ov && c), open: !!ov && !who.length && !ov.x && !ov.dl, dl: !!(ov && ov.dl)};
+    return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : ''), edited: !!(ov && c && (()=>{ const sg = a=>(Array.isArray(a) ? a : []).filter(id=>!isIntId(id)).sort().join(','), ig = a=>(Array.isArray(a) ? a : []).filter(isIntId).sort().join(','); return sg(ov.w) !== sg(c.who) || (ig(c.who) && ig(ov.w) !== ig(c.who)) || String(ov.x || '') !== String(c.texte || ''); })()), open: !!ov && !who.length && !ov.x && !ov.dl, dl: !!(ov && ov.dl)};
   }
   /* pourquoi id ne peut pas être sur ce créneau ('' si tout va bien) */
   function reasonFor(id, date, part){
