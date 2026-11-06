@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 22h30</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 22h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2439,19 +2439,20 @@ const PROTO = [
   let CHEF_SEUL = {ima:['0AM|rdc','2AM|ext','4M|xa'], amandine:['3M|irm','3AM|sa','4M|sa']};
   /* règles selon le rang du jour dans le mois (nᵉ lundi, nᵉ mardi…) */
   let CHEF_MOIS = [
-    {who:'rim', dow:1, nth:4, slots:[['M','rdc'],['AM','echo']]},
-    {who:'rim', dow:1, nth:4, slots:[['AM','rcp']], replace:true}
+    {who:'rim', dow:1, nth:'L', slots:[['M','rdc'],['AM','echo']]},
+    {who:'rim', dow:1, nth:'L', slots:[['AM','rcp']], replace:true}
   ];
-  let CHEF_MOIS_OFF = [{who:'rim', dow:0, nth:4}];
+  let CHEF_MOIS_OFF = [{who:'rim', dow:0, nth:'L'}];
   let CHEF_ACC = ['rayann'];   /* jamais seuls sur une vacation : toujours avec un autre senior */
   let CHEF_ACCX = {rayann: ['4|M|rdc','4|AM|rdc']};   /* vacations où un chef « jamais seul » peut quand même être seul */
   const CHEF_DEF = JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF, acc: CHEF_ACC, accx: CHEF_ACCX});
-  function chefRuSet(j){ try { const o = JSON.parse(j || CHEF_DEF); CHEF_REPL = o.repl || {}; CHEF_OFF = o.off || {}; CHEF_SEUL = o.seul || {}; CHEF_MOIS = o.mois || []; CHEF_MOIS_OFF = o.moisOff || []; CHEF_ACC = Array.isArray(o.acc) ? o.acc : []; CHEF_ACCX = o.accx && typeof o.accx === 'object' ? o.accx : {}; } catch(e) { chefRuSet(CHEF_DEF); } }
+  function chefRuSet(j){ try { const o = JSON.parse(j || CHEF_DEF); CHEF_REPL = o.repl || {}; CHEF_OFF = o.off || {}; CHEF_SEUL = o.seul || {}; CHEF_MOIS = o.mois || []; CHEF_MOIS_OFF = o.moisOff || []; CHEF_ACC = Array.isArray(o.acc) ? o.acc : []; CHEF_ACCX = o.accx && typeof o.accx === 'object' ? o.accx : {};
+      if (!o.v) { CHEF_MOIS.concat(CHEF_MOIS_OFF).forEach(r=>{ if (r.who === 'rim' && r.nth === 4) r.nth = 'L'; }); } } catch(e) { chefRuSet(CHEF_DEF); } }
   let chefRuCustom = false;
   async function chefRuSave(){
     if (!db || !isRim()) return false;
     if (!(await ensureCode('modifier les règles des chefs'))) return false;
-    try { await db.doc('meta/chefrules').set({json: JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF, acc: CHEF_ACC, accx: CHEF_ACCX}), at: Date.now()}); trSig = ''; return true; } catch(e) { handleErr(e); return false; }
+    try { await db.doc('meta/chefrules').set({json: JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF, acc: CHEF_ACC, accx: CHEF_ACCX, v: 2}), at: Date.now()}); trSig = ''; return true; } catch(e) { handleErr(e); return false; }
   }
   const chefNm = x => { const id = chefCtx().who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
   const NTH = n => n === 'L' ? 'dernier' : n+(Number(n) === 1 ? 'er' : 'ᵉ');
@@ -2547,6 +2548,26 @@ const PROTO = [
     });
   }
   $('#chefGo').addEventListener('click', chefOpen);
+  document.addEventListener('click', async e=>{
+    const t = e.target.closest && e.target.closest('[data-wkcell]'); if (!t || !trame || !canWrite) return;
+    const [x, dd, pt] = t.dataset.wkcell.split('|'), d = Number(dd), id = chefCtx().who[x]; if (!id) return;
+    const posts = trame.postes.filter(p=>!p.info && !isSam(p) && !(p.journee && pt !== 'M')), mk = key(plStart);
+    let sel = new Set(posts.filter(p=>{ const w = wkWho(p, d, pt); return w && w.includes(id); }).map(p=>p.id)); const before = new Set(sel);
+    const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+    const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>'+esc(dLabel(id))+' · '+DAYL[d]+' '+PART_TXT[pt]+'</b></p><p class="hint">Vacations pour cette personne, <b>cette semaine seulement</b> :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+posts.map(p=>'<button type="button" class="astbtn'+(sel.has(p.id) ? ' ov' : '')+'" data-wcp="'+esc(p.id)+'" aria-pressed="'+sel.has(p.id)+'">'+esc(p.label)+'</button>').join('')+'</div><div class="asb"><button type="button" class="primary" data-wcok>Enregistrer</button><button type="button" class="ghost" data-wcno>Annuler</button></div></div>'; };
+    draw(); document.body.appendChild(w);
+    w.addEventListener('click', async ev=>{
+      if (ev.target === w || ev.target.closest('[data-wcno]')) { w.remove(); return; }
+      const b = ev.target.closest('[data-wcp]'); if (b) { const v = b.dataset.wcp; if (sel.has(v)) sel.delete(v); else sel.add(v); draw(); return; }
+      if (!ev.target.closest('[data-wcok]')) return;
+      const ch = posts.filter(p=>before.has(p.id) !== sel.has(p.id)); if (!ch.length) { w.remove(); return; }
+      const upd = ch.map(p=>{ const cur = (wkWho(p, d, pt) || []).filter(y=>y !== id); return {kk: tk(p.id, d, pt), who: sel.has(p.id) ? cur.concat(id) : cur}; });
+      const ok = await saveTrame(tr=>{ tr.sem = tr.sem || {}; const wk = (tr.sem[mk] = tr.sem[mk] || {}), xg = (wk.med = wk.med || {add: {}, rem: {}}); xg.add = xg.add || {}; xg.rem = xg.rem || {}; xg.wh = xg.wh || {};
+        upd.forEach(u=>{ xg.wh[u.kk] = u.who; xg.add[u.kk] = 1; delete xg.rem[u.kk]; }); }, true);
+      if (ok) { w.remove(); trSig = ''; renderCompose(); notify('Modifié pour cette semaine seulement.'); }
+    });
+  });
+
   /* édition du tableau des règles des chefs */
   document.addEventListener('click', async e=>{
     const t = e.target.closest('[data-chcell],[data-chxdel],[data-chxad],[data-chacc],[data-choff],[data-chrdel],[data-chred],[data-chmdel],[data-chmad],[data-chreset]'); if (!t || !isRim()) return;
@@ -3082,7 +3103,7 @@ const PROTO = [
     ['IMA','Lun après-midi : TDM hospit. Mer après-midi : TDM externe. Ven matin : Lyric 1 fois par mois.'],
     ['Yann','Lun : scan SA toute la journée. Mar : off. Mer matin : écho Pellegrin ; après-midi écho SA (TDM externe ou IRM en dernier recours). Jeu : écho toute la journée (remplace SA ou TDM externe si besoin). Ven : Lyric rarement (1 fois par mois maximum), TDM externe l’après-midi.'],
     ['Amandine','Jeu matin : IRM 8 ; jeu après-midi : scan SA ; ven matin : scan SA. Elle ne remplace personne : on la remplace si besoin.'],
-    ['Rim','Lun : ablation le matin avec Nicolas / Henri, écho l’après-midi ; off le 4ᵉ lundi du mois. Mar : off 3 mardis sur 4 (sauf le 4ᵉ), sinon ablation le matin et écho l’après-midi ; RCP le 4ᵉ mardi (sinon Henri, puis Antoine, puis Eva). Mer : consultation, IRM 7. Jeu : bloc. Ven : biopsies (priorité à Antoine ou Rayann), ou écho. Dernier recours : TDM SA, scan hospit. ou urgences (après CCA / DJ).'],
+    ['Rim','Lun : ablation le matin avec Nicolas / Henri, écho l’après-midi ; off le dernier lundi du mois. Mar : off 3 mardis sur 4 (sauf le dernier), sinon ablation le matin et écho l’après-midi ; RCP le dernier mardi (sinon Henri, puis Antoine, puis Eva). Mer : consultation, IRM 7. Jeu : bloc. Ven : biopsies (priorité à Antoine ou Rayann), ou écho. Dernier recours : TDM SA, scan hospit. ou urgences (après CCA / DJ).'],
     ['Rayann','Lun : bloc ou ablation le matin, TDM urg. l’après-midi. Mar : off (2 fois par mois maximum), sinon bloc ; vacation PM en alternance avec Henri. Mer : off ou bloc avec Eva. Jeu : off ou bloc avec Rim (TDM urg. / SA si besoin). Ven : bloc, ou TDM biopsie hospit. le matin et TDM hospit. l’après-midi.']
   ];
   function chefRulesHtml(){
@@ -3103,7 +3124,30 @@ const PROTO = [
       + trame.postes.filter(p=>!p.info && !isSam(p)).map(p=>{ const parts = p.journee ? ['M'] : PARTS;
         return '<div class="intnr"><div class="intnh"><span><b>'+esc(p.label)+'</b></span><span class="astpair"><button type="button" class="ghost" data-wkcall="'+esc(p.id)+'|1"'+dis+'>Tout cocher</button><button type="button" class="ghost" data-wkcall="'+esc(p.id)+'|0"'+dis+'>Tout décocher</button></span></div>'
           + '<div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = wkEff(p.id, i, pt); return '<button type="button" data-wkc="'+esc(p.id+'|'+i+'|'+pt)+'" class="'+(on ? 'ov' : '')+'" aria-pressed="'+on+'"'+dis+'>'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div></div>'; }).join('')
-      + (plGrp === 'interne' ? '' : chefRulesHtml());
+      ;
+  }
+  /* trame des chefs de la semaine : préremplie, modifiable pour cette semaine seulement */
+  const wkShort = {bloc:'Bloc', echo:'Écho', echosa:'Écho SA', cs:'Cs', irm:'IRM', ext:'Ext.', rdc:'RDC', urg:'Urg.', sa:'SA', xa:'Lyric', rcp:'RCP'};
+  function wkWho(p, d, pt){
+    const k = key(addDays(plStart, d)); if (isFerie(k)) return null;
+    const c = effCase(p.id, k, d, pt); if (!c) return null;
+    const who = (Array.isArray(c.who) ? c.who : []).filter(x=>!isIntId(x));
+    if (Array.isArray(c.rot) && c.rot.length) { const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7), n = c.rot.length, r = c.rot[((wk % n) + n) % n]; if (r && !who.includes(r)) who.push(r); }
+    return who;
+  }
+  function wkChefHtml(){
+    const cx = chefCtx(), keys = Object.keys(CHEF_NOMS), s = semG(key(plStart), 'med'), dis = canWrite ? '' : ' disabled';
+    const nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
+    const posts = trame.postes.filter(p=>!p.info && !isSam(p));
+    let h = '<div class="qcard"><p class="qt">🗓 Trame des chefs · semaine du '+esc(fmtDM.format(plStart))+'</p><p class="qh">Préremplie avec le tableau des chefs. Touchez une case pour changer les vacations d’une personne <b>cette semaine seulement</b> (la trame générale reste inchangée).'+(s && s.wh && Object.keys(s.wh).length ? ' <b>Modifiée pour cette semaine.</b>' : '')+'</p></div>'
+      + '<div style="overflow-x:auto"><table class="team" style="min-width:520px;font-size:12px"><thead><tr><th class="who" rowspan="2">Chef</th>'+TDN.map((t,i)=>'<th colspan="2" class="end">'+t+(isFerie(key(addDays(plStart, i))) ? ' 🎌' : '')+'</th>').join('')+'</tr><tr class="sub">'+TDN.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>';
+    keys.forEach(x=>{ const id = cx.who[x]; if (!id) return;
+      h += '<tr><th class="who">'+esc(nm(x))+'</th>'+[0,1,2,3,4].map(d=>PARTS.map((pt,j)=>{
+        const ps = posts.filter(p=>!(p.journee && pt !== 'M')).filter(p=>{ const w = wkWho(p, d, pt); return w && w.includes(id); }), o = CHEF_OFF[x] || {}, st = (o.hard || []).includes(d+pt) ? 'h' : (o.soft || []).includes(d+pt) ? 's' : '';
+        const txt = ps.length ? ps.map(p=>esc(wkShort[cx.pk[p.id]] || p.label.slice(0, 6))).join('+') : st === 'h' ? 'Off' : st === 's' ? 'Mob.' : '·';
+        const bg = ps.length ? 'background:rgba(46,125,90,.2);font-weight:600' : st === 'h' ? 'background:#f3d6d6' : st === 's' ? 'background:#f6e7c8' : '';
+        return '<td class="v'+(j ? ' end' : '')+'" style="padding:2px;text-align:center"><button type="button" class="ghost" data-wkcell="'+x+'|'+d+'|'+pt+'"'+dis+' style="padding:3px 4px;min-height:0;font-size:11px;min-width:44px;line-height:1.2;'+bg+'">'+txt+'</button></td>'; }).join('')).join('')+'</tr>'; });
+    return h+'</tbody></table></div>';
   }
   async function wkSemSet(todo, mut){
     const g = wkG(), mk = key(plStart);
@@ -3126,8 +3170,8 @@ const PROTO = [
     if (s === 'trame') {
       const sen = plGrp !== 'interne', n0 = trame ? (sen ? Object.keys(trame.cases).filter(c=>!(trame.cases[c].who || []).length && !trame.cases[c].texte).length : Object.keys(trame.casesInt || {}).length) : 0;
       if (wzTrSub === 'mod') body = q('✏️ Voulez-vous modifier une vacation en particulier&nbsp;?', 'Vous ouvrez la trame pour changer des vacations <b>cette semaine seulement</b> (la trame générale reste inchangée).', '<button type="button" data-wzsub="edit" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="skip" aria-pressed="false">Non</button>');
-      else if (wzTrSub === 'edit') body = wkTrHtml() + '<button type="button" class="astbtn go wznext" data-wzsub="skip">Appliquer cette trame · Suivant ›</button>';
-      else body = q('🗓 Voulez-vous appliquer la trame '+(sen ? 'des chefs' : 'générale')+'&nbsp;?', (sen ? 'Tableau des chefs : ' : 'Trame interne : ')+(n0 ? n0+' vacation'+(n0 > 1 ? 's' : '')+' à pourvoir chaque semaine.' : 'aucune vacation définie (Réglages → Trame du planning).')+(sen ? ' « Oui » : la génération suit ce tableau, les jours off, les remplaçants et les règles du mois (ex. 4ᵉ mardi de Rim).' : '')+' « Non » : vous ouvrez la trame pour la modifier, cette semaine seulement (elle reste inchangée).', '<button type="button" data-wzsub="yes" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="no" aria-pressed="false">Non</button>')
+      else if (wzTrSub === 'edit') body = (sen ? wkChefHtml()+'<details class="info" style="margin:10px 0"><summary><b>Vacations qui existent cette semaine</b></summary>'+wkTrHtml()+'</details>' : wkTrHtml()) + '<button type="button" class="astbtn go wznext" data-wzsub="skip">Appliquer cette trame · Suivant ›</button>';
+      else body = q('🗓 Voulez-vous appliquer la trame '+(sen ? 'des chefs' : 'générale')+'&nbsp;?', (sen ? 'Tableau des chefs : ' : 'Trame interne : ')+(n0 ? n0+' vacation'+(n0 > 1 ? 's' : '')+' à pourvoir chaque semaine.' : 'aucune vacation définie (Réglages → Trame du planning).')+(sen ? ' « Oui » : la génération suit ce tableau, les jours off, les remplaçants et les règles du mois (ex. dernier mardi du mois pour Rim).' : '')+' « Non » : vous ouvrez la trame pour la modifier, cette semaine seulement (elle reste inchangée).', '<button type="button" data-wzsub="yes" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="no" aria-pressed="false">Non</button>')
         + (sen ? '<details class="info" style="margin:10px 0"><summary><b>🗓 Voir le tableau des chefs et les règles</b></summary>'+chefTblHtml()+'</details>' : '');
     }
     else if (s === 'close') body = q('🔒 Voulez-vous fermer une vacation&nbsp;?', 'Une vacation fermée reste sans personne : elle ne sera pas remplie.', '<button type="button" data-astyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
@@ -4854,6 +4898,7 @@ const PROTO = [
   function effCase(po, k, dow, part){
     const kk = tk(po, dow, part); let c = trame.cases[kk] || null; const s = semG(k, 'med');
     if (s) { if (!c && s.add && s.add[kk]) c = {who: []}; else if (c && (s.blank || (s.rem && s.rem[kk])) && !(c.who || []).length && !c.texte && !(s.add && s.add[kk])) c = null; }
+    if (s && s.wh && Array.isArray(s.wh[kk]) && !(s.rem && s.rem[kk] && !(s.add && s.add[kk]))) { c = Object.assign({}, c || {}, {who: s.wh[kk].slice()}); delete c.rot; }   /* personnes choisies pour cette semaine seulement */
     return c;
   }
   function vacWho(postId, k, part){
