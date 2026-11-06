@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 18h40</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 19h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2358,7 +2358,7 @@ const PROTO = [
   /* [jour 0=lundi, partie, poste, personnes, options {rot: alternance, t: mention}] */
   const CHEF_TRAME = [
     [0,'M','rdc',['nicolas','rim','henri']], [0,'AM','cs',['nicolas']], [0,'M','rcp',[],{rot:['rim','antoine']}],
-    [1,'M','bloc',['nicolas','antoine']], [1,'AM','bloc',['nicolas','antoine']], [2,'M','irm',[],{rot:['nicolas','henri']}],
+    [1,'M','bloc',['nicolas','antoine']], [1,'AM','bloc',['nicolas','antoine']], [2,'M','irm',['nicolas','henri']],
     [0,'M','bloc',['clement','rayann']], [0,'AM','bloc',['clement']], [1,'M','echo',['clement']], [1,'AM','irm',['clement']],
     [3,'M','ext',['clement']], [3,'AM','cs',['clement']], [4,'M','rdc',['clement','rayann']], [4,'AM','ext',['clement']], [4,'AM','rdc',['rayann']],
     [2,'M','bloc',['eva']], [2,'AM','bloc',['eva']], [3,'M','cs',['eva']], [4,'M','echo',['eva','antoine']], [4,'AM','irm',[],{rot:['eva','antoine'], t:'IRM 8'}],
@@ -2384,7 +2384,51 @@ const PROTO = [
       if (o && o.rot) { const r = idsOf(o.rot); if (r.length) c.rot = r; }
       if (o && o.t) c.t = o.t;
     });
-    return {put, miss: [...miss], noPost: [...noPost], who};
+    return {put, miss: [...miss], noPost: [...noPost], who, pick};
+  }
+
+  /* ---------- règles de remplacement des chefs (lues dans « Règles de création automatique des chefs ») ----------
+     clé « jour|partie|poste » (0 = lundi) → personnes à solliciter dans l'ordre si le titulaire est absent ; « poste » seul = dernier recours */
+  const CHEF_REPL = {
+    '0|AM|rdc':['antoine','henri'], '2|AM|ext':['henri','yann'], '4|M|bloc':['clement','rayann'], '4|AM|bloc':['clement','rayann'],
+    '3|M|ext':['antoine'], '3|M|irm':['antoine'], '3|AM|sa':['antoine','rayann'], '3|M|bloc':['rayann'], '3|AM|bloc':['rayann'],
+    '3|M|echo':['antoine'], '3|AM|echo':['antoine','henri'], '0|AM|bloc':['rayann'], '1|M|bloc':['rayann','clement'], '1|AM|bloc':['rayann','clement'],
+    '2|M|bloc':['rayann'], '2|AM|bloc':['rayann'], '2|AM|irm':['henri'], '0|M|rcp':['henri'], '1|AM|rcp':['henri','antoine','eva'], '1|M|echo':['henri'],
+    sa:['rim'], rdc:['rim'], urg:['rim']
+  };
+  /* jours off : « hard » = jamais sollicité ; « soft » = mobilisable en dernier recours */
+  const CHEF_OFF = {
+    nicolas:{hard:['2AM','3M','3AM','4M','4AM']}, clement:{hard:['2M','2AM']}, antoine:{hard:['2M','2AM']}, yann:{hard:['1M','1AM']}, rim:{hard:['1M','1AM']},
+    eva:{soft:['0M','0AM','1M','1AM']}, henri:{soft:['3M','3AM']}, rayann:{soft:['1M','1AM','2M','2AM','3M','3AM']}
+  };
+  /* ne travaillent que sur certaines vacations (et ne remplacent personne) */
+  const CHEF_SEUL = {ima:['0AM|rdc','2AM|ext','4M|xa'], amandine:['3M|irm','3AM|sa','4M|sa']};
+  /* règles selon le rang du jour dans le mois (nᵉ lundi, nᵉ mardi…) */
+  const CHEF_MOIS = [
+    {who:'rim', dow:1, nth:4, slots:[['M','rdc'],['AM','echo']]},
+    {who:'rim', dow:1, nth:4, slots:[['AM','rcp']], replace:true}
+  ];
+  const CHEF_MOIS_OFF = [{who:'rim', dow:0, nth:4}];
+  const nthOf = k => Math.ceil(parse(k).getDate() / 7);
+  let chefCtxC = null;
+  function chefCtx(){
+    const pl = chefPlan(), pk = {}; Object.keys(CHEF_POSTES).forEach(k=>{ const po = pl.pick[k]; if (po && !pk[po.id]) pk[po.id] = k; });
+    const idk = {}; Object.keys(pl.who).forEach(k=>{ idk[pl.who[k]] = k; });
+    return {who: pl.who, pk, idk};
+  }
+  /* règles applicables à une vacation : ordre de remplacement, personnes exclues / en dernier recours */
+  function chefSlot(cx, p, k, dow, part, rotC){
+    const pk = cx.pk[p.id], sk = dow+part, n = nthOf(k), ids = a=>a.map(x=>cx.who[x]).filter(Boolean);
+    const out = {repl: [], ban: new Set(), soft: new Set(), keepBan: new Set(), want: [], replace: false};
+    if (!pk) return out;
+    ids((CHEF_REPL[dow+'|'+part+'|'+pk] || []).concat(CHEF_REPL[pk] || [])).forEach(id=>{ if (!out.repl.includes(id)) out.repl.push(id); });
+    if (rotC) ids(rotC).forEach(id=>{ if (!out.repl.includes(id)) out.repl.unshift(id); });
+    Object.keys(CHEF_OFF).forEach(x=>{ const id = cx.who[x]; if (!id) return; const o = CHEF_OFF[x]; if ((o.hard || []).includes(sk)) out.ban.add(id); if ((o.soft || []).includes(sk)) out.soft.add(id); });
+    Object.keys(CHEF_SEUL).forEach(x=>{ const id = cx.who[x]; if (id && !CHEF_SEUL[x].includes(sk+'|'+pk)) out.ban.add(id); });
+    CHEF_MOIS.forEach(r=>{ const id = cx.who[r.who]; if (!id || r.dow !== dow || r.nth !== n) return; if (r.slots.some(sl=>sl[0] === part && sl[1] === pk)) { out.want.push(id); if (r.replace) out.replace = true; } });
+    CHEF_MOIS_OFF.forEach(r=>{ const id = cx.who[r.who]; if (id && r.dow === dow && r.nth === n) { out.ban.add(id); out.keepBan.add(id); } });
+    const rim = cx.who.rim; if (rim && dow === 1 && n === 4) out.ban.delete(rim);   /* 4ᵉ mardi : Rim travaille */
+    return out;
   }
   function chefOpen(){
     if (!trame || !isRim()) return;
@@ -3153,7 +3197,7 @@ const PROTO = [
     const months = astMonths(), miss = astMissing(months);
     if (miss.length && !force) return openMiss(true);
     const posts = trame.postes.filter(p=>!p.info && !isSam(p)), docs = grpDocs(), eqAll = eqCounts();
-    const load = {};
+    const load = {}, cx = plGrp === 'interne' ? null : chefCtx();
     let done = 0, holes = 0, ous = 0; const writes = [], holeL = [], by = {};
     for (let i = 0; i < 5; i++) {
       const k = key(addDays(plStart, i)); if (isFerie(k)) continue;
@@ -3163,11 +3207,17 @@ const PROTO = [
         posts.forEach(p=>{ if (!okDay(p, i)) return; if (p.journee && part !== 'M') return;
           let v = vacWho(p.id, k, part);
           if (v && !useTr && trEmpty(p.id, k, i, part)) v = null;
+          const cs = effCase(p.id, k, i, part), rr = cx ? chefSlot(cx, p, k, i, part, cs && Array.isArray(cs.rot) ? cs.rot : null) : null;
+          if (rr && rr.want.length && !(overrides[k] && overrides[k][p.id+'_'+part])) {   /* règle du mois (ex. 4ᵉ mardi : Rim) */
+            const base = v ? v.who.filter(id=>!rr.want.includes(id)) : [];
+            v = Object.assign({}, v || {stars: [], ou: false, texte: '', edited: false, open: false}, {who: rr.want.concat(rr.replace ? [] : base), dl: false, synth: false});
+          }
+          if (v && rr && rr.keepBan.size && !(overrides[k] && overrides[k][p.id+'_'+part])) { const w2 = v.who.filter(id=>!rr.keepBan.has(id)); if (w2.length !== v.who.length) v = Object.assign({}, v, {who: w2, synth: !w2.length}); }
           if (v && v.dl && !v.who.length && !v.ou) v = Object.assign({}, v, {synth: true});
           if (!v) { const oh = overrides && Object.keys(overrides).some(d=>{ const o = overrides[d][p.id+'_'+part]; return o && o.w && o.w.some(inGrp); }); if (!oh && !(Number(p.min) > 0)) return; v = {who: [], stars: [], ou: false, texte: '', edited: false, open: false, synth: true}; }   /* vacation vide mais déjà tenue par le passé : à pourvoir */
           if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
           if (v.open || v.edited && !v.ou) { v.who.forEach(id=>taken.add(id)); return; }
-          slots.push({p, v: Object.assign({}, v, {who: v.who.filter(inGrp)})}); });
+          slots.push({p, rr, v: Object.assign({}, v, {who: v.who.filter(inGrp)})}); });
         /* 1) postes fixes de la trame, retenus s'ils sont disponibles */
         slots.forEach(sl=>{ if (!sl.v.ou) sl.v.who.forEach(id=>{ if (!reasonFor(id, k, part)) taken.add(id); }); });
         for (const sl of slots) {
@@ -3185,12 +3235,14 @@ const PROTO = [
           const freq = {};
           Object.keys(overrides).forEach(d=>{ const o = overrides[d][p.id+'_'+part]; if (o) o.w.forEach(id=>{ freq[id] = (freq[id]||0) + 1; }); });
           Object.keys(trame.cases).forEach(c=>{ if (c.indexOf(p.id+'_') === 0 && c.slice(-part.length-1) === '_'+part) { const w = trame.cases[c].who; if (Array.isArray(w)) w.forEach(id=>{ freq[id] = (freq[id]||0) + 2; }); } });
+          const rr = sl.rr, rBan = rr ? rr.ban : new Set(), rSoft = rr ? rr.soft : new Set(), rRepl = rr ? rr.repl : [];
           const pool = (v.ou ? v.who.concat(docs.map(d=>d.id).filter(id=>!v.who.includes(id) && freq[id])) : docs.map(d=>d.id))
-            .filter((id, ix, ar)=>ar.indexOf(id) === ix && !keep.includes(id) && !taken.has(id) && !reasonFor(id, k, part) && !avoids(id, p.id));
+            .filter((id, ix, ar)=>ar.indexOf(id) === ix && !keep.includes(id) && !taken.has(id) && !reasonFor(id, k, part) && !avoids(id, p.id) && !rBan.has(id));
           const eqP = eqAll.post[p.id] || {};   /* équité : le moins sollicité sur ce poste d'abord, puis sur l'ensemble des postes */
           const prefS = new Set(genPref.filter(x=>x.poste === p.id).map(x=>x.id));
-          pool.sort((a,b)=>(prefS.has(b) ? 1 : 0) - (prefS.has(a) ? 1 : 0) || (v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || ((eqP[a]||0) - (eqP[b]||0)) || ((eqAll.tot[a]||0) - (eqAll.tot[b]||0)) || ((load[a]||0) - (load[b]||0)));
-          const eligible = pool.filter(id=>freq[id] || prefS.has(id));
+          const rOrd = id => { const x = rRepl.indexOf(id); return x < 0 ? 99 : x; };
+          pool.sort((a,b)=>(prefS.has(b) ? 1 : 0) - (prefS.has(a) ? 1 : 0) || (rSoft.has(a) ? 1 : 0) - (rSoft.has(b) ? 1 : 0) || rOrd(a) - rOrd(b) || (v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || ((eqP[a]||0) - (eqP[b]||0)) || ((eqAll.tot[a]||0) - (eqAll.tot[b]||0)) || ((load[a]||0) - (load[b]||0)));
+          const eligible = pool.filter(id=>freq[id] || prefS.has(id) || rRepl.includes(id));
           const res = keep.slice();
           while (res.length < need && eligible.length) { const id = eligible.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; }
           if (mn && res.length < need) { const rest = pool.filter(id=>!res.includes(id) && !taken.has(id)).sort((a,b)=>((eqAll.tot[a]||0) - (eqAll.tot[b]||0)) || ((load[a]||0) - (load[b]||0))); while (res.length < need && rest.length) { const id = rest.shift(); res.push(id); taken.add(id); load[id] = (load[id]||0) + 1; } }   /* poste à effectif minimum : à défaut d'historique, les moins chargés */
