@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 18h25</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 18h45</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2846,6 +2846,7 @@ const PROTO = [
   /* trame de la semaine en cours de création (grille à cocher) */
   const wkG = () => plGrp === 'interne' ? 'int' : 'med';
   function wkEff(po, i, pt){ const g = wkG(), s = semG(key(plStart), g), kk = tk(po, i, pt); if (s && s.add && s.add[kk]) return true; if (s && (s.blank || (s.rem && s.rem[kk]))) return false; return g === 'int' ? (intEmpty() ? !!trame.cases[kk] : !!(trame.casesInt && trame.casesInt[kk])) : !!trame.cases[kk]; }
+  let chefRegOv = {};   /* règles modifiées à la main (meta/chefregles) */
   const CHEF_REGLES = [
     ['Nicolas','Lun : scan interv. le matin, consultation l’après-midi (garder ses consultations au maximum ; si besoin écho ou bloc le matin, il ferme alors ses consultations). RCP greffe à 8h en alternance Rim / Antoine (et Henri si nécessaire). Mar : bloc. Mer matin : IRM en alternance avec Henri (mettre les deux, sauf absence de l’un).'],
     ['Clément','Lun : bloc. Mar : écho le matin (bloc en parallèle si Nicolas est seul), IRM l’après-midi. Mer : off à maintenir. Jeu : scan externe / consultation. Ven : bloc si le principal est absent, sinon scan hospit., Lyric ou scan externe.'],
@@ -2860,7 +2861,8 @@ const PROTO = [
   ];
   function chefRulesHtml(){
     return '<details class="cardfold" style="margin-top:10px" open><summary><b>📋 Règles de création automatique des chefs</b></summary><p class="hint">Ces règles guident la génération : la trame ci-dessus est la base, le reste sert quand il manque quelqu’un.</p>'
-      + CHEF_REGLES.map(r=>'<p class="hint" style="margin:6px 0"><b>'+esc(r[0])+'</b> · '+esc(r[1])+'</p>').join('')+'</details>';
+      + CHEF_REGLES.map(r=>'<p class="hint" style="margin:6px 0"><b>'+esc(r[0])+'</b> · '+esc(chefRegOv[r[0]] != null ? chefRegOv[r[0]] : r[1])+(isRim() ? ' <button type="button" class="ghost" data-chefrl="'+esc(r[0])+'" style="padding:2px 8px;min-height:0;font-size:12px">✎</button>' : '')+'</p>').join('')
+      + '<details class="info"><summary>ⓘ Abréviations comprises</summary><p class="hint">TDM urg. / scan urgences = Scanner des urgences · TDM hospit. / scan hospit. = scanner des patients hospitalisés (RDC / RI) · TDM externe / scan externe = Scanner externes · scan SA / TDM SA = Scanner SA · IRM 7 / IRM 8 = IRM (7h / 8h) · SA = site SA · RCP · écho = Échographie · IMA, CCA, DJ = abréviations du service.</p></details></details>';
   }
   function chefLoadHtml(){
     if (plGrp === 'interne' || !isRim()) return '';
@@ -6905,6 +6907,19 @@ const PROTO = [
     if (!on.length) { notify('Aucune vacation trouvée dans les semaines proches.', true); return; }
     if (await saveTrame(t=>{ if (INT) { t.intSet = true; t.casesInt = {}; on.forEach(k=>{ t.casesInt[k] = 1; }); } else on.forEach(k=>{ if (!t.cases[k]) t.cases[k] = {who: []}; }); })) { trSig = ''; notify(on.length+' vacations cochées d’après la semaine du '+fmtShort.format(addDays(mon, wk*7))+' · enregistrées pour les semaines à venir.'); }
   });
+  document.addEventListener('click', async e=>{
+    const b = e.target.closest('[data-chefrl]'); if (!b || !isRim() || !db) return;
+    const nm = b.dataset.chefrl, base = (CHEF_REGLES.find(r=>r[0] === nm) || ['', ''])[1], cur = chefRegOv[nm] != null ? chefRegOv[nm] : base;
+    if (!(await ensureCode('modifier les règles des chefs'))) return;
+    const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+    w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Règles · '+esc(nm)+'</b></p><p class="hint">Écris librement (jours, postes, alternances, off…). Ces règles sont conservées pour tous les plannings à venir.</p><textarea id="crlT" rows="9" style="width:100%;font:inherit;font-size:15px;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg,#fff);color:inherit;box-sizing:border-box">'+esc(cur)+'</textarea><div class="asb"><button type="button" class="primary" data-crlok>Enregistrer</button><button type="button" class="ghost" data-crlno>Annuler</button>'+(chefRegOv[nm] != null ? '<button type="button" class="ghost" data-crlrs>Rétablir l’original</button>' : '')+'</div></div>';
+    document.body.appendChild(w);
+    w.addEventListener('click', async ev=>{
+      if (ev.target === w || ev.target.closest('[data-crlno]')) { w.remove(); return; }
+      const ok = ev.target.closest('[data-crlok]'), rs = ev.target.closest('[data-crlrs]'); if (!ok && !rs) return;
+      try { await db.doc('meta/chefregles').update({[nm]: ok ? w.querySelector('#crlT').value.trim() : null}); w.remove(); notify(ok ? 'Règles enregistrées.' : 'Règles d’origine rétablies.'); } catch(err) { handleErr(err); }
+    });
+  });
   $('#postesList').addEventListener('change', async e=>{
     const pmn = e.target.closest('select[data-pmin]');
     if (pmn) { const id = pmn.dataset.pmin, n = Number(pmn.value) || 0; if (await saveTrame(t=>{ const p = t.postes.find(x=>x.id === id); if (p) { if (n) p.min = n; else delete p.min; } })) notify(n ? 'Minimum de '+n+' médecin'+(n > 1 ? 's' : '')+' par vacation.' : 'Minimum retiré.'); else { pSig = ''; renderPostes(); } return; }
@@ -6991,6 +7006,7 @@ const PROTO = [
       maybeSeed(); maybePatch();
     }, err=>{});
     db.doc('meta/publication').onSnapshot(s=>{ pubDoc = s.exists ? (s.data() || {}) : {}; renderPub(); if (typeof renderAll === 'function') renderAll(); try { renderCompose(); } catch(e) {} }, err=>{});
+    db.doc('meta/chefregles').onSnapshot(s=>{ chefRegOv = s.exists ? (s.data() || {}) : {}; trSig = ''; try { renderTrameCfg(); } catch(e) {} }, err=>{});
     db.doc('meta/cours').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; cours = {}; Object.keys(v.items || {}).forEach(k=>{ if (v.items[k]) cours[k] = v.items[k]; }); renderCours(); }, err=>{});
     db.doc('meta/annonces').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; annon = v.items && typeof v.items === 'object' ? v.items : {}; annLoaded = true; renderAnn(); annPopup(); renderToday(); }, err=>{});
     /* CR : modifications permanentes des comptes rendus (administrateurs) */
