@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 17h30</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 17h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2386,19 +2386,36 @@ const PROTO = [
   }
   function chefOpen(){
     if (!trame || !isRim()) return;
-    const pl = chefPlan(), cells = Object.values(pl.put), DN = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
+    const pl = chefPlan(), put = pl.put, cellsOf = () => Object.values(put).filter(c=>c.who.length || c.rot.length);
+    const seniors = sortedDocs().filter(d=>!isIntId(d.id));
+    let ed = null;   /* vacation en cours de modification : {po, dow, part} */
     const who = c=>c.who.map(dLabel).join(', ')+(c.rot.length ? (c.who.length ? ' + ' : '')+c.rot.map(dLabel).join(' / ')+' (en alternance)' : '');
-    const byDay = trame.postes.filter(p=>!p.info && !isSam(p)).map(p=>{ const parts = p.journee ? ['M'] : PARTS, mine = cells.filter(c=>c.po.id === p.id);
-      return '<div class="intnr"><div class="intnh"><span><b>'+esc(p.label)+'</b></span></div><div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = mine.some(c=>c.dow === i && c.part === pt); return '<button type="button" tabindex="-1" class="'+(on ? 'ov' : '')+'" aria-pressed="'+on+'" style="pointer-events:none">'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div>'
-        + (mine.length ? '<p class="hint" style="margin:6px 0 0;font-size:12px">'+mine.sort((x,y)=>x.dow-y.dow || (x.part === 'M' ? -1 : 1)).map(c=>'<b>'+TDN[c.dow]+' '+(c.part === 'M' ? 'M' : 'AM')+'</b> '+esc(who(c))+(c.t ? ' ('+esc(c.t)+')' : '')).join(' · ')+'</p>' : '')+'</div>'; }).join('');
     const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
-    w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Importer la trame des chefs</b></p><p class="hint">'+cells.length+' vacation'+(cells.length > 1 ? 's' : '')+' seront posées. Les seniors actuellement posés dans la trame sont remplacés (les internes ne changent pas).</p>'
-      + (pl.miss.length ? '<p class="codeerr">Personnes introuvables dans la liste : '+esc(pl.miss.join(', '))+' (non importées).</p>' : '') + (pl.noPost.length ? '<p class="codeerr">Postes introuvables dans le service : '+esc(pl.noPost.join(', '))+' (non importés).</p>' : '')
-      + byDay + '<div class="asb"><button type="button" class="primary" data-chefok'+(cells.length ? '' : ' disabled')+'>Importer</button><button type="button" class="ghost" data-chefno>Annuler</button></div></div>';
-    document.body.appendChild(w);
+    const render = () => {
+      const sc = w.firstElementChild ? w.firstElementChild.scrollTop : 0, cells = cellsOf();
+      const byDay = trame.postes.filter(p=>!p.info && !isSam(p)).map(p=>{ const parts = p.journee ? ['M'] : PARTS, mine = cells.filter(c=>c.po.id === p.id);
+        return '<div class="intnr"><div class="intnh"><span><b>'+esc(p.label)+'</b></span></div><div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = mine.some(c=>c.dow === i && c.part === pt); return '<button type="button" class="'+(on ? 'ov' : '')+'" data-chefed="'+esc(p.id)+'|'+i+'|'+pt+'" aria-pressed="'+on+'">'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div>'
+          + (mine.length ? '<p class="hint" style="margin:6px 0 0;font-size:12px">'+mine.sort((x,y)=>x.dow-y.dow || (x.part === 'M' ? -1 : 1)).map(c=>'<b>'+TDN[c.dow]+' '+(c.part === 'M' ? 'M' : 'AM')+'</b> '+esc(who(c))+(c.t ? ' ('+esc(c.t)+')' : '')).join(' · ')+'</p>' : '')+'</div>'; }).join('');
+      let edH = '';
+      if (ed) { const c = put[ed.po.id+'|'+ed.dow+'|'+ed.part] || {who: [], rot: []};
+        edH = '<div class="intq" style="border:1.5px solid var(--accent);border-radius:12px;padding:10px;margin:10px 0"><p><b>'+TDN[ed.dow]+' '+(ed.part === 'M' ? 'matin' : 'après-midi')+' · '+esc(ed.po.label)+'</b></p><p class="hint">Touche une personne pour la mettre (ou la retirer) sur cette vacation. Aucune personne = vacation non posée.</p><div class="intgrid" style="flex-wrap:wrap;gap:6px">'
+          + seniors.map(d=>'<button type="button" class="astbtn'+(c.who.includes(d.id) ? ' ov' : '')+'" data-chefp="'+esc(d.id)+'" aria-pressed="'+c.who.includes(d.id)+'">'+esc(dLabel(d.id))+'</button>').join('')+'</div>'
+          + (c.rot.length ? '<button type="button" class="ghost" data-chefrot style="margin-top:8px">Retirer l’alternance ('+esc(c.rot.map(dLabel).join(' / '))+')</button>' : '')
+          + '<div class="asb" style="margin-top:8px"><button type="button" class="primary" data-chefedok>OK</button></div></div>'; }
+      w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Importer la trame des chefs</b></p><p class="hint">'+cells.length+' vacation'+(cells.length > 1 ? 's' : '')+' seront posées. Touche une case (M / AM) pour changer la personne postée sur cette vacation avant d’importer. Les seniors actuellement posés dans la trame sont remplacés (les internes ne changent pas).</p>'
+        + (pl.miss.length ? '<p class="codeerr">Personnes introuvables dans la liste : '+esc(pl.miss.join(', '))+' (non importées).</p>' : '') + (pl.noPost.length ? '<p class="codeerr">Postes introuvables dans le service : '+esc(pl.noPost.join(', '))+' (non importés).</p>' : '')
+        + edH + byDay + '<div class="asb"><button type="button" class="primary" data-chefok'+(cells.length ? '' : ' disabled')+'>Importer</button><button type="button" class="ghost" data-chefno>Annuler</button></div></div>';
+      if (w.firstElementChild) w.firstElementChild.scrollTop = sc;
+    };
+    render(); document.body.appendChild(w);
     w.addEventListener('click', async e=>{
       if (e.target === w || e.target.closest('[data-chefno]')) { w.remove(); return; }
+      const be = e.target.closest('[data-chefed]'); if (be) { const [pid, d, pt] = be.dataset.chefed.split('|'), po = trame.postes.find(x=>x.id === pid); if (po) { ed = {po, dow: Number(d), part: pt}; render(); const box = w.querySelector('.intq[style*="accent"]'); if (box) box.scrollIntoView({block: 'nearest'}); } return; }
+      if (e.target.closest('[data-chefedok]')) { ed = null; render(); return; }
+      const bp = e.target.closest('[data-chefp]'); if (bp && ed) { const k = ed.po.id+'|'+ed.dow+'|'+ed.part, c = put[k] = put[k] || {po: ed.po, dow: ed.dow, part: ed.part, who: [], rot: [], t: ''}, id = bp.dataset.chefp; c.who = c.who.includes(id) ? c.who.filter(x=>x !== id) : c.who.concat(id); render(); return; }
+      if (e.target.closest('[data-chefrot]') && ed) { const c = put[ed.po.id+'|'+ed.dow+'|'+ed.part]; if (c) c.rot = []; render(); return; }
       if (!e.target.closest('[data-chefok]')) return;
+      const cells = cellsOf();
       try { await db.doc('meta/trame-avant-chefs').set({at: Date.now(), trame: JSON.stringify(trame)}); } catch(err) {}
       const ok = await saveTrame(t=>{
         Object.keys(t.cases).forEach(k=>{ const c = t.cases[k]; if (c && Array.isArray(c.who)) c.who = c.who.filter(isIntId); if (c) delete c.rot; });
