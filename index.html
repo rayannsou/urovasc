@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 20h15</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 20h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4634,6 +4634,7 @@ const PROTO = [
     const c = effCase(postId, k, dow, part);
     const ov = overrides[k] && overrides[k][postId+'_'+part] || null;
     if (!c && !(ov && (ov.w.length || ov.x))) return null;
+    if (!ov && isFerie(k)) return null;   /* jour férié : la trame ne pose personne (seule une vacation saisie ou importée à la main reste) */
     const who = ov ? ov.w.slice() : (Array.isArray(c.who) ? c.who.slice() : []);
     if (!ov && c && Array.isArray(c.rot) && c.rot.length) { const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7), n = c.rot.length, r = c.rot[((wk % n) + n) % n]; if (r && !who.includes(r)) who.push(r); }   /* alternance semaine par semaine */
     Object.values(swaps).filter(x=>x.status === 'conclu' && (!ov || (x.updatedAt||0) > ov.t)).sort((a,b)=>(a.updatedAt||0)-(b.updatedAt||0)).forEach(x=>{
