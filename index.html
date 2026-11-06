@@ -4566,6 +4566,7 @@ const PROTO = [
       sem: v.sem && typeof v.sem === 'object' ? v.sem : {},
       intSet: v.intSet === true,
       offMin: typeof v.offMin === 'number' ? v.offMin : null,
+      rcpOff: v.rcpOff === true,
       prioAbs: Array.isArray(v.prioAbs) ? v.prioAbs.filter(x=>typeof x === 'string') : [],
       prio: Array.isArray(v.prio) ? v.prio.filter(x=>typeof x === 'string') : []
     };
@@ -4611,6 +4612,11 @@ const PROTO = [
       }
     });
     if (pubOff(k) && !isRim()) { const w2 = who.filter(id=>!pubHidden(k, id)); if (!w2.length && who.length) return null; who.length = 0; w2.forEach(x=>who.push(x)); }
+    /* RCP du lundi matin et du mardi après-midi : un des internes d'écho y est affiché aussi (désactivable dans Réglages → Trame) */
+    if (postId === 'rcp' && !trame.rcpOff && ((dow === 0 && part === 'M') || (dow === 1 && part === 'AM')) && !who.some(id=>!isSrId(id))) {
+      const ev = vacWho('echo', k, part), it = ev && !ev.ou ? ev.who.find(id=>!isSrId(id) && doctors[id]) : '';
+      if (it && !(pubOff(k) && !isRim() && pubHidden(k, it))) who.push(it);
+    }
     return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : ''), edited: !!(ov && c), open: !!ov && !who.length && !ov.x && !ov.dl, dl: !!(ov && ov.dl)};
   }
   /* pourquoi id ne peut pas être sur ce créneau ('' si tout va bien) */
@@ -6260,6 +6266,7 @@ const PROTO = [
         + '<div class="intgrid">'+[0,1,2,3,4].map(i=>'<div class="intgc"><small>'+TDN[i]+'</small>'+parts.map(pt=>{ const on = isOn(p.id, i, pt); return '<button type="button" data-trc="'+esc(p.id+'|'+i+'|'+pt)+'" class="'+(on ? 'ov' : '')+'" aria-pressed="'+on+'" aria-label="'+TDN[i]+' '+(p.journee ? 'journée' : PART_TXT[pt])+'"'+(canWrite ? '' : ' disabled')+'>'+(p.journee ? 'J' : pt === 'M' ? 'M' : 'AM')+'</button>'; }).join('')+'</div>').join('')+'</div></div>'; }).join('') || '<p class="hint">Aucun poste.</p>';
     if (INT) $('#trameCfgBody').innerHTML += '<div class="intq troff"><p class="aststat"><b>🏝 Off minimum par interne et par semaine</b></p><p class="hint">Valeur par défaut de la génération (modifiable à chaque génération). Une indispo ou un repos de garde compte comme un off.</p><div class="astpair offstep"><button type="button" class="astbtn" data-troffmin="-1"'+(canWrite && trOff() > 0 ? '' : ' disabled')+' aria-label="Moins">−</button><b class="offv">'+trOff()+' off</b><button type="button" class="astbtn" data-troffmin="1"'+(canWrite && trOff() < 6 ? '' : ' disabled')+' aria-label="Plus">＋</button></div></div>';
     if (INT) $('#trameCfgBody').innerHTML += '<div class="intq trprio"><p class="aststat"><b>🎯 Ordre de priorité des vacations</b></p><p class="hint">Les internes sont répartis d’abord sur les vacations du haut (ex. échographie avant bloc). Proposé à chaque génération, modifiable semaine par semaine.</p>'+prioHtml(prioList0(), canWrite ? 'data-trprio' : 'data-x', absList0())+'</div>';
+    if (trame.postes.some(p=>p.id === 'rcp')) $('#trameCfgBody').innerHTML += '<div class="intq trrcp"><p class="aststat"><b>🩺 RCP : un interne d’écho affiché</b></p><button type="button" class="astbtn" data-trrcp="1" aria-pressed="'+!trame.rcpOff+'"'+(canWrite ? '' : ' disabled')+'>'+(trame.rcpOff ? 'Désactivé · toucher pour activer' : '✓ Activé · toucher pour désactiver')+'</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Le lundi matin et le mardi après-midi, un des internes de l’écho (le premier de la liste) est aussi affiché sur la vacation RCP.</p></details></div>';
     $('#trameCfgBody').innerHTML += '<form id="trAdd" class="trnew"><b>➕ Nouvelle vacation</b><div class="f"><label for="trNewName">Nom</label><input type="text" id="trNewName" maxlength="40" autocomplete="off" placeholder="ex. Scanner interventionnel"></div><div class="f"><label for="trNewKind">Durée</label><select id="trNewKind"><option value="">Matin et après-midi</option><option value="j">Journée entière</option></select></div><button type="submit" class="primary"'+(canWrite ? '' : ' disabled')+'>Ajouter la vacation</button></form>';
   }
   /* renommer / ajouter / supprimer une vacation depuis la trame */
@@ -6270,6 +6277,7 @@ const PROTO = [
     if (await saveTrame(t=>{ const q = t.postes.find(x=>x.id === id); if (q) q.label = v; })) { trSig = ''; notify('Vacation renommée.'); } else { trSig = ''; renderTrameCfg(); }
   });
   $('#trameCfgBody').addEventListener('click', async e=>{
+    const rb = e.target.closest('[data-trrcp]'); if (rb) { const nv = !trame.rcpOff; if (await saveTrame(t=>{ t.rcpOff = nv; })) { trSig = ''; renderTrameCfg(); notify(nv ? 'RCP : interne d’écho masqué.' : 'RCP : interne d’écho affiché.'); } return; }
     const ob = e.target.closest('[data-troffmin]'); if (ob) { const nv = offStep(trOff(), Number(ob.dataset.troffmin)); if (await saveTrame(t=>{ t.offMin = nv; })) { trSig = ''; renderTrameCfg(); } return; }
     const pb = e.target.closest('[data-trprio]'); if (pb) { const act = pb.dataset.trprio, isAbs = act.startsWith('abs|'), nl = isAbs ? prioList0() : prioMove(prioList0(), act), na = isAbs ? absToggle(absList0(), act.slice(4)) : absList0().filter(x=>nl.includes(x)); if (await saveTrame(t=>{ t.prio = nl; t.prioAbs = na; })) { trSig = ''; renderTrameCfg(); } return; }
     const b = e.target.closest('[data-trdel]'); if (!b) return;
