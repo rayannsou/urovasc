@@ -36,7 +36,7 @@ self.addEventListener('fetch', e => {
     e.respondWith((async () => {
       const c = await caches.open(CACHE);
       try {
-        const r = await Promise.race([fetch(req), new Promise((_, rej) => setTimeout(() => rej(new Error('lent')), 6000))]);
+        const r = await Promise.race([fetch(new Request(req, {cache: 'no-cache'})), new Promise((_, rej) => setTimeout(() => rej(new Error('lent')), 6000))]);
         if (r && r.ok) c.put(key, r.clone());
         return r;
       } catch (err) {
