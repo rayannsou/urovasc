@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 22h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 22h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2454,7 +2454,7 @@ const PROTO = [
     try { await db.doc('meta/chefrules').set({json: JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF, acc: CHEF_ACC, accx: CHEF_ACCX}), at: Date.now()}); trSig = ''; return true; } catch(e) { handleErr(e); return false; }
   }
   const chefNm = x => { const id = chefCtx().who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
-  const NTH = n => n+(n === 1 ? 'er' : 'ᵉ');
+  const NTH = n => n === 'L' ? 'dernier' : n+(Number(n) === 1 ? 'er' : 'ᵉ');
   const DAYL = ['lundi','mardi','mercredi','jeudi','vendredi'];
   function chefTblHtml(){
     if (!trame) return '';
@@ -2484,6 +2484,8 @@ const PROTO = [
     return h+'</div>';
   }
   const nthOf = k => Math.ceil(parse(k).getDate() / 7);
+  const lastOf = k => { const d = parse(k); return d.getDate() + 7 > new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); };   /* dernier jour de ce type dans le mois */
+  const nthOk = (nth, k) => nth === 'L' ? lastOf(k) : Number(nth) === nthOf(k);
   let chefCtxC = null;
   function chefCtx(){
     const pl = chefPlan(), pk = {}; Object.keys(CHEF_POSTES).forEach(k=>{ const po = pl.pick[k]; if (po && !pk[po.id]) pk[po.id] = k; });
@@ -2499,9 +2501,9 @@ const PROTO = [
     if (rotC) ids(rotC).forEach(id=>{ if (!out.repl.includes(id)) out.repl.unshift(id); });
     Object.keys(CHEF_OFF).forEach(x=>{ const id = cx.who[x]; if (!id) return; const o = CHEF_OFF[x]; if ((o.hard || []).includes(sk)) out.ban.add(id); if ((o.soft || []).includes(sk)) out.soft.add(id); });
     Object.keys(CHEF_SEUL).forEach(x=>{ const id = cx.who[x]; if (id && !CHEF_SEUL[x].includes(sk+'|'+pk)) out.ban.add(id); });
-    CHEF_MOIS.forEach(r=>{ const id = cx.who[r.who]; if (!id || r.dow !== dow || r.nth !== n) return; if (r.slots.some(sl=>sl[0] === part && sl[1] === pk)) { out.want.push(id); if (r.replace) out.replace = true; } });
-    CHEF_MOIS_OFF.forEach(r=>{ const id = cx.who[r.who]; if (id && r.dow === dow && r.nth === n) { out.ban.add(id); out.keepBan.add(id); } });
-    const rim = cx.who.rim; if (rim && dow === 1 && n === 4) out.ban.delete(rim);   /* 4ᵉ mardi : Rim travaille */
+    CHEF_MOIS.forEach(r=>{ const id = cx.who[r.who]; if (!id || r.dow !== dow || !nthOk(r.nth, k)) return; if (r.slots.some(sl=>sl[0] === part && sl[1] === pk)) { out.want.push(id); if (r.replace) out.replace = true; } });
+    CHEF_MOIS_OFF.forEach(r=>{ const id = cx.who[r.who]; if (id && r.dow === dow && nthOk(r.nth, k)) { out.ban.add(id); out.keepBan.add(id); } });
+    out.want.forEach(id=>out.ban.delete(id));   /* règle du mois : la personne travaille ce jour-là malgré son off habituel */
     return out;
   }
   function chefOpen(){
@@ -2608,13 +2610,13 @@ const PROTO = [
     }
     if (t.dataset.chmad) {
       let ty = 'off', who = keys[0];
-      const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Règle du mois</b></p><label>Personne</label>'+sel('cmW', keys.map(x=>[x, nm(x)]), who)+'<label>Jour</label>'+sel('cmD', DAYL.map((d,i)=>[i, d]), 0)+'<label>Rang dans le mois</label>'+sel('cmN', [1,2,3,4].map(n=>[n, NTH(n)+' du mois']), 4)+'<label>Type</label>'+sel('cmT', [['off','Est off'],['work','Travaille sur…']], ty)+(ty === 'work' ? '<label>Poste</label>'+sel('cmP', pOpts, 'rdc')+'<label>Partie</label>'+sel('cmH', [['M','Matin'],['AM','Après-midi']], 'M')+'<label style="display:block;margin-top:6px"><input type="checkbox" id="cmR"> Remplace le titulaire</label>' : '')+'<div class="asb"><button type="button" class="primary" data-cmok>Ajouter</button><button type="button" class="ghost" data-cmno>Annuler</button></div></div>'; };
+      const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Règle du mois</b></p><label>Personne</label>'+sel('cmW', keys.map(x=>[x, nm(x)]), who)+'<label>Jour</label>'+sel('cmD', DAYL.map((d,i)=>[i, d]), 0)+'<label>Rang dans le mois</label>'+sel('cmN', [1,2,3,4,'L'].map(n=>[n, (n === 'L' ? 'Dernier' : NTH(n))+' du mois']), 4)+'<label>Type</label>'+sel('cmT', [['off','Est off'],['work','Travaille sur…']], ty)+(ty === 'work' ? '<label>Poste</label>'+sel('cmP', pOpts, 'rdc')+'<label>Partie</label>'+sel('cmH', [['M','Matin'],['AM','Après-midi']], 'M')+'<label style="display:block;margin-top:6px"><input type="checkbox" id="cmR"> Remplace le titulaire</label>' : '')+'<div class="asb"><button type="button" class="primary" data-cmok>Ajouter</button><button type="button" class="ghost" data-cmno>Annuler</button></div></div>'; };
       draw(); document.body.appendChild(w);
       w.addEventListener('change', ev=>{ if (ev.target.id === 'cmT') { ty = ev.target.value; who = w.querySelector('#cmW').value; draw(); w.querySelector('#cmT').value = ty; } });
       w.addEventListener('click', async ev=>{
         if (ev.target === w || ev.target.closest('[data-cmno]')) { w.remove(); return; }
         if (!ev.target.closest('[data-cmok]')) return;
-        const g = id => w.querySelector('#'+id), r = {who: g('cmW').value, dow: Number(g('cmD').value), nth: Number(g('cmN').value)};
+        const g = id => w.querySelector('#'+id), r = {who: g('cmW').value, dow: Number(g('cmD').value), nth: g('cmN').value === 'L' ? 'L' : Number(g('cmN').value)};
         if (ty === 'off') CHEF_MOIS_OFF.push(r); else { r.slots = [[g('cmH').value, g('cmP').value]]; if (g('cmR').checked) r.replace = true; CHEF_MOIS.push(r); }
         if (await chefRuSave()) { w.remove(); notify('Règle ajoutée.'); }
       });
@@ -3125,7 +3127,8 @@ const PROTO = [
       const sen = plGrp !== 'interne', n0 = trame ? (sen ? Object.keys(trame.cases).filter(c=>!(trame.cases[c].who || []).length && !trame.cases[c].texte).length : Object.keys(trame.casesInt || {}).length) : 0;
       if (wzTrSub === 'mod') body = q('✏️ Voulez-vous modifier une vacation en particulier&nbsp;?', 'Vous ouvrez la trame pour changer des vacations <b>cette semaine seulement</b> (la trame générale reste inchangée).', '<button type="button" data-wzsub="edit" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="skip" aria-pressed="false">Non</button>');
       else if (wzTrSub === 'edit') body = wkTrHtml() + '<button type="button" class="astbtn go wznext" data-wzsub="skip">Appliquer cette trame · Suivant ›</button>';
-      else body = q('🗓 Voulez-vous appliquer la trame générale&nbsp;?', 'Trame '+(sen ? 'senior' : 'interne')+' : '+(n0 ? n0+' vacation'+(n0 > 1 ? 's' : '')+' à pourvoir chaque semaine.' : 'aucune vacation définie (Réglages → Trame du planning).')+' « Non » : vous ouvrez la trame générale pour la modifier, cette semaine seulement (elle reste inchangée).', '<button type="button" data-wzsub="yes" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="no" aria-pressed="false">Non</button>');
+      else body = q('🗓 Voulez-vous appliquer la trame '+(sen ? 'des chefs' : 'générale')+'&nbsp;?', (sen ? 'Tableau des chefs : ' : 'Trame interne : ')+(n0 ? n0+' vacation'+(n0 > 1 ? 's' : '')+' à pourvoir chaque semaine.' : 'aucune vacation définie (Réglages → Trame du planning).')+(sen ? ' « Oui » : la génération suit ce tableau, les jours off, les remplaçants et les règles du mois (ex. 4ᵉ mardi de Rim).' : '')+' « Non » : vous ouvrez la trame pour la modifier, cette semaine seulement (elle reste inchangée).', '<button type="button" data-wzsub="yes" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="no" aria-pressed="false">Non</button>')
+        + (sen ? '<details class="info" style="margin:10px 0"><summary><b>🗓 Voir le tableau des chefs et les règles</b></summary>'+chefTblHtml()+'</details>' : '');
     }
     else if (s === 'close') body = q('🔒 Voulez-vous fermer une vacation&nbsp;?', 'Une vacation fermée reste sans personne : elle ne sera pas remplie.', '<button type="button" data-astyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
     else if (s === 'post') body = q('✋ Voulez-vous poster quelqu’un quelque part&nbsp;?', 'Les vacations déjà pourvues sont conservées : la génération complète seulement les autres.', '<button type="button" data-wkpostyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
