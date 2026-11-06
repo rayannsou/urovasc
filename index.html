@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 19h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 19h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2389,7 +2389,7 @@ const PROTO = [
 
   /* ---------- règles de remplacement des chefs (lues dans « Règles de création automatique des chefs ») ----------
      clé « jour|partie|poste » (0 = lundi) → personnes à solliciter dans l'ordre si le titulaire est absent ; « poste » seul = dernier recours */
-  const CHEF_REPL = {
+  let CHEF_REPL = {
     '0|AM|rdc':['antoine','henri'], '2|AM|ext':['henri','yann'], '4|M|bloc':['clement','rayann'], '4|AM|bloc':['clement','rayann'],
     '3|M|ext':['antoine'], '3|M|irm':['antoine'], '3|AM|sa':['antoine','rayann'], '3|M|bloc':['rayann'], '3|AM|bloc':['rayann'],
     '3|M|echo':['antoine'], '3|AM|echo':['antoine','henri'], '0|AM|bloc':['rayann'], '1|M|bloc':['rayann','clement'], '1|AM|bloc':['rayann','clement'],
@@ -2397,18 +2397,50 @@ const PROTO = [
     sa:['rim'], rdc:['rim'], urg:['rim']
   };
   /* jours off : « hard » = jamais sollicité ; « soft » = mobilisable en dernier recours */
-  const CHEF_OFF = {
+  let CHEF_OFF = {
     nicolas:{hard:['2AM','3M','3AM','4M','4AM']}, clement:{hard:['2M','2AM']}, antoine:{hard:['2M','2AM']}, yann:{hard:['1M','1AM']}, rim:{hard:['1M','1AM']},
     eva:{soft:['0M','0AM','1M','1AM']}, henri:{soft:['3M','3AM']}, rayann:{soft:['1M','1AM','2M','2AM','3M','3AM']}
   };
   /* ne travaillent que sur certaines vacations (et ne remplacent personne) */
-  const CHEF_SEUL = {ima:['0AM|rdc','2AM|ext','4M|xa'], amandine:['3M|irm','3AM|sa','4M|sa']};
+  let CHEF_SEUL = {ima:['0AM|rdc','2AM|ext','4M|xa'], amandine:['3M|irm','3AM|sa','4M|sa']};
   /* règles selon le rang du jour dans le mois (nᵉ lundi, nᵉ mardi…) */
-  const CHEF_MOIS = [
+  let CHEF_MOIS = [
     {who:'rim', dow:1, nth:4, slots:[['M','rdc'],['AM','echo']]},
     {who:'rim', dow:1, nth:4, slots:[['AM','rcp']], replace:true}
   ];
-  const CHEF_MOIS_OFF = [{who:'rim', dow:0, nth:4}];
+  let CHEF_MOIS_OFF = [{who:'rim', dow:0, nth:4}];
+  const CHEF_DEF = JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF});
+  function chefRuSet(j){ try { const o = JSON.parse(j || CHEF_DEF); CHEF_REPL = o.repl || {}; CHEF_OFF = o.off || {}; CHEF_SEUL = o.seul || {}; CHEF_MOIS = o.mois || []; CHEF_MOIS_OFF = o.moisOff || []; } catch(e) { chefRuSet(CHEF_DEF); } }
+  let chefRuCustom = false;
+  async function chefRuSave(){
+    if (!db || !isRim()) return false;
+    if (!(await ensureCode('modifier les règles des chefs'))) return false;
+    try { await db.doc('meta/chefrules').set({json: JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF}), at: Date.now()}); trSig = ''; return true; } catch(e) { handleErr(e); return false; }
+  }
+  const chefNm = x => { const id = chefCtx().who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
+  const NTH = n => n+(n === 1 ? 'er' : 'ᵉ');
+  const DAYL = ['lundi','mardi','mercredi','jeudi','vendredi'];
+  function chefTblHtml(){
+    if (!trame) return '';
+    const ed = isRim(), cx = chefCtx(), nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); }, keys = Object.keys(CHEF_NOMS);
+    const slotTxt = k => { const a = k.split('|'); return a.length === 3 ? DAYL[a[0]]+' '+PART_TXT[a[1]]+' · '+CHEF_POSTES[a[2]][0] : 'Tous les jours · '+CHEF_POSTES[k][0]+' (dernier recours)'; };
+    let h = '<div class="chtbl"><p class="aststat" style="margin:10px 0 4px"><b>🗓 Jours off des chefs</b></p><p class="hint" style="margin:0 0 6px">Touche une case pour changer : <b>·</b> libre → <b>Off</b> (jamais sollicité) → <b>Mob.</b> (mobilisable en dernier recours).</p><div style="overflow-x:auto"><table class="team" style="min-width:440px;font-size:12px"><thead><tr><th class="who" rowspan="2">Chef</th>'+TDN.map(t=>'<th colspan="2" class="end">'+t+'</th>').join('')+'</tr><tr class="sub">'+TDN.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>';
+    keys.forEach(x=>{
+      if (CHEF_SEUL[x]) { h += '<tr><th class="who">'+esc(nm(x))+'</th><td colspan="10" style="text-align:left;padding:4px 8px"><small>Seulement : '+CHEF_SEUL[x].map(k=>{ const a = k.split('|'); return esc(DAYL[a[0].charAt(0)].slice(0,3)+' '+(a[0].slice(1) === 'M' ? 'matin' : 'après-midi')+' '+CHEF_POSTES[a[1]][0]); }).join(' · ')+' (ne remplace personne)</small></td></tr>'; return; }
+      const o = CHEF_OFF[x] || {};
+      h += '<tr><th class="who">'+esc(nm(x))+'</th>'+[0,1,2,3,4].map(d=>PARTS.map((pt,j)=>{ const sk = d+pt, st = (o.hard || []).includes(sk) ? 'h' : (o.soft || []).includes(sk) ? 's' : '';
+        return '<td class="v'+(j ? ' end' : '')+'" style="padding:2px;text-align:center">'+(ed ? '<button type="button" class="ghost" data-choff="'+x+'|'+sk+'" style="padding:2px 5px;min-height:0;font-size:11px;min-width:34px'+(st === 'h' ? ';background:#f3d6d6' : st === 's' ? ';background:#f6e7c8' : '')+'">'+(st === 'h' ? 'Off' : st === 's' ? 'Mob.' : '·')+'</button>' : (st === 'h' ? 'Off' : st === 's' ? 'Mob.' : '·'))+'</td>'; }).join('')).join('')+'</tr>'; });
+    h += '</tbody></table></div>';
+    h += '<p class="aststat" style="margin:14px 0 4px"><b>🔁 Qui remplace qui</b></p><p class="hint" style="margin:0 0 6px">Si le titulaire d’une vacation est absent, la génération prend ces personnes dans l’ordre.</p>';
+    Object.keys(CHEF_REPL).sort((a,b)=>(a.length < 5) - (b.length < 5) || a.localeCompare(b)).forEach(k=>{
+      h += '<p class="hint" style="margin:4px 0"><b>'+esc(slotTxt(k))+'</b> : '+CHEF_REPL[k].map(x=>esc(nm(x))).join(' → ')+(ed ? ' <button type="button" class="ghost" data-chred="'+esc(k)+'" style="padding:2px 8px;min-height:0;font-size:12px">✎</button><button type="button" class="ghost" data-chrdel="'+esc(k)+'" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Supprimer">✕</button>' : '')+'</p>'; });
+    if (ed) h += '<button type="button" class="ghost" data-chred="" style="margin-top:4px">＋ Ajouter un remplacement</button>';
+    h += '<p class="aststat" style="margin:14px 0 4px"><b>📆 Règles du mois</b></p>';
+    CHEF_MOIS.forEach((r,i)=>{ h += '<p class="hint" style="margin:4px 0"><b>'+NTH(r.nth)+' '+DAYL[r.dow]+'</b> : '+esc(nm(r.who))+' travaille — '+r.slots.map(sl=>CHEF_POSTES[sl[1]][0]+' ('+PART_TXT[sl[0]]+')').join(', ')+(r.replace ? ' (remplace le titulaire)' : '')+(ed ? ' <button type="button" class="ghost" data-chmdel="w'+i+'" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Supprimer">✕</button>' : '')+'</p>'; });
+    CHEF_MOIS_OFF.forEach((r,i)=>{ h += '<p class="hint" style="margin:4px 0"><b>'+NTH(r.nth)+' '+DAYL[r.dow]+'</b> : '+esc(nm(r.who))+' est off'+(ed ? ' <button type="button" class="ghost" data-chmdel="o'+i+'" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Supprimer">✕</button>' : '')+'</p>'; });
+    if (ed) h += '<button type="button" class="ghost" data-chmad="1" style="margin-top:4px">＋ Ajouter une règle du mois</button> <button type="button" class="ghost" data-chreset="1" style="margin-top:4px">↺ Rétablir les règles d’origine</button>';
+    return h+'</div>';
+  }
   const nthOf = k => Math.ceil(parse(k).getDate() / 7);
   let chefCtxC = null;
   function chefCtx(){
@@ -2471,6 +2503,51 @@ const PROTO = [
     });
   }
   $('#chefGo').addEventListener('click', chefOpen);
+  /* édition du tableau des règles des chefs */
+  document.addEventListener('click', async e=>{
+    const t = e.target.closest('[data-choff],[data-chrdel],[data-chred],[data-chmdel],[data-chmad],[data-chreset]'); if (!t || !isRim()) return;
+    if (t.dataset.choff) { const [x, sk] = t.dataset.choff.split('|'), o = CHEF_OFF[x] = CHEF_OFF[x] || {}; o.hard = o.hard || []; o.soft = o.soft || [];
+      const st = o.hard.includes(sk) ? 'h' : o.soft.includes(sk) ? 's' : ''; o.hard = o.hard.filter(y=>y !== sk); o.soft = o.soft.filter(y=>y !== sk);
+      if (st === '') o.hard.push(sk); else if (st === 'h') o.soft.push(sk);
+      if (await chefRuSave()) { try { renderTrameCfg(); renderCompose(); } catch(er) {} } else { const d = (await db.doc('meta/chefrules').get()); chefRuSet(d.exists ? d.data().json : null); try { renderTrameCfg(); renderCompose(); } catch(er) {} } return; }
+    if (t.dataset.chrdel) { delete CHEF_REPL[t.dataset.chrdel]; if (await chefRuSave()) notify('Remplacement supprimé.'); return; }
+    if (t.dataset.chmdel) { const i = Number(t.dataset.chmdel.slice(1)); if (t.dataset.chmdel[0] === 'w') CHEF_MOIS.splice(i, 1); else CHEF_MOIS_OFF.splice(i, 1); if (await chefRuSave()) notify('Règle supprimée.'); return; }
+    if (t.dataset.chreset) { if (!(await ensureCode('rétablir les règles des chefs'))) return; try { await db.doc('meta/chefrules').delete(); notify('Règles d’origine rétablies.'); } catch(er) { handleErr(er); } return; }
+    if (!trame) return;
+    const keys = Object.keys(CHEF_NOMS), cx = chefCtx(), nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
+    const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+    const sel = (id, opts, cur) => '<select id="'+id+'" style="width:100%;padding:8px;margin:4px 0;font:inherit">'+opts.map(o=>'<option value="'+esc(o[0])+'"'+(String(o[0]) === String(cur) ? ' selected' : '')+'>'+esc(o[1])+'</option>').join('')+'</select>';
+    const pOpts = Object.keys(CHEF_POSTES).map(k=>[k, CHEF_POSTES[k][0]]);
+    if (t.dataset.chmad) {
+      let ty = 'off', who = keys[0];
+      const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Règle du mois</b></p><label>Personne</label>'+sel('cmW', keys.map(x=>[x, nm(x)]), who)+'<label>Jour</label>'+sel('cmD', DAYL.map((d,i)=>[i, d]), 0)+'<label>Rang dans le mois</label>'+sel('cmN', [1,2,3,4].map(n=>[n, NTH(n)+' du mois']), 4)+'<label>Type</label>'+sel('cmT', [['off','Est off'],['work','Travaille sur…']], ty)+(ty === 'work' ? '<label>Poste</label>'+sel('cmP', pOpts, 'rdc')+'<label>Partie</label>'+sel('cmH', [['M','Matin'],['AM','Après-midi']], 'M')+'<label style="display:block;margin-top:6px"><input type="checkbox" id="cmR"> Remplace le titulaire</label>' : '')+'<div class="asb"><button type="button" class="primary" data-cmok>Ajouter</button><button type="button" class="ghost" data-cmno>Annuler</button></div></div>'; };
+      draw(); document.body.appendChild(w);
+      w.addEventListener('change', ev=>{ if (ev.target.id === 'cmT') { ty = ev.target.value; who = w.querySelector('#cmW').value; draw(); w.querySelector('#cmT').value = ty; } });
+      w.addEventListener('click', async ev=>{
+        if (ev.target === w || ev.target.closest('[data-cmno]')) { w.remove(); return; }
+        if (!ev.target.closest('[data-cmok]')) return;
+        const g = id => w.querySelector('#'+id), r = {who: g('cmW').value, dow: Number(g('cmD').value), nth: Number(g('cmN').value)};
+        if (ty === 'off') CHEF_MOIS_OFF.push(r); else { r.slots = [[g('cmH').value, g('cmP').value]]; if (g('cmR').checked) r.replace = true; CHEF_MOIS.push(r); }
+        if (await chefRuSave()) { w.remove(); notify('Règle ajoutée.'); }
+      });
+      return;
+    }
+    /* remplacement : jour / partie / poste + ordre des personnes */
+    const cur = t.dataset.chred || ''; const a = cur.split('|');
+    let st = cur ? (a.length === 3 ? {d: a[0], p: a[1], k: a[2]} : {d: '*', p: 'M', k: cur}) : {d: '0', p: 'M', k: 'rdc'}, ppl = cur ? (CHEF_REPL[cur] || []).slice() : [];
+    const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Qui remplace</b></p><label>Poste</label>'+sel('rpP', pOpts, st.k)+'<label>Jour</label>'+sel('rpD', [['*','Tous les jours (dernier recours)']].concat(DAYL.map((d,i)=>[String(i), d])), st.d)+(st.d === '*' ? '' : '<label>Partie</label>'+sel('rpH', [['M','Matin'],['AM','Après-midi']], st.p))
+      +'<p class="hint" style="margin:8px 0 4px">Touche dans l’ordre des personnes à solliciter (touche encore pour retirer) :</p><div class="intgrid" style="flex-wrap:wrap;gap:6px">'+keys.map(x=>'<button type="button" class="astbtn'+(ppl.includes(x) ? ' ov' : '')+'" data-rpp="'+x+'" aria-pressed="'+ppl.includes(x)+'">'+(ppl.includes(x) ? (ppl.indexOf(x)+1)+'. ' : '')+esc(nm(x))+'</button>').join('')+'</div><div class="asb"><button type="button" class="primary" data-rpok'+(ppl.length ? '' : ' disabled')+'>Enregistrer</button><button type="button" class="ghost" data-rpno>Annuler</button></div></div>'; };
+    draw(); document.body.appendChild(w);
+    w.addEventListener('change', ev=>{ if (ev.target.id === 'rpP') st.k = ev.target.value; if (ev.target.id === 'rpD') st.d = ev.target.value; if (ev.target.id === 'rpH') st.p = ev.target.value; draw(); });
+    w.addEventListener('click', async ev=>{
+      if (ev.target === w || ev.target.closest('[data-rpno]')) { w.remove(); return; }
+      const b = ev.target.closest('[data-rpp]'); if (b) { const x = b.dataset.rpp; ppl = ppl.includes(x) ? ppl.filter(y=>y !== x) : ppl.concat(x); draw(); return; }
+      if (!ev.target.closest('[data-rpok]') || !ppl.length) return;
+      const nk = st.d === '*' ? st.k : st.d+'|'+st.p+'|'+st.k; if (cur && cur !== nk) delete CHEF_REPL[cur]; CHEF_REPL[nk] = ppl;
+      if (await chefRuSave()) { w.remove(); notify('Remplacement enregistré.'); }
+    });
+  });
+
   const dayNotes = k => (notesBy[k] || []);
   function renderGNotes(){
     const box = $('#gNotes');
@@ -2920,6 +2997,7 @@ const PROTO = [
   ];
   function chefRulesHtml(){
     return '<details class="cardfold" style="margin-top:10px" open><summary><b>📋 Règles de création automatique des chefs</b></summary><p class="hint">Ces règles guident la génération : la trame ci-dessus est la base, le reste sert quand il manque quelqu’un.</p>'
+      + chefTblHtml()
       + CHEF_REGLES.map(r=>'<p class="hint" style="margin:6px 0"><b>'+esc(r[0])+'</b> · '+esc(chefRegOv[r[0]] != null ? chefRegOv[r[0]] : r[1])+(isRim() ? ' <button type="button" class="ghost" data-chefrl="'+esc(r[0])+'" style="padding:2px 8px;min-height:0;font-size:12px">✎</button>' : '')+(chefRegOv[r[0]] != null && chefUnknown(chefRegOv[r[0]]).length ? '<br><span class="codeerr" style="display:block">⚠ Je ne suis pas sûre de comprendre : '+esc(chefUnknown(chefRegOv[r[0]]).join(', '))+' (précise-le, par ex. « Lyric = Scanner SA »)</span>' : '')+'</p>').join('')
       + '<details class="info"><summary>ⓘ Abréviations comprises</summary><p class="hint">TDM urg. / scan urgences = Scanner des urgences · TDM hospit. / scan hospit. = scanner des patients hospitalisés (RDC / RI) · TDM externe / scan externe = Scanner externes · scan SA / TDM SA = Scanner SA · Lyric = XA = Scanner photonique XA (poste distinct du Scanner SA) · IRM 7 / IRM 8 = IRM (7h / 8h) · SA = site SA · RCP · écho = Échographie · IMA, CCA, DJ = abréviations du service.</p></details></details>';
   }
@@ -7076,6 +7154,7 @@ const PROTO = [
       maybeSeed(); maybePatch();
     }, err=>{});
     db.doc('meta/publication').onSnapshot(s=>{ pubDoc = s.exists ? (s.data() || {}) : {}; renderPub(); if (typeof renderAll === 'function') renderAll(); try { renderCompose(); } catch(e) {} }, err=>{});
+    db.doc('meta/chefrules').onSnapshot(s=>{ const d = s.exists ? s.data() : null; chefRuCustom = !!(d && d.json); chefRuSet(d && d.json); trSig = ''; try { renderTrameCfg(); renderCompose(); } catch(e) {} }, err=>{});
     db.doc('meta/chefregles').onSnapshot(s=>{ chefRegOv = s.exists ? (s.data() || {}) : {}; trSig = ''; try { renderTrameCfg(); } catch(e) {} }, err=>{});
     db.doc('meta/cours').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; cours = {}; Object.keys(v.items || {}).forEach(k=>{ if (v.items[k]) cours[k] = v.items[k]; }); renderCours(); }, err=>{});
     db.doc('meta/annonces').onSnapshot(s=>{ const v = s.exists ? (s.data() || {}) : {}; annon = v.items && typeof v.items === 'object' ? v.items : {}; annLoaded = true; renderAnn(); annPopup(); renderToday(); }, err=>{});
