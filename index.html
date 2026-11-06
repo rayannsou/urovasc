@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 20h30</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 20h45</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4743,7 +4743,7 @@ const PROTO = [
     if (!trame) return out;
     trame.postes.forEach(p=>PARTS.forEach(part=>{
       const v = vacWho(p.id,k,part);
-      if (v && v.who.includes(id)) out.push({poste:p.id, part, k, ou:v.ou, who:v.who, others:v.who.filter(w=>w !== id)});
+      if (v && v.who.includes(id) && overrides[k] && overrides[k][p.id+'_'+part]) out.push({poste:p.id, part, k, ou:v.ou, who:v.who, others:v.who.filter(w=>w !== id)});   /* une affectation n'existe qu'une fois le planning de la semaine créé : la trame seule n'affecte personne et l'indisponibilité prime */
     }));
     return out.sort((a,b)=>PARTS.indexOf(a.part)-PARTS.indexOf(b.part));
   }
