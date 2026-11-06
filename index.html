@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 20h45</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 21h00</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2083,11 +2083,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const presOf = (x, k) => sortedDocs().filter(d=>d.pres && d.pres[presKey(x, k)]);
   const presHtml = (x, k, edit) => {
     if (!x.p) return '';
-    const l = presOf(x, k), pk = presKey(x, k), mine = l.some(d=>d.id === me), canInt = isIntId(me) && !!doctors[me];
-    let h = '<span style="flex-basis:100%;display:block;margin-top:4px;font-size:13px">🎤 '+(l.length ? 'Présenté par <b>'+l.map(d=>esc(dLabel(d.id))).join(', ')+'</b>' : '<i>Présentateur : libre</i>');
+    const l = presOf(x, k), pk = presKey(x, k), mine = l.some(d=>d.id === me), canInt = isIntId(me) && !!doctors[me], cap = Math.max(1, Number(x.p) || 1), libre = Math.max(0, cap - l.length);
+    let h = '<span style="flex-basis:100%;display:block;margin-top:4px;font-size:13px">🎤 '+(l.length ? 'Présenté par <b>'+l.map(d=>esc(dLabel(d.id))).join(', ')+'</b>' : '<i>Présentateur : libre</i>')+(l.length && libre ? ' <i>· '+libre+' place'+(libre > 1 ? 's' : '')+' libre'+(libre > 1 ? 's' : '')+'</i>' : '');
     if (!edit) {
       if (mine) h += ' <button type="button" class="ghost" data-annpres="'+esc(pk)+'|'+esc(me)+'|0" style="padding:2px 8px;min-height:0;font-size:12px">Me retirer</button>';
-      else if (canInt && !l.length) h += ' <button type="button" class="primary" data-annpres="'+esc(pk)+'|'+esc(me)+'|1" style="padding:3px 10px;min-height:0;font-size:12px">Je présente</button>';
+      else if (canInt && libre) h += ' <button type="button" class="primary" data-annpres="'+esc(pk)+'|'+esc(me)+'|1" style="padding:3px 10px;min-height:0;font-size:12px">Je présente</button>';
       else if (isRim() && l.length) h += l.map(d=>' <button type="button" class="ghost" data-annpres="'+esc(pk)+'|'+esc(d.id)+'|0" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Retirer '+esc(dLabel(d.id))+'">✕ '+esc(dLabel(d.id))+'</button>').join('');
     }
     return h+'</span>';
@@ -2184,7 +2184,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       + '<label>Répéter<select id="anR"><option value="0">Jamais</option><option value="1"'+(x && Number(x.r) === 1 ? ' selected' : '')+'>Chaque semaine (même jour)</option><option value="2"'+(x && Number(x.r) === 2 ? ' selected' : '')+'>Toutes les 2 semaines</option><option value="3"'+(x && Number(x.r) === 3 ? ' selected' : '')+'>Toutes les 3 semaines</option><option value="4"'+(x && Number(x.r) === 4 ? ' selected' : '')+'>Toutes les 4 semaines</option></select></label>'
       + '<label id="anEw"'+(x && Number(x.r) ? '' : ' hidden')+'>Jusqu’au (facultatif)<input type="date" id="anE" value="'+esc(x && x.e ? x.e : '')+'"></label>'
       + '<label>Pour<select id="anG"><option value="">Tout le monde</option><option value="sen"'+(x && x.g === 'sen' ? ' selected' : '')+'>Seniors</option><option value="int"'+(x && x.g === 'int' ? ' selected' : '')+'>Internes</option></select></label>'
-      + '<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="anP"'+(x && x.p ? ' checked' : '')+'> 🎤 Les internes peuvent s’inscrire comme présentateur (ex. cas cliniques)</label>'
+      + '<label>🎤 Présentateurs (internes qui s’inscrivent eux-mêmes)<select id="anP">'+[0,1,2,3,4].map(n=>'<option value="'+n+'"'+((x ? Math.max(0, Number(x.p) || 0) : 0) === n ? ' selected' : '')+'>'+(n ? n+' présentateur'+(n > 1 ? 's' : '')+' maximum' : 'Aucun (pas d’inscription)')+'</option>').join('')+'</select></label>'
       + '<p class="codeerr" id="anErr" hidden></p><div class="asb"><button type="button" class="primary" data-anok>Enregistrer</button>'+(x ? '<button type="button" class="ghost" data-andel>Supprimer</button>' : '')+'<button type="button" class="ghost" data-anno>Annuler</button></div></div>';
     document.body.appendChild(w);
     const err = m=>{ const e = w.querySelector('#anErr'); e.textContent = m; e.hidden = false; };
@@ -2204,7 +2204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
         if (!d) return err('Choisissez une date.');
         if (a && b && b <= a) return err('L’heure de fin doit être après l’heure de début.');
         if (en && en < d) return err('La date de fin de répétition doit être après la première date.');
-        save({d, a: a || '', b: b || '', t, g, r, e: en || '', p: w.querySelector('#anP').checked ? 1 : 0});
+        save({d, a: a || '', b: b || '', t, g, r, e: en || '', p: Number(w.querySelector('#anP').value) || 0});
       }
     });
     setTimeout(()=>{ try { w.querySelector('#anT').focus(); } catch(e) {} }, 50);
