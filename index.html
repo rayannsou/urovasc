@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 20h45</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 21h00</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4855,7 +4855,7 @@ const PROTO = [
             inner = v.texte ? '<span class="ch">'+esc(v.texte)+'</span>' : '';
             inner += splitChips(v, id=>{ const r = v.ou ? '' : reasonFor(id,dk,part); if (r) cfl = true; return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+(r ? ' · '+esc(r) : '')+'</span>'; }, true);
             if (v.open) inner += '<span class="cap open">à pourvoir</span>';
-            if (v.edited) inner += '<span class="cap mod">modifié pour ce jour</span>';
+            
           } else inner = '<span class="muted">—</span>';
           L += '<div class="pcell'+(cfl ? ' cfl' : '')+(ed.poste === p.id && ed.date === dk && ed.part === part ? ' sel' : '')+'" data-p="'+esc(p.id)+'" data-d="'+dk+'" data-part="'+part+'" tabindex="0" role="button"><span class="pp">'+(part === 'M' ? 'Matin' : 'Après-midi')+'</span><span class="pw">'+inner+'</span></div>';
         });
@@ -4905,7 +4905,7 @@ const PROTO = [
           }, false);
           if (v.open) inner += '<span class="cap open">à pourvoir</span>';
           if (p.variante) inner += '<span class="cap'+(vv !== p.variante ? ' alt' : '')+'">'+esc(ABREV[vv] || vv)+'</span>';
-          if (v.edited) inner += '<span class="cap mod">modifié</span>';
+          
           h += '<td class="v'+end+sel+(cfl ? ' cfl' : '')+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : '+esc(v.who.filter(vis).map(dLabel).join(', ') || 'personne')+(cfl ? ', conflit' : '')+'">'+inner+'</td>';
         });
       });
