@@ -2181,8 +2181,12 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     if (!isRim()) return;
     const ad = e.target.closest && e.target.closest('[data-annadd]'); if (ad) { const dk = typeof gDay === 'number' && gDay >= 0 ? key(addDays(weekStart, Math.min(gDay, 5))) : key(weekStart); annOpen(null, dk); return; }
     const ed2 = e.target.closest && e.target.closest('[data-annedit]'); if (ed2) annOpen(ed2.dataset.annedit);
-    const ra = e.target.closest && e.target.closest('[data-rapadd]'); if (ra) rapOpen(null);
-    const re = e.target.closest && e.target.closest('[data-rapedit]'); if (re) rapOpen(re.dataset.rapedit);
+  });
+  document.addEventListener('click', e=>{
+    try {
+      const ra = e.target.closest && e.target.closest('[data-rapadd]'); if (ra) { rapOpen(null); return; }
+      const re = e.target.closest && e.target.closest('[data-rapedit]'); if (re) rapOpen(re.dataset.rapedit);
+    } catch(err) { try { notify('Rappel impossible à ouvrir. Rechargez la page.', true); } catch(e2) {} }
   });
 
   /* ---------- annuaire : numéros utiles (modifiable par les administrateurs) ---------- */
