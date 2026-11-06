@@ -1131,7 +1131,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 19h55</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 20h05</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2434,7 +2434,7 @@ const PROTO = [
     h += '</tbody></table></div>';
     h += '<p class="aststat" style="margin:14px 0 4px"><b>👥 Jamais seuls sur une vacation</b></p><p class="hint" style="margin:0 0 6px">Ces chefs sont toujours posés avec un autre senior (ex. Rayann avec Clément le lundi).</p><div class="intgrid" style="flex-wrap:wrap;gap:6px">'+keys.filter(x=>!CHEF_SEUL[x]).map(x=>ed ? '<button type="button" class="astbtn'+(CHEF_ACC.includes(x) ? ' ov' : '')+'" data-chacc="'+x+'" aria-pressed="'+CHEF_ACC.includes(x)+'">'+esc(nm(x))+'</button>' : (CHEF_ACC.includes(x) ? '<b>'+esc(nm(x))+'</b>' : '')).join('')+'</div>';
     h += '<p class="aststat" style="margin:14px 0 4px"><b>🔁 Qui remplace qui</b></p><p class="hint" style="margin:0 0 6px">Si le titulaire d’une vacation est absent, la génération prend ces personnes dans l’ordre.</p>';
-    Object.keys(CHEF_REPL).sort((a,b)=>(a.length < 5) - (b.length < 5) || a.localeCompare(b)).forEach(k=>{
+    Object.keys(CHEF_REPL).sort((a,b)=>{ const x = a.split('|'), y = b.split('|'); if ((x.length === 3) !== (y.length === 3)) return x.length === 3 ? -1 : 1; if (x.length !== 3) return Object.keys(CHEF_POSTES).indexOf(a) - Object.keys(CHEF_POSTES).indexOf(b); return (Number(x[0]) - Number(y[0])) || ((x[1] === 'M' ? 0 : 1) - (y[1] === 'M' ? 0 : 1)) || (Object.keys(CHEF_POSTES).indexOf(x[2]) - Object.keys(CHEF_POSTES).indexOf(y[2])); }).forEach(k=>{
       h += '<p class="hint" style="margin:4px 0"><b>'+esc(slotTxt(k))+'</b> : '+CHEF_REPL[k].map(x=>esc(nm(x))).join(' → ')+(ed ? ' <button type="button" class="ghost" data-chred="'+esc(k)+'" style="padding:2px 8px;min-height:0;font-size:12px">✎</button><button type="button" class="ghost" data-chrdel="'+esc(k)+'" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Supprimer">✕</button>' : '')+'</p>'; });
     if (ed) h += '<button type="button" class="ghost" data-chred="" style="margin-top:4px">＋ Ajouter un remplacement</button>';
     h += '<p class="aststat" style="margin:14px 0 4px"><b>📆 Règles du mois</b></p>';
