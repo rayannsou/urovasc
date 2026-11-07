@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 15h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 21h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -3478,6 +3478,7 @@ const PROTO = [
           }
           if (v && rr && rr.keepBan.size && !(overrides[k] && overrides[k][p.id+'_'+part])) { const w2 = v.who.filter(id=>!rr.keepBan.has(id)); if (w2.length !== v.who.length) v = Object.assign({}, v, {who: w2, synth: !w2.length}); }
           if (v && v.dl && !v.who.length && !v.ou) v = Object.assign({}, v, {synth: true});
+          if (!v && useTr && !wkEff(p.id, i, part) && !(overrides[k] && overrides[k][p.id+'_'+part])) return;   /* vacation fermée dans la trame (décochée) : rien à pourvoir, même si elle a été tenue par le passé */
           if (!v) { const oh = overrides && Object.keys(overrides).some(d=>{ const o = overrides[d][p.id+'_'+part]; return o && o.w && o.w.some(inGrp); }); if (!oh && !(Number(p.min) > 0)) return; v = {who: [], stars: [], ou: false, texte: '', edited: false, open: false, synth: true}; }   /* vacation vide mais déjà tenue par le passé : à pourvoir */
           if (v.texte && /^ferm/i.test(v.texte) && !v.who.length) return;
           if (v.open || v.edited && !v.ou) { v.who.forEach(id=>taken.add(id)); return; }
