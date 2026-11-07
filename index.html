@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 21h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 21h35</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2602,7 +2602,7 @@ const PROTO = [
       if (!trame) return;
       const [x, dd, pt] = t.dataset.chcell.split('|'), d = Number(dd), cx0 = chefCtx(), id = cx0.who[x]; if (!id) return;
       const SH = {bloc:'Bloc', echo:'Échographie', echosa:'Écho SA', cs:'Consultation', irm:'IRM', ext:'Scanner externes', rdc:'Scanner RDC / RI', urg:'Scanner urgences', sa:'Scanner SA', xa:'Lyric', rcp:'RCP'};
-      const pl = trame.postes.filter(p=>!p.info && !isSam(p) && !(p.journee && pt !== 'M'));
+      const pl = trame.postes.filter(p=>!p.info && !isSam(p) && !(p.journee && pt !== 'M') && !!trame.cases[tk(p.id, d, pt)]);   /* seulement les vacations ouvertes (trame vierge) */
       const has = p => { const c = trame.cases[tk(p.id, d, pt)]; return !!(c && ((Array.isArray(c.who) && c.who.includes(id)) || (Array.isArray(c.rot) && c.rot.includes(id)))); };
       const sk = d+pt, o0 = CHEF_OFF[x] || {};
       const rotOf = p => { const c = trame.cases[tk(p.id, d, pt)]; return c && Array.isArray(c.rot) && c.rot.includes(id) ? c.rot.filter(y=>y !== id)[0] || '' : ''; };
@@ -2610,7 +2610,7 @@ const PROTO = [
       const seniorsL = sortedDocs().filter(q=>!isIntId(q.id) && q.id !== id);
       let sel = new Set(pl.filter(has).map(p=>p.id)), st = (o0.hard || []).includes(sk) ? 'h' : (o0.soft || []).includes(sk) ? 's' : '';
       const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
-      const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>'+esc(dLabel(id))+' · '+DAYL[d]+' '+PART_TXT[pt]+'</b></p><p class="hint">Vacation(s) à pourvoir par cette personne (touche pour poser / retirer) :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'
+      const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>'+esc(dLabel(id))+' · '+DAYL[d]+' '+PART_TXT[pt]+'</b></p><p class="hint">'+(pl.length ? 'Vacation(s) ouvertes à pourvoir par cette personne (touche pour poser / retirer) :' : 'Aucune vacation ouverte sur cette demi-journée. Pour en poser une, coche-la d’abord dans la trame vierge (①).')+'</p><div style="display:flex;flex-wrap:wrap;gap:6px">'
         + pl.map(p=>'<button type="button" class="astbtn'+(sel.has(p.id) ? ' ov' : '')+'" data-cep="'+esc(p.id)+'" aria-pressed="'+sel.has(p.id)+'">'+esc(p.label)+'</button>').join('')+'</div>'
         + pl.filter(p=>sel.has(p.id)).map(p=>'<p class="hint" style="margin:12px 0 4px"><b>'+esc(p.label)+'</b> · une semaine sur deux avec :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[{id:'',l:'Personne'}].concat(seniorsL.map(q=>({id:q.id,l:dLabel(q.id)}))).map(q=>'<button type="button" class="astbtn'+(alt[p.id] === q.id ? ' ov' : '')+'" data-cea="'+esc(p.id+'|'+q.id)+'" aria-pressed="'+(alt[p.id] === q.id)+'">'+esc(q.l)+'</button>').join('')+'</div>').join('')
         + (sel.size ? '' : '<p class="hint" style="margin:10px 0 4px">Sans vacation, cette demi-journée est :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[['','Libre'],['h','Off (jamais sollicité)'],['s','Mobilisable']].map(a=>'<button type="button" class="astbtn'+(st === a[0] ? ' ov' : '')+'" data-ces="'+a[0]+'" aria-pressed="'+(st === a[0])+'">'+a[1]+'</button>').join('')+'</div>')
@@ -6630,7 +6630,7 @@ const PROTO = [
     $('#trameCfgBody').innerHTML = '<div class="intq"><button type="button" class="astbtn" data-trfill="1">📥 Préremplir d’après le planning en cours</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Coche automatiquement les vacations qui existent dans la semaine en cours (ou la plus proche qui contient des vacations) ; tu peux ensuite en cocher ou décocher. Chaque case est enregistrée pour toutes les semaines à venir.</p></details></div>' + $('#trameCfgBody').innerHTML;
     if (INT && trame.postes.some(p=>p.id === 'rcp')) $('#trameCfgBody').innerHTML += '<div class="intq trrcp"><p class="aststat"><b>🩺 RCP : un interne d’écho affiché</b></p><button type="button" class="astbtn" data-trrcp="1" aria-pressed="'+!trame.rcpOff+'"'+(canWrite ? '' : ' disabled')+'>'+(trame.rcpOff ? 'Désactivé · toucher pour activer' : '✓ Activé · toucher pour désactiver')+'</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Le lundi matin et le mardi après-midi, un des internes de l’écho (à tour de rôle, d’une semaine à l’autre) est aussi affiché sur la vacation RCP.</p></details></div>';
     $('#trameCfgBody').innerHTML += '<form id="trAdd" class="trnew"><b>➕ Nouvelle vacation</b><div class="f"><label for="trNewName">Nom</label><input type="text" id="trNewName" maxlength="40" autocomplete="off" placeholder="ex. Scanner interventionnel"></div><div class="f"><label for="trNewKind">Durée</label><select id="trNewKind"><option value="">Matin et après-midi</option><option value="j">Journée entière</option></select></div><button type="submit" class="primary"'+(canWrite ? '' : ' disabled')+'>Ajouter la vacation</button></form>';
-    if (!INT) { const bd = $('#trameCfgBody'); bd.innerHTML = chefRulesHtml() + '<details class="info" style="margin-top:12px"><summary><b>⚙️ Gérer les vacations</b> (noms, ajout, suppression, cases à pourvoir sans nom)</summary>' + bd.innerHTML + '</details>'; }
+    if (!INT) { const bd = $('#trameCfgBody'); bd.innerHTML = '<p class="aststat" style="margin:4px 0 2px"><b>① Trame vierge des seniors</b> · vacations ouvertes</p><p class="hint" style="margin:0 0 8px">Coche les vacations qui existent chaque semaine (sans personne). Une vacation décochée est fermée : elle n’est jamais proposée ni générée.</p><details class="info" open style="margin-bottom:14px"><summary><b>⚙️ Vacations ouvertes</b> (cocher, renommer, ajouter, supprimer)</summary>' + bd.innerHTML + '</details><p class="aststat" style="margin:14px 0 2px"><b>② Trame de remplissage</b> · qui tient ces vacations</p>' + chefRulesHtml(); }
   }
   /* renommer / ajouter / supprimer une vacation depuis la trame */
   $('#trameCfgBody').addEventListener('change', async e=>{
