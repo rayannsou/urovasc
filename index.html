@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 15h05</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 15h25</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2474,17 +2474,20 @@ const PROTO = [
     h += '<p class="aststat" style="margin:14px 0 4px"><b>🔁 Qui remplace qui</b></p><p class="hint" style="margin:0 0 6px">Si le titulaire d’une vacation est absent, la génération prend ces personnes dans l’ordre.</p>';
     const pkList = Object.keys(CHEF_POSTES).filter(k=>Object.values(cx.pk).includes(k) || Object.keys(CHEF_REPL).some(z=>z === k || z.split('|')[2] === k));
     const ab = x => nm(x).slice(0, 4);
-    const rcell = key => { const l = CHEF_REPL[key] || [], txt = l.length ? l.map(ab).join('›') : '·', bg = l.length ? 'background:rgba(60,120,170,.18);font-weight:600' : '';
+    const rcell = key => { const l = replSteps(CHEF_REPL[key]), txt = l.length ? l.map(st=>st.map(ab).join('/')).join('›') : '·', bg = l.length ? 'background:rgba(60,120,170,.18);font-weight:600' : '';
       return ed ? '<button type="button" class="ghost" data-chred="'+esc(key)+'" style="padding:3px 3px;min-height:0;font-size:10.5px;min-width:44px;line-height:1.2;'+bg+'">'+esc(txt)+'</button>' : esc(txt); };
     h += '<div style="overflow-x:auto"><table class="team" style="min-width:600px;font-size:12px"><thead><tr><th class="who" rowspan="2">Vacation</th>'+TDN.map(t=>'<th colspan="2" class="end">'+t+'</th>').join('')+'<th rowspan="2" style="font-size:11px">Dernier recours</th></tr><tr class="sub">'+TDN.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>'
       + pkList.map(pk=>'<tr><th class="who" style="font-size:11px">'+esc(CHEF_POSTES[pk][0])+'</th>'+[0,1,2,3,4].map(d=>PARTS.map((pt,j)=>'<td class="v'+(j ? ' end' : '')+'" style="padding:2px;text-align:center">'+rcell(d+'|'+pt+'|'+pk)+'</td>').join('')).join('')+'<td class="v" style="padding:2px;text-align:center">'+rcell(pk)+'</td></tr>').join('')
-      + '</tbody></table></div><p class="hint" style="margin:4px 0 0">Une case = les personnes à solliciter dans l’ordre (›) si le titulaire est absent. Touche une case pour la modifier.</p>';
+      + '</tbody></table></div><p class="hint" style="margin:4px 0 0">Une case = qui solliciter si le titulaire est absent : <b>›</b> = puis (ordre), <b>/</b> = ou (sans ordre). Ex. « Clém/Anto › Henr » : Clément ou Antoine, sinon Henri. Touche une case pour la modifier.</p>';
     h += '<p class="aststat" style="margin:14px 0 4px"><b>📆 Règles du mois</b></p>';
     CHEF_MOIS.forEach((r,i)=>{ h += '<p class="hint" style="margin:4px 0"><b>'+NTH(r.nth)+' '+DAYL[r.dow]+'</b> : '+esc(nm(r.who))+' travaille — '+r.slots.map(sl=>CHEF_POSTES[sl[1]][0]+' ('+PART_TXT[sl[0]]+')').join(', ')+(r.replace ? ' (remplace le titulaire)' : '')+(ed ? ' <button type="button" class="ghost" data-chmdel="w'+i+'" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Supprimer">✕</button>' : '')+'</p>'; });
     CHEF_MOIS_OFF.forEach((r,i)=>{ h += '<p class="hint" style="margin:4px 0"><b>'+NTH(r.nth)+' '+DAYL[r.dow]+'</b> : '+esc(nm(r.who))+' est off'+(ed ? ' <button type="button" class="ghost" data-chmdel="o'+i+'" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Supprimer">✕</button>' : '')+'</p>'; });
     if (ed) h += '<button type="button" class="ghost" data-chmad="1" style="margin-top:4px">＋ Ajouter une règle du mois</button> <button type="button" class="ghost" data-chreset="1" style="margin-top:4px">↺ Rétablir les règles d’origine</button>';
     return h+'</div>';
   }
+  /* un remplacement = suite d'étapes ; une étape = une personne, ou plusieurs « ou » sans ordre entre elles */
+  const replSteps = v => (Array.isArray(v) ? v : []).map(x=>Array.isArray(x) ? x.filter(Boolean) : [x]).filter(st=>st.length);
+  const replTxt = (v, f) => replSteps(v).map(st=>st.map(f).join(' ou ')).join(' › ');
   const nthOf = k => Math.ceil(parse(k).getDate() / 7);
   const lastOf = k => { const d = parse(k); return d.getDate() + 7 > new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); };   /* dernier jour de ce type dans le mois */
   const nthOk = (nth, k) => nth === 'L' ? lastOf(k) : Number(nth) === nthOf(k);
@@ -2500,8 +2503,9 @@ const PROTO = [
     const pk = cx.pk[p.id], sk = dow+part, n = nthOf(k), ids = a=>a.map(x=>cx.who[x]).filter(Boolean);
     const out = {acc: new Set(CHEF_ACC.filter(x=>!(CHEF_ACCX[x] || []).includes(dow+'|'+part+'|'+pk)).map(x=>cx.who[x]).filter(Boolean)), repl: [], ban: new Set(), soft: new Set(), keepBan: new Set(), want: [], replace: false};
     if (!pk) return out;
-    ids((CHEF_REPL[dow+'|'+part+'|'+pk] || []).concat(CHEF_REPL[pk] || [])).forEach(id=>{ if (!out.repl.includes(id)) out.repl.push(id); });
-    if (rotC) ids(rotC).forEach(id=>{ if (!out.repl.includes(id)) out.repl.unshift(id); });
+    out.step = {}; let sn = 0;
+    replSteps((CHEF_REPL[dow+'|'+part+'|'+pk] || []).concat(CHEF_REPL[pk] || [])).forEach(st=>{ const l = ids(st).filter(id=>!out.repl.includes(id)); if (!l.length) return; l.forEach(id=>{ out.repl.push(id); out.step[id] = sn; }); sn++; });
+    if (rotC) ids(rotC).forEach(id=>{ if (!out.repl.includes(id)) out.repl.unshift(id); out.step[id] = -1; });
     Object.keys(CHEF_OFF).forEach(x=>{ const id = cx.who[x]; if (!id) return; const o = CHEF_OFF[x]; if ((o.hard || []).includes(sk)) out.ban.add(id); if ((o.soft || []).includes(sk)) out.soft.add(id); });
     Object.keys(CHEF_SEUL).forEach(x=>{ const id = cx.who[x]; if (id && !CHEF_SEUL[x].includes(sk+'|'+pk)) out.ban.add(id); });
     CHEF_MOIS.forEach(r=>{ const id = cx.who[r.who]; if (!id || r.dow !== dow || !nthOk(r.nth, k)) return; if (r.slots.some(sl=>sl[0] === part && sl[1] === pk)) { out.want.push(id); if (r.replace) out.replace = true; } });
@@ -2668,17 +2672,18 @@ const PROTO = [
     }
     /* remplacement : jour / partie / poste + ordre des personnes */
     const cur = t.dataset.chred || ''; const a = cur.split('|');
-    let st = cur ? (a.length === 3 ? {d: a[0], p: a[1], k: a[2]} : {d: '*', p: 'M', k: cur}) : {d: '0', p: 'M', k: 'rdc'}, ppl = cur ? (CHEF_REPL[cur] || []).slice() : [];
+    let st = cur ? (a.length === 3 ? {d: a[0], p: a[1], k: a[2]} : {d: '*', p: 'M', k: cur}) : {d: '0', p: 'M', k: 'rdc'}, stp = cur ? replSteps(CHEF_REPL[cur]).map(x=>x.slice()) : [], mode = 'o';
     const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Qui remplace</b></p><label>Poste</label>'+sel('rpP', pOpts, st.k)+'<label>Jour</label>'+sel('rpD', [['*','Tous les jours (dernier recours)']].concat(DAYL.map((d,i)=>[String(i), d])), st.d)+(st.d === '*' ? '' : '<label>Partie</label>'+sel('rpH', [['M','Matin'],['AM','Après-midi']], st.p))
-      +'<p class="hint" style="margin:8px 0 4px">Touche dans l’ordre des personnes à solliciter (touche encore pour retirer) :</p><div class="intgrid" style="flex-wrap:wrap;gap:6px">'+keys.map(x=>'<button type="button" class="astbtn'+(ppl.includes(x) ? ' ov' : '')+'" data-rpp="'+x+'" aria-pressed="'+ppl.includes(x)+'">'+(ppl.includes(x) ? (ppl.indexOf(x)+1)+'. ' : '')+esc(nm(x))+'</button>').join('')+'</div><div class="asb"><button type="button" class="primary" data-rpok'+(ppl.length ? '' : ' disabled')+'>Enregistrer</button>'+(cur && CHEF_REPL[cur] ? '<button type="button" class="ghost" data-rpdel>Supprimer</button>' : '')+'<button type="button" class="ghost" data-rpno>Annuler</button></div></div>'; };
+      +'<p class="hint" style="margin:8px 0 4px">Choisis comment ajouter la prochaine personne :</p><div style="display:flex;gap:6px;margin-bottom:6px"><button type="button" class="astbtn'+(mode === 'o' ? ' ov' : '')+'" data-rpmode="o" aria-pressed="'+(mode === 'o')+'">› Puis (dans l’ordre)</button><button type="button" class="astbtn'+(mode === 'u' ? ' ov' : '')+'" data-rpmode="u" aria-pressed="'+(mode === 'u')+'">/ Ou (sans ordre)</button></div><p class="hint" style="margin:4px 0 6px"><b>'+(stp.length ? esc(replTxt(stp, nm)) : 'Aucune personne choisie')+'</b></p><div style="display:flex;flex-wrap:wrap;gap:6px">'+keys.map(x=>{ const on = stp.some(g=>g.includes(x)); return '<button type="button" class="astbtn'+(on ? ' ov' : '')+'" data-rpp="'+x+'" aria-pressed="'+on+'">'+esc(nm(x))+'</button>'; }).join('')+'</div><div class="asb"><button type="button" class="primary" data-rpok'+(stp.length ? '' : ' disabled')+'>Enregistrer</button>'+(cur && CHEF_REPL[cur] ? '<button type="button" class="ghost" data-rpdel>Supprimer</button>' : '')+'<button type="button" class="ghost" data-rpno>Annuler</button></div></div>'; };
     draw(); document.body.appendChild(w);
     w.addEventListener('change', ev=>{ if (ev.target.id === 'rpP') st.k = ev.target.value; if (ev.target.id === 'rpD') st.d = ev.target.value; if (ev.target.id === 'rpH') st.p = ev.target.value; draw(); });
     w.addEventListener('click', async ev=>{
       if (ev.target === w || ev.target.closest('[data-rpno]')) { w.remove(); return; }
-      const b = ev.target.closest('[data-rpp]'); if (b) { const x = b.dataset.rpp; ppl = ppl.includes(x) ? ppl.filter(y=>y !== x) : ppl.concat(x); draw(); return; }
+      const bm = ev.target.closest('[data-rpmode]'); if (bm) { mode = bm.dataset.rpmode; draw(); return; }
+      const b = ev.target.closest('[data-rpp]'); if (b) { const x = b.dataset.rpp; if (stp.some(g=>g.includes(x))) stp = stp.map(g=>g.filter(y=>y !== x)).filter(g=>g.length); else if (mode === 'u' && stp.length) stp[stp.length - 1].push(x); else stp.push([x]); draw(); return; }
       if (ev.target.closest('[data-rpdel]')) { delete CHEF_REPL[cur]; if (await chefRuSave()) { w.remove(); notify('Remplacement supprimé.'); } return; }
-      if (!ev.target.closest('[data-rpok]') || !ppl.length) return;
-      const nk = st.d === '*' ? st.k : st.d+'|'+st.p+'|'+st.k; if (cur && cur !== nk) delete CHEF_REPL[cur]; CHEF_REPL[nk] = ppl;
+      if (!ev.target.closest('[data-rpok]') || !stp.length) return;
+      const nk = st.d === '*' ? st.k : st.d+'|'+st.p+'|'+st.k; if (cur && cur !== nk) delete CHEF_REPL[cur]; CHEF_REPL[nk] = stp.map(g=>g.length === 1 ? g[0] : g);
       if (await chefRuSave()) { w.remove(); notify('Remplacement enregistré.'); }
     });
   });
@@ -3166,11 +3171,11 @@ const PROTO = [
       [0,1,2,3,4].forEach(d=>{ const k = key(addDays(plStart, d)); PARTS.forEach(pt=>{ posts.filter(p=>!(p.journee && pt !== 'M')).forEach(p=>{
         const w = wkWho(p, d, pt); if (!w || !w.includes(id)) return; const why = reasonFor(id, k, pt); if (!why) return;
         const cs = effCase(p.id, k, d, pt), rr = chefSlot(cx, p, k, d, pt, cs && Array.isArray(cs.rot) ? cs.rot : null);
-        const rep = rr.repl.find(r=>r !== id && !w.includes(r) && !reasonFor(r, k, pt) && !rr.ban.has(r));
+        const okc = rr.repl.filter(r=>r !== id && !w.includes(r) && !reasonFor(r, k, pt) && !rr.ban.has(r)), m0 = okc.length ? Math.min(...okc.map(r=>rr.step[r])) : 0, rep = okc.filter(r=>rr.step[r] === m0);
         (by[id] = by[id] || []).push({d, pt, p, why, rep}); }); }); }); });
     const ids = Object.keys(by); if (!ids.length) return '<div class="qcard" style="border-left:4px solid #3a8a5a"><p class="qt">✅ Aucun chef indisponible sur la trame de cette semaine</p></div>';
     return '<div class="qcard" style="border-left:4px solid #c0392b"><p class="qt">⚠️ Indisponibilités à vérifier</p><p class="qh">La génération en tient compte : elle remplace selon les règles (« Qui remplace qui »).</p>'
-      + ids.map(id=>'<p class="hint" style="margin:6px 0;text-align:left"><b>'+esc(dLabel(id))+'</b> est indisponible :<br>'+by[id].map(i=>'• '+DAYL[i.d]+' '+PART_TXT[i.pt]+' · '+esc(i.p.label)+' → '+(i.rep ? 'remplacé(e) par <b>'+esc(dLabel(i.rep))+'</b>' : '<i>aucun remplaçant prévu : à pourvoir</i>')).join('<br>')+'</p>').join('')+'</div>';
+      + ids.map(id=>'<p class="hint" style="margin:6px 0;text-align:left"><b>'+esc(dLabel(id))+'</b> est indisponible :<br>'+by[id].map(i=>'• '+DAYL[i.d]+' '+PART_TXT[i.pt]+' · '+esc(i.p.label)+' → '+(i.rep.length ? 'remplacé(e) par <b>'+i.rep.map(r=>esc(dLabel(r))).join(' ou ')+'</b>' : '<i>aucun remplaçant prévu : à pourvoir</i>')).join('<br>')+'</p>').join('')+'</div>';
   }
   function wkChefHtml(){
     const cx = chefCtx(), keys = chefRows(), s = semG(key(plStart), 'med'), dis = canWrite ? '' : ' disabled';
@@ -3493,7 +3498,7 @@ const PROTO = [
             .filter((id, ix, ar)=>ar.indexOf(id) === ix && !keep.includes(id) && !taken.has(id) && !reasonFor(id, k, part) && !avoids(id, p.id) && !rBan.has(id));
           const eqP = eqAll.post[p.id] || {};   /* équité : le moins sollicité sur ce poste d'abord, puis sur l'ensemble des postes */
           const prefS = new Set(genPref.filter(x=>x.poste === p.id).map(x=>x.id));
-          const rOrd = id => { const x = rRepl.indexOf(id); return x < 0 ? 99 : x; };
+          const rOrd = id => (rr && rr.step && rr.step[id] != null) ? rr.step[id] : 99;
           pool.sort((a,b)=>(prefS.has(b) ? 1 : 0) - (prefS.has(a) ? 1 : 0) || (rSoft.has(a) ? 1 : 0) - (rSoft.has(b) ? 1 : 0) || rOrd(a) - rOrd(b) || (v.ou ? (v.who.includes(b)?1:0)-(v.who.includes(a)?1:0) : 0) || ((eqP[a]||0) - (eqP[b]||0)) || ((eqAll.tot[a]||0) - (eqAll.tot[b]||0)) || ((load[a]||0) - (load[b]||0)));
           const eligible = pool.filter(id=>freq[id] || prefS.has(id) || rRepl.includes(id));
           const res = keep.slice();
