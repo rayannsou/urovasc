@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 14h45</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 15h05</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -3159,6 +3159,19 @@ const PROTO = [
     if (Array.isArray(c.rot) && c.rot.length) { const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7), n = c.rot.length, r = c.rot[((wk % n) + n) % n]; if (r && !who.includes(r)) who.push(r); }
     return who;
   }
+  /* indispos des chefs qui touchent la trame de la semaine + remplaçant prévu par les règles */
+  function wkIndisoHtml(){
+    const cx = chefCtx(), keys = chefRows(), posts = trame.postes.filter(p=>!p.info && !isSam(p)), by = {};
+    keys.forEach(x=>{ const id = cx.who[x]; if (!id) return;
+      [0,1,2,3,4].forEach(d=>{ const k = key(addDays(plStart, d)); PARTS.forEach(pt=>{ posts.filter(p=>!(p.journee && pt !== 'M')).forEach(p=>{
+        const w = wkWho(p, d, pt); if (!w || !w.includes(id)) return; const why = reasonFor(id, k, pt); if (!why) return;
+        const cs = effCase(p.id, k, d, pt), rr = chefSlot(cx, p, k, d, pt, cs && Array.isArray(cs.rot) ? cs.rot : null);
+        const rep = rr.repl.find(r=>r !== id && !w.includes(r) && !reasonFor(r, k, pt) && !rr.ban.has(r));
+        (by[id] = by[id] || []).push({d, pt, p, why, rep}); }); }); }); });
+    const ids = Object.keys(by); if (!ids.length) return '<div class="qcard" style="border-left:4px solid #3a8a5a"><p class="qt">✅ Aucun chef indisponible sur la trame de cette semaine</p></div>';
+    return '<div class="qcard" style="border-left:4px solid #c0392b"><p class="qt">⚠️ Indisponibilités à vérifier</p><p class="qh">La génération en tient compte : elle remplace selon les règles (« Qui remplace qui »).</p>'
+      + ids.map(id=>'<p class="hint" style="margin:6px 0;text-align:left"><b>'+esc(dLabel(id))+'</b> est indisponible :<br>'+by[id].map(i=>'• '+DAYL[i.d]+' '+PART_TXT[i.pt]+' · '+esc(i.p.label)+' → '+(i.rep ? 'remplacé(e) par <b>'+esc(dLabel(i.rep))+'</b>' : '<i>aucun remplaçant prévu : à pourvoir</i>')).join('<br>')+'</p>').join('')+'</div>';
+  }
   function wkChefHtml(){
     const cx = chefCtx(), keys = chefRows(), s = semG(key(plStart), 'med'), dis = canWrite ? '' : ' disabled';
     const nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
@@ -3168,8 +3181,9 @@ const PROTO = [
     keys.forEach(x=>{ const id = cx.who[x]; if (!id) return;
       h += '<tr><th class="who">'+esc(nm(x))+'</th>'+[0,1,2,3,4].map(d=>PARTS.map((pt,j)=>{
         const ps = posts.filter(p=>!(p.journee && pt !== 'M')).filter(p=>{ const w = wkWho(p, d, pt); return w && w.includes(id); }), o = CHEF_OFF[x] || {}, st = (o.hard || []).includes(d+pt) ? 'h' : (o.soft || []).includes(d+pt) ? 's' : '';
-        const txt = ps.length ? ps.map(p=>esc(wkShort[cx.pk[p.id]] || p.label.slice(0, 6))).join('+') : st === 'h' ? 'Off' : st === 's' ? 'Mob.' : '·';
-        const bg = ps.length ? 'background:rgba(46,125,90,.2);font-weight:600' : st === 'h' ? 'background:#f3d6d6' : st === 's' ? 'background:#f6e7c8' : '';
+        const bad = ps.length && reasonFor(id, key(addDays(plStart, d)), pt);
+        const txt = (bad ? '⚠ ' : '')+(ps.length ? ps.map(p=>esc(wkShort[cx.pk[p.id]] || p.label.slice(0, 6))).join('+') : st === 'h' ? 'Off' : st === 's' ? 'Mob.' : '·');
+        const bg = bad ? 'background:#f3d6d6;font-weight:600;border-color:#c0392b' : ps.length ? 'background:rgba(46,125,90,.2);font-weight:600' : st === 'h' ? 'background:#f3d6d6' : st === 's' ? 'background:#f6e7c8' : '';
         return '<td class="v'+(j ? ' end' : '')+'" style="padding:2px;text-align:center"><button type="button" class="ghost" data-wkcell="'+x+'|'+d+'|'+pt+'"'+dis+' style="padding:3px 4px;min-height:0;font-size:11px;min-width:44px;line-height:1.2;'+bg+'">'+txt+'</button></td>'; }).join('')).join('')+'</tr>'; });
     return h+'</tbody></table></div>';
   }
@@ -3196,7 +3210,7 @@ const PROTO = [
       if (wzTrSub === 'mod') body = q('✏️ Voulez-vous modifier une vacation en particulier&nbsp;?', 'Vous ouvrez la trame pour changer des vacations <b>cette semaine seulement</b> (la trame générale reste inchangée).', '<button type="button" data-wzsub="edit" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="skip" aria-pressed="false">Non</button>');
       else if (wzTrSub === 'edit') body = (sen ? wkChefHtml()+'<details class="info" style="margin:10px 0"><summary><b>Vacations qui existent cette semaine</b></summary>'+wkTrHtml()+'</details>' : wkTrHtml()) + '<button type="button" class="astbtn go wznext" data-wzsub="skip">Appliquer cette trame · Suivant ›</button>';
       else body = q('🗓 Voulez-vous appliquer la trame '+(sen ? 'des chefs' : 'générale')+'&nbsp;?', (sen ? 'Tableau des chefs : ' : 'Trame interne : ')+(n0 ? n0+' vacation'+(n0 > 1 ? 's' : '')+' à pourvoir chaque semaine.' : 'aucune vacation définie (Réglages → Trame du planning).')+(sen ? ' « Oui » : la génération suit ce tableau, les jours off, les remplaçants et les règles du mois (ex. dernier mardi du mois pour Rim).' : '')+' « Non » : vous ouvrez la trame pour la modifier, cette semaine seulement (elle reste inchangée).', '<button type="button" data-wzsub="yes" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="no" aria-pressed="false">Non</button>')
-        + (sen ? '<details class="info" style="margin:10px 0"><summary><b>🗓 Voir le tableau des chefs et les règles</b></summary>'+chefTblHtml()+'</details>' : '');
+        + (sen ? wkIndisoHtml() + '<details class="info" style="margin:10px 0"><summary><b>🗓 Vérifier la trame de cette semaine</b></summary>'+wkChefHtml()+'</details><details class="info" style="margin:10px 0"><summary><b>📋 Voir la trame générale et les règles</b></summary>'+chefTblHtml()+'</details>' : '');
     }
     else if (s === 'close') body = q('🔒 Voulez-vous fermer une vacation&nbsp;?', 'Une vacation fermée reste sans personne : elle ne sera pas remplie.', '<button type="button" data-astyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
     else if (s === 'post') body = q('✋ Voulez-vous poster quelqu’un quelque part&nbsp;?', 'Les vacations déjà pourvues sont conservées : la génération complète seulement les autres.', '<button type="button" data-wkpostyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
