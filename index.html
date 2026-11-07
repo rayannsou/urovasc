@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 21h35</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 21h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -3497,6 +3497,7 @@ const PROTO = [
           if (v.ou) { ous++; }
           const accS = sl.rr ? sl.rr.acc : new Set(), accAlone = a2 => accS.size && a2.length && a2.every(id=>accS.has(id));
           if (accAlone(keep)) need = Math.max(need, keep.length + 1);   /* jamais seul : il faut un autre senior */
+          if (cx && !v.ou && !v.synth && keep.length && !accAlone(keep) && !(sl.rr && sl.rr.repl.length)) need = keep.length;   /* seniors : sans règle « qui remplace qui », on ne complète pas au hasard (équité) : le titulaire disponible reste seul(e) */
           if (!v.ou && !v.synth && keep.length === v.who.length && keep.length >= need) { rec.ok++; continue; }
           /* 2) remplaçants : ceux qui font le plus souvent ce poste (fréquence), sinon les moins chargés */
           const freq = {};
