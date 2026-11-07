@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 15h25</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 15h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2605,22 +2605,30 @@ const PROTO = [
       const pl = trame.postes.filter(p=>!p.info && !isSam(p) && !(p.journee && pt !== 'M'));
       const has = p => { const c = trame.cases[tk(p.id, d, pt)]; return !!(c && ((Array.isArray(c.who) && c.who.includes(id)) || (Array.isArray(c.rot) && c.rot.includes(id)))); };
       const sk = d+pt, o0 = CHEF_OFF[x] || {};
+      const rotOf = p => { const c = trame.cases[tk(p.id, d, pt)]; return c && Array.isArray(c.rot) && c.rot.includes(id) ? c.rot.filter(y=>y !== id)[0] || '' : ''; };
+      const alt = {}; pl.forEach(p=>{ alt[p.id] = rotOf(p); });
+      const seniorsL = sortedDocs().filter(q=>!isIntId(q.id) && q.id !== id);
       let sel = new Set(pl.filter(has).map(p=>p.id)), st = (o0.hard || []).includes(sk) ? 'h' : (o0.soft || []).includes(sk) ? 's' : '';
       const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
       const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>'+esc(dLabel(id))+' · '+DAYL[d]+' '+PART_TXT[pt]+'</b></p><p class="hint">Vacation(s) à pourvoir par cette personne (touche pour poser / retirer) :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'
         + pl.map(p=>'<button type="button" class="astbtn'+(sel.has(p.id) ? ' ov' : '')+'" data-cep="'+esc(p.id)+'" aria-pressed="'+sel.has(p.id)+'">'+esc(p.label)+'</button>').join('')+'</div>'
+        + pl.filter(p=>sel.has(p.id)).map(p=>'<p class="hint" style="margin:12px 0 4px"><b>'+esc(p.label)+'</b> · une semaine sur deux avec :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[{id:'',l:'Personne'}].concat(seniorsL.map(q=>({id:q.id,l:dLabel(q.id)}))).map(q=>'<button type="button" class="astbtn'+(alt[p.id] === q.id ? ' ov' : '')+'" data-cea="'+esc(p.id+'|'+q.id)+'" aria-pressed="'+(alt[p.id] === q.id)+'">'+esc(q.l)+'</button>').join('')+'</div>').join('')
         + (sel.size ? '' : '<p class="hint" style="margin:10px 0 4px">Sans vacation, cette demi-journée est :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[['','Libre'],['h','Off (jamais sollicité)'],['s','Mobilisable']].map(a=>'<button type="button" class="astbtn'+(st === a[0] ? ' ov' : '')+'" data-ces="'+a[0]+'" aria-pressed="'+(st === a[0])+'">'+a[1]+'</button>').join('')+'</div>')
         + '<div class="asb"><button type="button" class="primary" data-ceok>Enregistrer</button><button type="button" class="ghost" data-ceno>Annuler</button></div></div>'; };
       draw(); document.body.appendChild(w);
       w.addEventListener('click', async ev=>{
         if (ev.target === w || ev.target.closest('[data-ceno]')) { w.remove(); return; }
         const bp = ev.target.closest('[data-cep]'); if (bp) { const v = bp.dataset.cep; if (sel.has(v)) sel.delete(v); else sel.add(v); draw(); return; }
+        const ba = ev.target.closest('[data-cea]'); if (ba) { const [pp, qq] = ba.dataset.cea.split('|'); alt[pp] = qq; draw(); return; }
         const bs = ev.target.closest('[data-ces]'); if (bs) { st = bs.dataset.ces; draw(); return; }
         if (!ev.target.closest('[data-ceok]')) return;
-        const before = new Set(pl.filter(has).map(p=>p.id)), changed = pl.some(p=>before.has(p.id) !== sel.has(p.id));
+        const before = new Set(pl.filter(has).map(p=>p.id)), changed = pl.some(p=>before.has(p.id) !== sel.has(p.id) || (sel.has(p.id) && alt[p.id] !== rotOf(p)));
         let ok = true;
-        if (changed) ok = await saveTrame(tr=>{ pl.forEach(p=>{ if (before.has(p.id) === sel.has(p.id)) return; const k = tk(p.id, d, pt), c = tr.cases[k] = tr.cases[k] || {who: []}; c.who = Array.isArray(c.who) ? c.who : [];
-          if (sel.has(p.id)) { if (!c.who.includes(id)) c.who.push(id); } else { c.who = c.who.filter(y=>y !== id); if (Array.isArray(c.rot)) { c.rot = c.rot.filter(y=>y !== id); if (!c.rot.length) delete c.rot; } } }); });
+        if (changed) ok = await saveTrame(tr=>{ pl.forEach(p=>{ const wasAlt = (() => { const c0 = tr.cases[tk(p.id, d, pt)]; return c0 && Array.isArray(c0.rot) && c0.rot.includes(id) ? c0.rot.filter(y=>y !== id)[0] || '' : ''; })();
+          if (before.has(p.id) === sel.has(p.id) && !(sel.has(p.id) && alt[p.id] !== wasAlt)) return; const k = tk(p.id, d, pt), c = tr.cases[k] = tr.cases[k] || {who: []}; c.who = Array.isArray(c.who) ? c.who : [];
+          if (sel.has(p.id)) { const q = alt[p.id];
+            if (q) { const old = Array.isArray(c.rot) && c.rot.includes(id) && c.rot.includes(q) ? c.rot.slice() : [id, q]; c.who = c.who.filter(y=>y !== id && y !== q); c.rot = old; }
+            else { if (Array.isArray(c.rot) && c.rot.includes(id)) { c.rot = c.rot.filter(y=>y !== id && y !== wasAlt); if (!c.rot.length) delete c.rot; } if (!c.who.includes(id)) c.who.push(id); } } else { c.who = c.who.filter(y=>y !== id); if (Array.isArray(c.rot)) { c.rot = c.rot.filter(y=>y !== id); if (!c.rot.length) delete c.rot; } } }); });
         if (!ok) return;
         const o = CHEF_OFF[x] = CHEF_OFF[x] || {}; o.hard = (o.hard || []).filter(y=>y !== sk); o.soft = (o.soft || []).filter(y=>y !== sk);
         if (!sel.size) { if (st === 'h') o.hard.push(sk); else if (st === 's') o.soft.push(sk); }
