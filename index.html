@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 06/11/2026 · 23h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 14h20</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1173,11 +1173,6 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Une semaine non publiée n’est visible que par les administrateurs. Par défaut tout est publié.</p></details>
           <div id="pubBody"></div>
           </details>
-        </div>
-        <div class="card" id="chefCard" hidden>
-          <div class="annh"><h2>🩺 Trame des chefs</h2></div>
-          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Importe la trame hebdomadaire des seniors (document « planning chefs ») : vacations fixes de chacun, avec alternance semaine par semaine quand le document l’indique. Un aperçu s’affiche avant toute modification.</p></details>
-          <button type="button" class="primary" id="chefGo">Importer la trame des chefs</button>
         </div>
         <div class="card" id="trameCfg" hidden>
           <details class="cardfold" id="trameFold" open><summary>🗓 Trame du planning (sans personne)</summary>
@@ -2551,7 +2546,7 @@ const PROTO = [
       if (ok) { w.remove(); trSig = ''; notify('Trame des chefs importée ('+cells.length+' vacations). Une copie de l’ancienne trame est conservée.'); }
     });
   }
-  $('#chefGo').addEventListener('click', chefOpen);
+  { const cg = $('#chefGo'); if (cg) cg.addEventListener('click', chefOpen); }
   document.addEventListener('click', async e=>{
     const t = e.target.closest && e.target.closest('[data-wkcell]'); if (!t || !trame || !canWrite) return;
     const [x, dd, pt] = t.dataset.wkcell.split('|'), d = Number(dd), id = chefCtx().who[x]; if (!id) return;
@@ -7166,7 +7161,7 @@ const PROTO = [
 
   const SET_GRPS = [
     {id:'compte', ic:'👤', bg:'#3B82F6', t:'Mon compte', sub:'Profil, apparence, calendrier, rappels, administrateurs', sel:['#fMp','#fApp','#instBtn','#remCard','#fCal','#admCard']},
-    {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#pubCard','#chefCard','#trameCfg','#creerCard','#impSlotR','#exportCard']},
+    {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#pubCard','#trameCfg','#creerCard','#impSlotR','#exportCard']},
     {id:'cours', ic:'🎓', bg:'#F59E0B', t:'Cours', sub:'Cours et supports pour les internes', sel:['#coursCard']},
     {id:'annuaire', ic:'📞', bg:'#8B5CF6', t:'Annuaire', sub:'Numéros utiles du service', sel:['#annuCard']},
     {id:'protocoles', ic:'📋', bg:'#14B8A6', t:'Protocoles', sub:'Scanner, IRM, UCR, échographie', sel:['#protoCard']},
