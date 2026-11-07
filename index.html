@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 14h20</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 14h45</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2438,34 +2438,36 @@ const PROTO = [
     {who:'rim', dow:1, nth:'L', slots:[['AM','rcp']], replace:true}
   ];
   let CHEF_MOIS_OFF = [{who:'rim', dow:0, nth:'L'}];
+  let CHEF_ROWS = null;   /* lignes du tableau des chefs (null = les chefs habituels) ; une clé hors liste = identifiant d'un senior ajouté */
+  const chefRows = () => CHEF_ROWS ? CHEF_ROWS.slice() : Object.keys(CHEF_NOMS);
   let CHEF_ACC = ['rayann'];   /* jamais seuls sur une vacation : toujours avec un autre senior */
   let CHEF_ACCX = {rayann: ['4|M|rdc','4|AM|rdc']};   /* vacations où un chef « jamais seul » peut quand même être seul */
-  const CHEF_DEF = JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF, acc: CHEF_ACC, accx: CHEF_ACCX});
-  function chefRuSet(j){ try { const o = JSON.parse(j || CHEF_DEF); CHEF_REPL = o.repl || {}; CHEF_OFF = o.off || {}; CHEF_SEUL = o.seul || {}; CHEF_MOIS = o.mois || []; CHEF_MOIS_OFF = o.moisOff || []; CHEF_ACC = Array.isArray(o.acc) ? o.acc : []; CHEF_ACCX = o.accx && typeof o.accx === 'object' ? o.accx : {};
+  const CHEF_DEF = JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF, acc: CHEF_ACC, accx: CHEF_ACCX, rows: null});
+  function chefRuSet(j){ try { const o = JSON.parse(j || CHEF_DEF); CHEF_REPL = o.repl || {}; CHEF_OFF = o.off || {}; CHEF_SEUL = o.seul || {}; CHEF_MOIS = o.mois || []; CHEF_MOIS_OFF = o.moisOff || []; CHEF_ACC = Array.isArray(o.acc) ? o.acc : []; CHEF_ACCX = o.accx && typeof o.accx === 'object' ? o.accx : {}; CHEF_ROWS = Array.isArray(o.rows) ? o.rows : null;
       if (!o.v) { CHEF_MOIS.concat(CHEF_MOIS_OFF).forEach(r=>{ if (r.who === 'rim' && r.nth === 4) r.nth = 'L'; }); } } catch(e) { chefRuSet(CHEF_DEF); } }
   let chefRuCustom = false;
   async function chefRuSave(){
     if (!db || !isRim()) return false;
     if (!(await ensureCode('modifier les règles des chefs'))) return false;
-    try { await db.doc('meta/chefrules').set({json: JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF, acc: CHEF_ACC, accx: CHEF_ACCX, v: 2}), at: Date.now()}); trSig = ''; return true; } catch(e) { handleErr(e); return false; }
+    try { await db.doc('meta/chefrules').set({json: JSON.stringify({repl: CHEF_REPL, off: CHEF_OFF, seul: CHEF_SEUL, mois: CHEF_MOIS, moisOff: CHEF_MOIS_OFF, acc: CHEF_ACC, accx: CHEF_ACCX, rows: CHEF_ROWS, v: 2}), at: Date.now()}); trSig = ''; return true; } catch(e) { handleErr(e); return false; }
   }
   const chefNm = x => { const id = chefCtx().who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
   const NTH = n => n === 'L' ? 'dernier' : n+(Number(n) === 1 ? 'er' : 'ᵉ');
   const DAYL = ['lundi','mardi','mercredi','jeudi','vendredi'];
   function chefTblHtml(){
     if (!trame) return '';
-    const ed = isRim(), cx = chefCtx(), nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); }, keys = Object.keys(CHEF_NOMS);
+    const ed = isRim(), cx = chefCtx(), nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); }, keys = chefRows();
     const slotTxt = k => { const a = k.split('|'); return a.length === 3 ? DAYL[a[0]]+' '+PART_TXT[a[1]]+' · '+CHEF_POSTES[a[2]][0] : 'Tous les jours · '+CHEF_POSTES[k][0]+' (dernier recours)'; };
     const SHORT = {bloc:'Bloc', echo:'Écho', echosa:'Écho SA', cs:'Cs', irm:'IRM', ext:'Ext.', rdc:'RDC', urg:'Urg.', sa:'SA', xa:'Lyric', rcp:'RCP'};
     const postsOf = (id, d, pt) => trame.postes.filter(p=>!p.info && !isSam(p) && !(p.journee && pt !== 'M')).filter(p=>{ const c = trame.cases[tk(p.id, d, pt)]; return c && ((Array.isArray(c.who) && c.who.includes(id)) || (Array.isArray(c.rot) && c.rot.includes(id))); });
     let h = '<div class="chtbl"><p class="aststat" style="margin:10px 0 4px"><b>🗓 Trame et jours off des chefs</b></p><p class="hint" style="margin:0 0 6px">Un seul tableau : chaque case montre la vacation du chef (trame) ou son statut (<b>Off</b> = jamais sollicité, <b>Mob.</b> = mobilisable en dernier recours, <b>·</b> = libre). Touche une case pour la modifier : la trame et les règles sont mises à jour ensemble.</p><div style="overflow-x:auto"><table class="team" style="min-width:520px;font-size:12px"><thead><tr><th class="who" rowspan="2">Chef</th>'+TDN.map(t=>'<th colspan="2" class="end">'+t+'</th>').join('')+'</tr><tr class="sub">'+TDN.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>';
     keys.forEach(x=>{
       const id = cx.who[x], o = CHEF_OFF[x] || {}, seul = CHEF_SEUL[x];
-      h += '<tr><th class="who">'+esc(nm(x))+'</th>'+[0,1,2,3,4].map(d=>PARTS.map((pt,j)=>{ const sk = d+pt, ps = id ? postsOf(id, d, pt) : [], st = (o.hard || []).includes(sk) ? 'h' : (o.soft || []).includes(sk) ? 's' : '';
+      h += '<tr><th class="who">'+esc(nm(x))+(ed ? ' <button type="button" class="ghost" data-chrowdel="'+esc(x)+'" style="padding:0 5px;min-height:0;font-size:11px;vertical-align:middle" aria-label="Retirer '+esc(nm(x))+' du tableau">✕</button>' : '')+'</th>'+[0,1,2,3,4].map(d=>PARTS.map((pt,j)=>{ const sk = d+pt, ps = id ? postsOf(id, d, pt) : [], st = (o.hard || []).includes(sk) ? 'h' : (o.soft || []).includes(sk) ? 's' : '';
         const txt = ps.length ? ps.map(p=>esc(SHORT[cx.pk[p.id]] || p.label.slice(0, 6))).join('+') : st === 'h' ? 'Off' : st === 's' ? 'Mob.' : seul ? '—' : '·';
         const bg = ps.length ? 'background:rgba(46,125,90,.2);font-weight:600' : st === 'h' ? 'background:#f3d6d6' : st === 's' ? 'background:#f6e7c8' : '';
         return '<td class="v'+(j ? ' end' : '')+'" style="padding:2px;text-align:center">'+(ed && id ? '<button type="button" class="ghost" data-chcell="'+x+'|'+d+'|'+pt+'" style="padding:3px 4px;min-height:0;font-size:11px;min-width:44px;line-height:1.2;'+bg+'">'+txt+'</button>' : txt)+'</td>'; }).join('')).join('')+'</tr>'; });
-    h += '</tbody></table></div>';
+    h += '</tbody></table></div>'+(ed ? '<button type="button" class="ghost" data-chrowad="1" style="margin-top:6px">＋ Ajouter un senior au tableau</button>' : '');
     h += '<p class="aststat" style="margin:14px 0 4px"><b>👥 Jamais seuls sur une vacation</b></p><p class="hint" style="margin:0 0 6px">Ces chefs sont toujours posés avec un autre senior (ex. Rayann avec Clément le lundi).</p><div class="intgrid" style="flex-wrap:wrap;gap:6px">'+keys.filter(x=>!CHEF_SEUL[x]).map(x=>ed ? '<button type="button" class="astbtn'+(CHEF_ACC.includes(x) ? ' ov' : '')+'" data-chacc="'+x+'" aria-pressed="'+CHEF_ACC.includes(x)+'">'+esc(nm(x))+'</button>' : (CHEF_ACC.includes(x) ? '<b>'+esc(nm(x))+'</b>' : '')).join('')+'</div>';
     CHEF_ACC.forEach(x=>{ (CHEF_ACCX[x] || []).forEach(k=>{ const a = k.split('|'); h += '<p class="hint" style="margin:4px 0">✔ <b>'+esc(nm(x))+'</b> peut être seul : '+DAYL[a[0]]+' '+PART_TXT[a[1]]+' · '+esc((CHEF_POSTES[a[2]] || [a[2]])[0])+(ed ? ' <button type="button" class="ghost" data-chxdel="'+x+'|'+esc(k)+'" style="padding:2px 8px;min-height:0;font-size:12px" aria-label="Supprimer">✕</button>' : '')+'</p>'; }); });
     if (ed && CHEF_ACC.length) h += '<button type="button" class="ghost" data-chxad="1" style="margin-top:4px">＋ Autoriser à être seul sur une vacation</button>';
@@ -2490,7 +2492,8 @@ const PROTO = [
   function chefCtx(){
     const pl = chefPlan(), pk = {}; Object.keys(CHEF_POSTES).forEach(k=>{ const po = pl.pick[k]; if (po && !pk[po.id]) pk[po.id] = k; });
     const idk = {}; Object.keys(pl.who).forEach(k=>{ idk[pl.who[k]] = k; });
-    return {who: pl.who, pk, idk};
+    const who = Object.assign({}, pl.who); chefRows().forEach(k=>{ if (!CHEF_NOMS[k] && doctors[k]) who[k] = k; });
+    return {who, pk, idk};
   }
   /* règles applicables à une vacation : ordre de remplacement, personnes exclues / en dernier recours */
   function chefSlot(cx, p, k, dow, part, rotC){
@@ -2569,7 +2572,28 @@ const PROTO = [
 
   /* édition du tableau des règles des chefs */
   document.addEventListener('click', async e=>{
-    const t = e.target.closest('[data-chcell],[data-chxdel],[data-chxad],[data-chacc],[data-choff],[data-chrdel],[data-chred],[data-chmdel],[data-chmad],[data-chreset]'); if (!t || !isRim()) return;
+    const t = e.target.closest('[data-chrowdel],[data-chrowad],[data-chcell],[data-chxdel],[data-chxad],[data-chacc],[data-choff],[data-chrdel],[data-chred],[data-chmdel],[data-chmad],[data-chreset]'); if (!t || !isRim()) return;
+    if (t.dataset.chrowdel) {
+      const x = t.dataset.chrowdel, id = chefCtx().who[x], nom = id ? dLabel(id) : x;
+      if (!window.confirm('Retirer '+nom+' du tableau ? Il/elle est aussi retiré(e) de la trame des seniors (vacations à pourvoir). Les plannings déjà générés ne changent pas.')) return;
+      if (id && trame) { const ok = await saveTrame(tr=>{ Object.keys(tr.cases).forEach(k=>{ const c = tr.cases[k]; if (!c) return; if (Array.isArray(c.who)) c.who = c.who.filter(y=>y !== id); if (Array.isArray(c.rot)) { c.rot = c.rot.filter(y=>y !== id); if (!c.rot.length) delete c.rot; } }); }); if (!ok) return; }
+      CHEF_ROWS = chefRows().filter(y=>y !== x);
+      if (await chefRuSave()) { trSig = ''; try { renderTrameCfg(); renderCompose(); } catch(er) {} notify(nom+' retiré(e) du tableau.'); }
+      return;
+    }
+    if (t.dataset.chrowad) {
+      const cx1 = chefCtx(), inRows = new Set(chefRows().map(k=>cx1.who[k]).filter(Boolean)), cand = sortedDocs().filter(d=>!isIntId(d.id) && !inRows.has(d.id));
+      const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+      w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>Ajouter un senior au tableau</b></p>'+(cand.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px">'+cand.map(d=>'<button type="button" class="astbtn" data-chrowpick="'+esc(d.id)+'">'+esc(d.label)+'</button>').join('')+'</div>' : '<p class="hint">Tous les médecins sont déjà dans le tableau.</p>')+'<div class="asb"><button type="button" class="ghost" data-chrowno>Fermer</button></div></div>';
+      document.body.appendChild(w);
+      w.addEventListener('click', async ev=>{
+        if (ev.target === w || ev.target.closest('[data-chrowno]')) { w.remove(); return; }
+        const b = ev.target.closest('[data-chrowpick]'); if (!b) return;
+        CHEF_ROWS = chefRows().concat(b.dataset.chrowpick);
+        if (await chefRuSave()) { w.remove(); trSig = ''; try { renderTrameCfg(); renderCompose(); } catch(er) {} notify('Ajouté au tableau : touche ses cases pour lui donner des vacations.'); }
+      });
+      return;
+    }
     if (t.dataset.chcell) {
       if (!trame) return;
       const [x, dd, pt] = t.dataset.chcell.split('|'), d = Number(dd), cx0 = chefCtx(), id = cx0.who[x]; if (!id) return;
@@ -2611,7 +2635,7 @@ const PROTO = [
     if (t.dataset.chmdel) { const i = Number(t.dataset.chmdel.slice(1)); if (t.dataset.chmdel[0] === 'w') CHEF_MOIS.splice(i, 1); else CHEF_MOIS_OFF.splice(i, 1); if (await chefRuSave()) notify('Règle supprimée.'); return; }
     if (t.dataset.chreset) { if (!(await ensureCode('rétablir les règles des chefs'))) return; try { await db.doc('meta/chefrules').delete(); notify('Règles d’origine rétablies.'); } catch(er) { handleErr(er); } return; }
     if (!trame) return;
-    const keys = Object.keys(CHEF_NOMS), cx = chefCtx(), nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
+    const keys = chefRows(), cx = chefCtx(), nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
     const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
     const sel = (id, opts, cur) => '<select id="'+id+'" style="width:100%;padding:8px;margin:4px 0;font:inherit">'+opts.map(o=>'<option value="'+esc(o[0])+'"'+(String(o[0]) === String(cur) ? ' selected' : '')+'>'+esc(o[1])+'</option>').join('')+'</select>';
     const pOpts = Object.keys(CHEF_POSTES).map(k=>[k, CHEF_POSTES[k][0]]);
@@ -3107,7 +3131,7 @@ const PROTO = [
     ['Rayann','Lun : bloc ou ablation le matin, TDM urg. l’après-midi. Mar : off (2 fois par mois maximum), sinon bloc ; vacation PM en alternance avec Henri. Mer : off ou bloc avec Eva. Jeu : off ou bloc avec Rim (TDM urg. / SA si besoin). Ven : bloc, ou TDM biopsie hospit. le matin et TDM hospit. l’après-midi.']
   ];
   function chefRulesHtml(){
-    return '<details class="cardfold" style="margin-top:10px" open><summary><b>📋 Règles de création automatique des chefs</b></summary><p class="hint">Ces règles guident la génération : la trame ci-dessus est la base, le reste sert quand il manque quelqu’un.</p>'
+    return '<details class="cardfold" style="margin-top:10px" open><summary><b>📋 Trame des seniors et règles de création automatique</b></summary><p class="hint">Le tableau ci-dessous est la trame de base des seniors : modifie-le comme tu veux (cases, ajout ou retrait d’un senior). Les règles servent quand il manque quelqu’un.</p>'
       + chefTblHtml()
       + '<details class="info" id="chefTxtD" style="margin-top:10px"><summary><b>✍️ Règles écrites par chef</b> (mémo, modifiable)</summary>' + CHEF_REGLES.map(r=>'<p class="hint" style="margin:6px 0"><b>'+esc(r[0])+'</b> · '+esc(chefRegOv[r[0]] != null ? chefRegOv[r[0]] : r[1])+(isRim() ? ' <button type="button" class="ghost" data-chefrl="'+esc(r[0])+'" style="padding:2px 8px;min-height:0;font-size:12px">✎</button>' : '')+(chefRegOv[r[0]] != null && chefUnknown(chefRegOv[r[0]]).length ? '<br><span class="codeerr" style="display:block">⚠ Je ne suis pas sûre de comprendre : '+esc(chefUnknown(chefRegOv[r[0]]).join(', '))+' (précise-le, par ex. « Lyric = Scanner SA »)</span>' : '')+'</p>').join('') + '</details>'
       + '<details class="info"><summary>ⓘ Abréviations comprises</summary><p class="hint">TDM urg. / scan urgences = Scanner des urgences · TDM hospit. / scan hospit. = scanner des patients hospitalisés (RDC / RI) · TDM externe / scan externe = Scanner externes · scan SA / TDM SA = Scanner SA · Lyric = XA = Scanner photonique XA (poste distinct du Scanner SA) · IRM 7 / IRM 8 = IRM (7h / 8h) · SA = site SA · RCP · écho = Échographie · IMA, CCA, DJ = abréviations du service.</p></details></details>';
@@ -3136,7 +3160,7 @@ const PROTO = [
     return who;
   }
   function wkChefHtml(){
-    const cx = chefCtx(), keys = Object.keys(CHEF_NOMS), s = semG(key(plStart), 'med'), dis = canWrite ? '' : ' disabled';
+    const cx = chefCtx(), keys = chefRows(), s = semG(key(plStart), 'med'), dis = canWrite ? '' : ' disabled';
     const nm = x => { const id = cx.who[x]; return id ? dLabel(id) : x.charAt(0).toUpperCase()+x.slice(1); };
     const posts = trame.postes.filter(p=>!p.info && !isSam(p));
     let h = '<div class="qcard"><p class="qt">🗓 Trame des chefs · semaine du '+esc(fmtDM.format(plStart))+'</p><p class="qh">Préremplie avec le tableau des chefs. Touchez une case pour changer les vacations d’une personne <b>cette semaine seulement</b> (la trame générale reste inchangée).'+(s && s.wh && Object.keys(s.wh).length ? ' <b>Modifiée pour cette semaine.</b>' : '')+'</p></div>'
@@ -6576,9 +6600,9 @@ const PROTO = [
     if (INT) $('#trameCfgBody').innerHTML += '<div class="intq troff"><p class="aststat"><b>🏝 Off minimum par interne et par semaine</b></p><p class="hint">Valeur par défaut de la génération (modifiable à chaque génération). Une indispo ou un repos de garde compte comme un off.</p><div class="astpair offstep"><button type="button" class="astbtn" data-troffmin="-1"'+(canWrite && trOff() > 0 ? '' : ' disabled')+' aria-label="Moins">−</button><b class="offv">'+trOff()+' off</b><button type="button" class="astbtn" data-troffmin="1"'+(canWrite && trOff() < 6 ? '' : ' disabled')+' aria-label="Plus">＋</button></div></div>';
     if (INT) $('#trameCfgBody').innerHTML += '<div class="intq trprio"><p class="aststat"><b>🎯 Ordre de priorité des vacations</b></p><p class="hint">Les internes sont répartis d’abord sur les vacations du haut (ex. échographie avant bloc). Proposé à chaque génération, modifiable semaine par semaine.</p>'+prioHtml(prioList0(), canWrite ? 'data-trprio' : 'data-x', absList0())+'</div>';
     $('#trameCfgBody').innerHTML = '<div class="intq"><button type="button" class="astbtn" data-trfill="1">📥 Préremplir d’après le planning en cours</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Coche automatiquement les vacations qui existent dans la semaine en cours (ou la plus proche qui contient des vacations) ; tu peux ensuite en cocher ou décocher. Chaque case est enregistrée pour toutes les semaines à venir.</p></details></div>' + $('#trameCfgBody').innerHTML;
-    if (!INT) $('#trameCfgBody').innerHTML += chefRulesHtml();
     if (INT && trame.postes.some(p=>p.id === 'rcp')) $('#trameCfgBody').innerHTML += '<div class="intq trrcp"><p class="aststat"><b>🩺 RCP : un interne d’écho affiché</b></p><button type="button" class="astbtn" data-trrcp="1" aria-pressed="'+!trame.rcpOff+'"'+(canWrite ? '' : ' disabled')+'>'+(trame.rcpOff ? 'Désactivé · toucher pour activer' : '✓ Activé · toucher pour désactiver')+'</button><details class="info"><summary>ⓘ Infos</summary><p class="hint">Le lundi matin et le mardi après-midi, un des internes de l’écho (à tour de rôle, d’une semaine à l’autre) est aussi affiché sur la vacation RCP.</p></details></div>';
     $('#trameCfgBody').innerHTML += '<form id="trAdd" class="trnew"><b>➕ Nouvelle vacation</b><div class="f"><label for="trNewName">Nom</label><input type="text" id="trNewName" maxlength="40" autocomplete="off" placeholder="ex. Scanner interventionnel"></div><div class="f"><label for="trNewKind">Durée</label><select id="trNewKind"><option value="">Matin et après-midi</option><option value="j">Journée entière</option></select></div><button type="submit" class="primary"'+(canWrite ? '' : ' disabled')+'>Ajouter la vacation</button></form>';
+    if (!INT) { const bd = $('#trameCfgBody'); bd.innerHTML = chefRulesHtml() + '<details class="info" style="margin-top:12px"><summary><b>⚙️ Gérer les vacations</b> (noms, ajout, suppression, cases à pourvoir sans nom)</summary>' + bd.innerHTML + '</details>'; }
   }
   /* renommer / ajouter / supprimer une vacation depuis la trame */
   $('#trameCfgBody').addEventListener('change', async e=>{
