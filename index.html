@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 21h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 22h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -3498,7 +3498,7 @@ const PROTO = [
           const accS = sl.rr ? sl.rr.acc : new Set(), accAlone = a2 => accS.size && a2.length && a2.every(id=>accS.has(id));
           if (accAlone(keep)) need = Math.max(need, keep.length + 1);   /* jamais seul : il faut un autre senior */
           if (cx && !v.ou && !v.synth && keep.length && !accAlone(keep) && !(sl.rr && sl.rr.repl.length)) need = keep.length;   /* seniors : sans règle « qui remplace qui », on ne complète pas au hasard (équité) : le titulaire disponible reste seul(e) */
-          if (!v.ou && !v.synth && keep.length === v.who.length && keep.length >= need) { rec.ok++; continue; }
+          if (!v.ou && !v.synth && keep.length === v.who.length && keep.length >= need) { rec.ok++; for (const pt of slotParts(p.id, part)) writes.push({k, kk: p.id+'_'+pt, val: {w: keep.slice(), t: 0, a: 1}, poste: p.id, part: pt, before: v.who.slice(), after: keep.slice(), ou: false, ph: false, same: true}); continue; }   /* la trame convient : posée telle quelle dans le planning (sans étape de validation) */
           /* 2) remplaçants : ceux qui font le plus souvent ce poste (fréquence), sinon les moins chargés */
           const freq = {};
           Object.keys(overrides).forEach(d=>{ const o = overrides[d][p.id+'_'+part]; if (o) o.w.forEach(id=>{ freq[id] = (freq[id]||0) + 1; }); });
@@ -3836,6 +3836,7 @@ const PROTO = [
     const seen = new Map(); genRows = []; const writes = genPending;
     writes.forEach((w, wi)=>{
       if (w.ph && !w.after.length && !w.shown) return;
+      if (w.same && !w.shown) return;
       const pt = findPost(w.poste), sam = isSam(pt), sig = w.k+'|'+w.poste+'|'+(pt && pt.journee ? 'J' : w.part);
       if (seen.has(sig)) { seen.get(sig).idx.push(wi); return; }
       const d = new Intl.DateTimeFormat('fr-FR',{weekday:'short', day:'numeric', month:'numeric'}).format(parse(w.k));
@@ -3888,7 +3889,7 @@ const PROTO = [
   function genAfter(r){ return genPending[r.idx[0]].after; }
   function genRowHtml(r){ const w = genPending[r.idx[0]]; return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>'+(w.before.length && !r.sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(genNm(w.before))+' → ' : '')+'<b>'+esc(genNm(r.sam && plGrp ? w.after.filter(inGrp) : w.after))+'</b>'+(genSrTxt(w) ? ' · 🩺 '+genSrTxt(w) : '')+'</small></span>'; }
   function genCount(){
-    const n = genRows.filter(r=>genPending[r.idx[0]].on).length;
+    const n = new Set(genPending.filter(w=>w.on).map(w=>w.k+'|'+w.poste+'|'+(findPost(w.poste) && findPost(w.poste).journee ? 'J' : w.part))).size;
     return '<button type="button" class="primary" data-genok="1"'+(n ? '' : ' disabled')+'>✓ Confirmer '+n+' vacation'+(n > 1 ? 's' : '')+'</button>';
   }
   function genRender(){
