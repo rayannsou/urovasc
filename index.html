@@ -1142,7 +1142,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 22h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 22h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -3827,7 +3827,7 @@ const PROTO = [
     $('#genShT').textContent = title;
     writes.forEach(w=>{ w.on = !(genPastAsk && w.k < genTodayK()); if (w.ph && !w.after.length) w.on = false; });
     genBuild();
-    if (opts && opts.step && genRows.length) { genStep = 0; genSolo = false; }
+    if (opts && opts.step && genRows.length && !writes.some(w=>w.same)) { genStep = 0; genSolo = false; }
     genRender();
     $('#genSheet').hidden = false;
   }
@@ -3836,7 +3836,6 @@ const PROTO = [
     const seen = new Map(); genRows = []; const writes = genPending;
     writes.forEach((w, wi)=>{
       if (w.ph && !w.after.length && !w.shown) return;
-      if (w.same && !w.shown) return;
       const pt = findPost(w.poste), sam = isSam(pt), sig = w.k+'|'+w.poste+'|'+(pt && pt.journee ? 'J' : w.part);
       if (seen.has(sig)) { seen.get(sig).idx.push(wi); return; }
       const d = new Intl.DateTimeFormat('fr-FR',{weekday:'short', day:'numeric', month:'numeric'}).format(parse(w.k));
@@ -3889,7 +3888,7 @@ const PROTO = [
   function genAfter(r){ return genPending[r.idx[0]].after; }
   function genRowHtml(r){ const w = genPending[r.idx[0]]; return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>'+(w.before.length && !r.sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(genNm(w.before))+' → ' : '')+'<b>'+esc(genNm(r.sam && plGrp ? w.after.filter(inGrp) : w.after))+'</b>'+(genSrTxt(w) ? ' · 🩺 '+genSrTxt(w) : '')+'</small></span>'; }
   function genCount(){
-    const n = new Set(genPending.filter(w=>w.on).map(w=>w.k+'|'+w.poste+'|'+(findPost(w.poste) && findPost(w.poste).journee ? 'J' : w.part))).size;
+    const n = genRows.filter(r=>genPending[r.idx[0]].on).length;
     return '<button type="button" class="primary" data-genok="1"'+(n ? '' : ' disabled')+'>✓ Confirmer '+n+' vacation'+(n > 1 ? 's' : '')+'</button>';
   }
   function genRender(){
