@@ -1117,6 +1117,16 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <div id="histBody"></div>
           </details>
         </div>
+        <div class="card" id="rstCard" hidden>
+          <details class="cardfold" id="fRst"><summary>Réinitialiser les indisponibilités</summary>
+          <details class="info"><summary>ⓘ Infos</summary><p class="hint">Efface les indisponibilités (journée, matin, après-midi) sur une période. Les gardes et astreintes ne sont pas touchées. Action irréversible.</p></details>
+          <div class="f"><label for="rstA">Du</label><input type="date" id="rstA"></div>
+          <div class="f"><label for="rstB">Au</label><input type="date" id="rstB"></div>
+          <div class="plc" id="rstG" style="margin:8px 0"><button type="button" class="ghost" data-rg="all" aria-pressed="true">Tous</button><button type="button" class="ghost" data-rg="sen" aria-pressed="false">Seniors</button><button type="button" class="ghost" data-rg="int" aria-pressed="false">Internes</button></div>
+          <div id="rstInfo" class="hint"></div>
+          <button type="button" class="primary" id="rstGo">🧹 Réinitialiser…</button>
+          </details>
+        </div>
         <div class="card" id="msgCard" hidden>
           <details class="cardfold" id="fMsg"><summary>Envoyer un rappel</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Envoyez une notification à des collègues (ex. rappeler de remplir leurs indisponibilités). Elle part dans les 10 à 15 minutes.</p></details>
@@ -1142,7 +1152,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 07/11/2026 · 22h30</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 08/11/2026 · 22h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4393,7 +4403,40 @@ const PROTO = [
     try { const m = await db.collection('messages').get(); msgHist = m.docs.map(d=>d.data()).sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,5); } catch(e) {}
     renderMsg();
   }
+  /* ---------- réinitialiser les indisponibilités sur une période ---------- */
+  let rstGrp = 'all', rstArm = false;
+  const rstTargets = () => {
+    const a = $('#rstA').value, b = $('#rstB').value; if (!a || !b || a > b) return null;
+    const out = [];
+    sortedDocs().filter(d=>rstGrp === 'all' || (rstGrp === 'int') === isIntId(d.id)).forEach(d=>{
+      const patch = {}; Object.keys(d.days || {}).forEach(k=>{ if (k >= a && k <= b && ['J','M','AM'].includes(d.days[k])) patch[k] = null; });
+      if (Object.keys(patch).length) out.push({id: d.id, patch});
+    });
+    return out;
+  };
+  function rstDraw(){
+    const el = $('#rstInfo'); if (!el) return;
+    $('#rstG').querySelectorAll('[data-rg]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.rg === rstGrp));
+    const t = rstTargets();
+    el.textContent = !t ? 'Choisissez une période (début et fin).' : t.length ? t.reduce((n,x)=>n+Object.keys(x.patch).length, 0)+' indisponibilité(s) seront effacées pour '+t.length+' personne(s) : '+t.map(x=>dLabel(x.id)).join(', ')+'.' : 'Aucune indisponibilité sur cette période.';
+    $('#rstGo').textContent = rstArm ? '⚠ Confirmer l’effacement' : '🧹 Réinitialiser…';
+  }
+  document.addEventListener('click', async e=>{
+    const rg = e.target.closest('[data-rg]'); if (rg && rg.closest('#rstG')) { rstGrp = rg.dataset.rg; rstArm = false; rstDraw(); return; }
+    if (!e.target.closest('#rstGo')) return;
+    const t = rstTargets(); if (!t || !t.length) { rstArm = false; rstDraw(); return; }
+    if (!rstArm) { rstArm = true; rstDraw(); setTimeout(()=>{ if (rstArm) { rstArm = false; rstDraw(); } }, 8000); return; }
+    rstArm = false;
+    if (!canWrite || !db) return notify('Lecture seule : impossible de modifier.', true);
+    if (!(await ensureCode('réinitialiser les indisponibilités'))) return rstDraw();
+    let ok = 0;
+    for (const x of t) { try { await db.doc('medecins/'+x.id).update({days: x.patch}); ok++; } catch(err) { handleErr(err); } }
+    notify(ok === t.length ? 'Indisponibilités effacées pour '+ok+' personne'+(ok > 1 ? 's' : '')+'.' : '⚠ '+ok+' sur '+t.length+' personnes mises à jour (connexion ?).', ok !== t.length);
+    rstDraw();
+  });
+  document.addEventListener('input', e=>{ if (e.target.closest && e.target.closest('#rstCard')) { rstArm = false; rstDraw(); } });
   function renderMsg(){
+    const rc = $('#rstCard'); if (rc) rc.hidden = !isRim();
     const card = $('#msgCard'); if (!card) return;
     card.hidden = !isRim(); if (card.hidden) return;
     msgLoad();
@@ -7214,7 +7257,7 @@ const PROTO = [
 
   const SET_GRPS = [
     {id:'compte', ic:'👤', bg:'#3B82F6', t:'Mon compte', sub:'Profil, apparence, calendrier, rappels, administrateurs', sel:['#fMp','#fApp','#instBtn','#remCard','#fCal','#admCard']},
-    {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#pubCard','#trameCfg','#creerCard','#impSlotR','#exportCard']},
+    {id:'planning', ic:'🗓', bg:'#F97316', t:'Planning', sub:'Trame, planning du mois, import, export', sel:['#pubCard','#trameCfg','#creerCard','#rstCard','#impSlotR','#exportCard']},
     {id:'cours', ic:'🎓', bg:'#F59E0B', t:'Cours', sub:'Cours et supports pour les internes', sel:['#coursCard']},
     {id:'annuaire', ic:'📞', bg:'#8B5CF6', t:'Annuaire', sub:'Numéros utiles du service', sel:['#annuCard']},
     {id:'protocoles', ic:'📋', bg:'#14B8A6', t:'Protocoles', sub:'Scanner, IRM, UCR, échographie', sel:['#protoCard']},
