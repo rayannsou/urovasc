@@ -1085,6 +1085,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <p class="hint" id="remHint"></p>
           <div id="remBody" hidden>
             <label class="remrow"><input type="checkbox" id="remVeille"> Où je suis posté(e), la veille</label>
+            <label class="remrow"><input type="checkbox" id="remCours"> Cours et présentations, la veille</label>
             <label class="remrow"><input type="checkbox" id="remChg"> Quand mon planning change (14 prochains jours)</label>
             <label class="remrow"><input type="checkbox" id="remA7"> Astreinte : 1 semaine avant</label>
             <label class="remrow"><input type="checkbox" id="remA1"> Astreinte : 24 h avant</label>
@@ -1161,7 +1162,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 09/11/2026 · 10h30</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 09/11/2026 · 14h00</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4359,7 +4360,7 @@ const PROTO = [
   function remPaint(){
     const P = window.__push, hint = $('#remHint'), btn = $('#remBtn'), body = $('#remBody');
     body.hidden = !rem.on;
-    $('#remVeille').checked = rem.veille !== false; $('#remChg').checked = rem.chg !== false; $('#remA7').checked = rem.ast7 !== false; $('#remA1').checked = rem.ast1 !== false; $('#remHour').value = rem.hour || '20:00';
+    $('#remVeille').checked = rem.veille !== false; $('#remChg').checked = rem.chg !== false; $('#remCours').checked = rem.cours !== false; $('#remA7').checked = rem.ast7 !== false; $('#remA1').checked = rem.ast1 !== false; $('#remHour').value = rem.hour || '20:00';
     btn.textContent = rem.on ? '🔕 Désactiver les rappels' : '🔔 Activer les rappels';
     btn.className = rem.on ? 'ghost' : 'primary';
     if (!me) { hint.textContent = 'Choisissez d’abord votre nom dans « Mon profil » : les rappels sont personnels.'; btn.disabled = true; return; }
@@ -4375,7 +4376,7 @@ const PROTO = [
     remPaint(); renderMsg();
   }
   async function remSave(extra){
-    const d = Object.assign({hour:$('#remHour').value || '20:00', veille:$('#remVeille').checked, chg:$('#remChg').checked, ast7:$('#remA7').checked, ast1:$('#remA1').checked, updatedAt:Date.now()}, extra || {});
+    const d = Object.assign({hour:$('#remHour').value || '20:00', veille:$('#remVeille').checked, chg:$('#remChg').checked, cours:$('#remCours').checked, ast7:$('#remA7').checked, ast1:$('#remA1').checked, updatedAt:Date.now()}, extra || {});
     await db.doc('push/'+me).update(d);
     Object.assign(rem, d);
   }
@@ -4474,7 +4475,7 @@ const PROTO = [
       $('#msgTxt').value = ''; msgSel.clear(); renderMsg(); notify('Message en file d’envoi : il partira dans les 10 à 15 minutes.');
     } catch(e) { handleErr(e); }
   });
-  ['#remVeille','#remChg','#remA7','#remA1','#remHour'].forEach(id=>$(id).addEventListener('change', async ()=>{ if (!rem.on || !me) return; try { await remSave(); notify('Rappels mis à jour.'); } catch(e) { handleErr(e); } }));
+  ['#remVeille','#remChg','#remCours','#remA7','#remA1','#remHour'].forEach(id=>$(id).addEventListener('change', async ()=>{ if (!rem.on || !me) return; try { await remSave(); notify('Rappels mis à jour.'); } catch(e) { handleErr(e); } }));
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
   $('#rcPrev').addEventListener('click', ()=>{ rcDay = addDays(rcDay,-1); rcRender(); });
   $('#rcNext').addEventListener('click', ()=>{ rcDay = addDays(rcDay,1); rcRender(); });

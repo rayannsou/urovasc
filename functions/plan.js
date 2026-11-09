@@ -60,6 +60,25 @@ function dueFor(data, id, user, now) {
   if (user.ast1 !== false && onAstreinte(data, id, sat1)) add('ast1:' + sat1, 'Astreinte demain', 'Vous êtes d’astreinte ' + frDate(sat1) + '.');
   return out;
 }
+/* ---- cours / annonces et présentations (meta/annonces.items ; présentateur = medecins/<id>.pres['<idAnnonce>_<AAAAMMJJ>']) ---- */
+const annOnDay = (x, k) => { if (!x || !x.d) return false; if (x.d === k) return true; const n = Number(x.r) || 0; if (!n || k < x.d || (x.e && k > x.e)) return false; const df = Math.round((fromKey(k) - fromKey(x.d)) / 86400000); return df % (7 * n) === 0; };
+const annTime = x => x.a ? (x.b ? x.a.replace(':', 'h') + ' – ' + x.b.replace(':', 'h') : 'dès ' + x.a.replace(':', 'h')) : 'toute la journée';
+/* la veille, à l'heure de rappel de la personne : cours/réunions du lendemain (pour son groupe) et présentations dont elle est présentatrice */
+function annDue(items, doc, id, user, now) {
+  const out = [], sent = user.sent || {};
+  const nm = minutes(now.hm), um = minutes(user.hour);
+  if (user.cours === false || !(nm >= um && nm < um + 120)) return out;
+  const t = addDays(now.date, 1), isInt = !!(doc && doc.role === 'Interne');
+  Object.keys(items || {}).forEach(aid => {
+    const x = items[aid]; if (!x || !x.t || !annOnDay(x, t)) return;
+    if (x.g && (x.g === 'int') !== isInt) return;
+    const mine = !!(doc && doc.pres && doc.pres[aid + '_' + t.replace(/-/g, '')]);
+    const key = (mine ? 'pres:' : 'ann:') + aid + ':' + t;
+    if (sent[key]) return;
+    out.push({key, title: mine ? 'Demain : vous présentez' : 'Demain : ' + x.t, body: (mine ? x.t + '\n' : '') + frDate(t) + ' · ' + annTime(x)});
+  });
+  return out;
+}
 /* dates dont les ajustements sont nécessaires pour un jour donné */
 const neededDates = today => [addDays(today, 1), addDays(today, 7)];
 /* ---- changements de planning : photographie des 14 prochains jours, comparée à la précédente ---- */
@@ -84,4 +103,4 @@ function changeMessage(prev, cur, today) {
   const more = added.length + removed.length - lines.length;
   return {title: 'Votre planning a changé', body: lines.join('\n') + (more > 0 ? '\n… et ' + more + ' autre' + (more > 1 ? 's' : '') : '')};
 }
-module.exports = {whoAt, postsOf, onAstreinte, dueFor, neededDates, addDays, dowOf, frDate, chgDates, slotKeys, snapshotFor, changeMessage};
+module.exports = {annDue, annOnDay, whoAt, postsOf, onAstreinte, dueFor, neededDates, addDays, dowOf, frDate, chgDates, slotKeys, snapshotFor, changeMessage};
