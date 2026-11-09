@@ -75,6 +75,15 @@ table.team.trame tbody tr:nth-child(even) td.v:not(.none):not(.cfl):not(.sel){ba
 table.team.trame tbody th.who{font-size:13px;padding-right:8px}
 table.team.trame thead th{position:sticky;top:0;z-index:2}
 table.team.trame .cap{margin-top:2px}
+/* ordinateur : noms sur une seule ligne, polices adaptées à la largeur de l'écran */
+@media(min-width:900px){
+  table.team.trame{font-size:clamp(11px,.8vw,13px)}
+  table.team.trame td.v .ch{white-space:nowrap;font-size:clamp(10.5px,.82vw,13px);padding:1px clamp(4px,.4vw,7px)}
+  table.team.trame td.v .rg em{font-size:clamp(8px,.6vw,9.5px)}
+  table.team.trame td.v{padding:4px 3px}
+  table.team.trame tbody th.who{font-size:clamp(11px,.85vw,13px);padding:0 8px;min-width:0;width:1%;white-space:nowrap}
+  table.team.trame thead th{font-size:clamp(11px,.85vw,13px)}
+}
 </style>
 </head>
 <body>
@@ -1152,7 +1161,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 08/11/2026 · 22h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 09/11/2026 · 10h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
