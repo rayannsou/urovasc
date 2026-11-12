@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 15h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 16h05</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2844,7 +2844,7 @@ const PROTO = [
     const nd = 5;
     if (plDay >= nd) plDay = 0;
     $('#plDays').innerHTML = days.slice(0,nd).map((d,i)=>'<button type="button" role="tab" data-plday="'+i+'" aria-selected="'+(i === plDay)+'"><span>'+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'short'}).format(d).replace('.',''))+'</span><small>'+d.getDate()+'</small>'+(()=>{ const x = dayFill(d, i); return x.n && x.f === x.n ? '<small class="dok" aria-label="fait">✓</small>' : ''; })()+'</button>').join('');
-    if (!trame || !trame.postes.length) { grid.innerHTML = '<p class="empty">'+(loaded ? 'Les postes du service ne sont pas encore chargés.' : 'Chargement…')+'</p>'; return; }
+    if (!trame || !trame.postes.length) { grid.innerHTML = '<p class="empty">'+(loaded ? (trame ? 'Aucun poste pour ce service. Un administrateur doit d’abord les créer : Réglages → Postes du service → « Nouveau poste ».' : 'Les postes du service ne sont pas encore chargés.') : 'Chargement…')+'</p>'; return; }
     const k = key(days[plDay]), dis = canWrite ? '' : ' disabled', docs = grpDocs();
     const posts = trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, plDay));
     let nFill = 0, nAll = 0;
