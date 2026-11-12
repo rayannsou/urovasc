@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 15h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 15h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -7482,7 +7482,7 @@ const PROTO = [
       });
       doctors = next; loaded = true; renderAll(); maybePatch();
       /* service Ostéo : un compte administrateur « Admin Osteo » est créé d'office quand la base est encore vide */
-      if (SVC === 'osteo' && snap.empty && !snap.metadata.fromCache) db.doc('medecins/admin-osteo').set({label: 'Admin Osteo', order: 1, days: {}, role: 'Médecin', admin: true}).catch(()=>{});
+      if (SVC === 'osteo' && (snap.empty || !snap.docs.length) && !(snap.metadata && snap.metadata.fromCache)) db.doc('medecins/admin-osteo').set({label: 'Admin Osteo', order: 1, days: {}, role: 'Médecin', admin: true}).catch(()=>{});
     }, err=>{
       loaded = true; notify('La connexion au planning partagé a été interrompue. Rechargez la page.', true); renderAll();
     });
@@ -7571,7 +7571,7 @@ const db = {
   collection(name) {
     const ref = collection(fs, PFX + name);
     return {
-      onSnapshot: (next, err) => onSnapshot(ref, qs => next({ docs: qs.docs.map(wrap) }), err),
+      onSnapshot: (next, err) => onSnapshot(ref, qs => next({ docs: qs.docs.map(wrap), empty: qs.empty, metadata: { fromCache: qs.metadata.fromCache } }), err),
       get: async () => ({ docs: (await getDocs(ref)).docs.map(wrap) }),
       add: d => addDoc(ref, d)
     };
