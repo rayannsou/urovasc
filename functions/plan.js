@@ -101,6 +101,6 @@ function changeMessage(prev, cur, today) {
   if (!added.length && !removed.length) return null;
   const lines = added.slice(0, 3).map(x => '+ ' + fmtSlot(x)).concat(removed.slice(0, 3).map(x => '− ' + fmtSlot(x)));
   const more = added.length + removed.length - lines.length;
-  return {title: 'Votre planning a changé', body: lines.join('\n') + (more > 0 ? '\n… et ' + more + ' autre' + (more > 1 ? 's' : '') : '')};
+  return {title: '⚠️ Modification de votre planning', body: lines.join('\n') + (more > 0 ? '\n… et ' + more + ' autre' + (more > 1 ? 's' : '') : '')};
 }
 module.exports = {annDue, annOnDay, whoAt, postsOf, onAstreinte, dueFor, neededDates, addDays, dowOf, frDate, chgDates, slotKeys, snapshotFor, changeMessage};
