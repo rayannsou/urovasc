@@ -142,7 +142,21 @@ button.ghost{background:none}
 .cronly .tabs,.cronly header.top{display:none!important}
 .sec .tabs,.sec #hiAv,.sec #hiTitle,.sec #hiSub,.sec #goProfile,.sec #gKind,.sec #gMore,.sec #impSlotP,.sec #cwImport,.sec #gAlert{display:none!important}
 .sec #trameWrap [data-p]{cursor:default}
-#secIndis table{width:100%;border-collapse:collapse;font-size:13px}#secIndis th,#secIndis td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}#secIndis td.x{color:var(--red);font-weight:700;background:color-mix(in srgb,var(--red) 10%,transparent)}#secIndis h3{margin:12px 0 4px;font-size:14px}
+#secIndis{padding:10px;background:transparent;border:0;box-shadow:none}
+#secIndis .sgrp{overflow-x:auto;margin-bottom:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}
+#secIndis table{border-collapse:separate;border-spacing:0;width:100%;min-width:640px;font-size:12.5px}
+#secIndis th,#secIndis td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:6px 4px;text-align:center;white-space:nowrap}
+#secIndis th.nm{position:sticky;left:0;z-index:2;background:var(--surface,#fff);text-align:left;padding-left:10px;min-width:96px;font-weight:700}
+#secIndis thead th{background:var(--surface-2,var(--page));font-weight:700}
+#secIndis th.dh.tod{background:color-mix(in srgb,var(--accent,#17465A) 18%,transparent)}
+#secIndis th.ph{font-size:11px;color:var(--muted)}#secIndis th.ph b{color:var(--red);margin-left:3px}
+#secIndis td.sx{background:color-mix(in srgb,var(--red) 22%,transparent);color:var(--red);font-weight:800}
+#secIndis td.sg{background:color-mix(in srgb,#2563EB 20%,transparent);color:#1D4ED8;font-weight:700}
+#secIndis td.sr{background:color-mix(in srgb,#9AA 22%,transparent);color:var(--muted);font-weight:600}
+#secIndis td.sa{background:color-mix(in srgb,#D97706 22%,transparent);color:#B45309;font-weight:700}
+#secIndis td.sf{background:repeating-linear-gradient(45deg,transparent 0 5px,color-mix(in srgb,#9AA 25%,transparent) 5px 6px);color:var(--muted);font-size:11px}
+#secIndis .sleg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;font-size:12px}#secIndis .sleg span{padding:3px 9px;border-radius:99px;font-weight:700}
+#secIndis .sleg .sx{background:color-mix(in srgb,var(--red) 22%,transparent);color:var(--red)}#secIndis .sleg .sg{background:color-mix(in srgb,#2563EB 20%,transparent);color:#1D4ED8}#secIndis .sleg .sr{background:color-mix(in srgb,#9AA 22%,transparent);color:var(--muted)}#secIndis .sleg .sa{background:color-mix(in srgb,#D97706 22%,transparent);color:#B45309}#secIndis .sleg .sf{border:1px dashed var(--line);color:var(--muted)}
 #secPw{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}#secPw form{background:var(--surface,#fff);color:var(--ink,#111);border-radius:16px;padding:18px;max-width:340px;width:100%;display:flex;flex-direction:column;gap:10px}
 .tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font-weight:600;color:var(--muted);margin-bottom:-1.5px}
 .tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
@@ -908,6 +922,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <button type="button" id="gNext" aria-label="Semaine suivante">›</button>
           <button type="button" id="gToday" class="ghost">Cette semaine</button>
         </div>
+        <div class="subtabs" id="secSeg" role="group" aria-label="Vue secrétariat" hidden><button type="button" data-sec="plan" aria-pressed="true">📅 Planning</button><button type="button" data-sec="indis" aria-pressed="false">🚫 Indisponibilités</button></div>
         <div class="subtabs" id="gGrpBar" role="group" aria-label="Afficher"><button type="button" data-ggrp="" aria-pressed="true">Tous</button><button type="button" data-ggrp="medecin" aria-pressed="false">🩺 Seniors</button><button type="button" data-ggrp="interne" aria-pressed="false">🎓 Internes</button></div>
         <div id="gAlert" class="alert" hidden></div>
         <div id="gPoste" class="col">
@@ -1180,7 +1195,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 13h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 13h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -5207,15 +5222,40 @@ const PROTO = [
   $('#gaNext').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), 70); renderGAst(); });
   document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-unfall]')) { gUnf = null; renderTrame(); } });
   $('#gaToday').addEventListener('click', ()=>{ gaStart = satOf(new Date()); renderGAst(); });
+  let secView = 'plan';
   function renderSecIndis(){
-    const box = $('#secIndis'); if (!box) return;
+    const box = $('#secIndis'), seg = $('#secSeg'); if (!box || !seg) return;
+    seg.hidden = !window.SEC;
     if (!window.SEC) { box.hidden = true; return; }
-    const keys = [...Array(6)].map((_,i)=>key(addDays(weekStart,i))), TXT = {J:'Journée', M:'Matin', AM:'Après-midi'};
-    const rows = sortedDocs().map(d=>({d, c: keys.map(k=>{ const i = dayInfo(d,k); return i.kind === 'I' && !i.ferie ? TXT[i.part] || '' : ''; })})).filter(r=>r.c.some(Boolean));
-    const tb = list=>list.length ? '<div style="overflow-x:auto"><table><thead><tr><th>Nom</th>'+keys.map((k,i)=>'<th>'+DOW[i]+' '+parse(k).getDate()+'</th>').join('')+'</tr></thead><tbody>'+list.map(r=>'<tr><th>'+esc(dLabel(r.d.id))+'</th>'+r.c.map(x=>'<td'+(x ? ' class="x"' : '')+'>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>' : '<p class="hint">Aucune indisponibilité.</p>';
-    box.hidden = false;
-    box.innerHTML = '<h2>🚫 Indisponibilités de la semaine</h2><h3>Seniors</h3>'+tb(rows.filter(r=>!isIntId(r.d.id)))+'<h3>Internes</h3>'+tb(rows.filter(r=>isIntId(r.d.id)));
+    seg.querySelectorAll('[data-sec]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.sec === secView)));
+    const showI = secView === 'indis';
+    ['#trameWrap','#gAnn','#gNotes'].forEach(q=>{ const el = $(q); if (el) el.style.display = showI ? 'none' : ''; });
+    box.hidden = !showI; if (!showI) return;
+    const keys = [...Array(6)].map((_,i)=>key(addDays(weekStart,i))), tkk = key(new Date());
+    const vis = id => !gGrp || (isIntId(id) === (gGrp === 'interne'));
+    const cell = (d,k,pt,i)=>{
+      const inf = dayInfo(d,k);
+      if (inf.ferie) return '<td class="sf" title="Jour férié">Férié</td>';
+      if (inf[pt] === 'I') return '<td class="sx" title="Indisponible">Indispo</td>';
+      if (inf.kind === 'G') return '<td class="sg" title="Garde">Garde</td>';
+      if (inf[pt] === 'R') return '<td class="sr" title="Repos après garde">Repos</td>';
+      if (inf[pt] === 'A') return '<td class="sa" title="Astreinte">Astr.</td>';
+      return '<td></td>';
+    };
+    const cnt = (list,k,pt)=>list.filter(d=>dayInfo(d,k)[pt] === 'I' && !dayInfo(d,k).ferie).length;
+    const grp = (title, list)=>{
+      if (!list.length) return '';
+      const head = '<tr><th class="nm" rowspan="2">'+title+' <small>('+list.length+')</small></th>'+keys.map((k,ix)=>'<th colspan="'+(ix === 5 ? 1 : 2)+'" class="dh'+(k === tkk ? ' tod' : '')+'">'+DOW[ix]+' '+parse(k).getDate()+'</th>').join('')+'</tr><tr>'+keys.map((k,ix)=>(ix === 5 ? ['M'] : ['M','AM']).map(pt=>{ const n = cnt(list,k,pt); return '<th class="ph">'+pt+(n ? ' <b>'+n+'</b>' : '')+'</th>'; }).join('')).join('')+'</tr>';
+      const body = list.map(d=>'<tr><th class="nm">'+esc(dLabel(d.id))+'</th>'+keys.map((k,ix)=>(ix === 5 ? ['M'] : ['M','AM']).map(pt=>cell(d,k,pt,ix)).join('')).join('')+'</tr>').join('');
+      return '<div class="sgrp"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+    };
+    const docs = sortedDocs().filter(d=>vis(d.id));
+    const sen = docs.filter(d=>!isIntId(d.id)), int = docs.filter(d=>isIntId(d.id));
+    box.innerHTML = '<div class="sleg"><span class="sx">Indispo</span><span class="sg">Garde</span><span class="sr">Repos</span><span class="sa">Astreinte</span><span class="sf">Férié</span></div>'
+      + grp('🩺 Seniors', sen) + grp('🎓 Internes', int)
+      + (docs.length ? '' : '<p class="empty">Aucun médecin.</p>');
   }
+  document.addEventListener('click', e=>{ const b = e.target.closest('[data-sec]'); if (!b || !window.SEC) return; secView = b.dataset.sec; renderSecIndis(); });
   function renderTrame(){ renderTrameCore(); renderAnn(); renderSecIndis(); renderGNotes(); renderCreate(); renderCompose(); renderGAst(); }
   function renderTrameCore(){
     const keys = [...Array(6)].map((_,i)=>addDays(weekStart,i));
