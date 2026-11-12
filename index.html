@@ -140,7 +140,7 @@ button.ghost{background:none}
 .notice{border:1.5px solid var(--ind-2);background:var(--ind);color:var(--ind-ink);border-radius:10px;padding:10px 14px}
 .tabs{display:flex;gap:4px;border-bottom:1.5px solid var(--line)}
 .cronly .tabs,.cronly header.top{display:none!important}
-.sec .tabs,.sec #hiAv,.sec #hiTitle,.sec #hiSub,.sec #goProfile,.sec #gKind,.sec #gMore,.sec #impSlotP,.sec #cwImport,.sec #gAlert{display:none!important}
+.sec .tabs,.sec #hiAv,.sec #hiTitle,.sec #hiSub,.sec #goProfile,.sec #gKind,.sec #gMore,.sec #impSlotP,.sec #cwImport,.sec #gAlert,.sec #gAnn{display:none!important}
 .sec #trameWrap [data-p]{cursor:default}
 #secIndis{padding:10px;background:transparent;border:0;box-shadow:none}
 #secIndis .sgrp{overflow-x:auto;margin-bottom:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}
@@ -1195,7 +1195,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 13h40</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 14h05</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2220,7 +2220,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const annSeenGet = ()=>{ try { const v = localStorage.getItem('planning-annseen'); return v === null ? null : JSON.parse(v) || []; } catch(e) { return []; } };
   const annSeenSet = a=>{ try { localStorage.setItem('planning-annseen', JSON.stringify(a.slice(-200))); } catch(e) {} };
   function annSeenAdd(ids){ const c = annSeenGet() || []; annSeenSet(c.concat(ids.filter(i=>!c.includes(i)))); }
-  function annPopup(){ try { annPopup0(); } catch(e) { annPop = false; } }
+  function annPopup(){ if (window.SEC) return; try { annPopup0(); } catch(e) { annPop = false; } }
   function annPopup0(){
     if (annPop || !annLoaded || !loaded || !doctors[me]) return;
     const seen = annSeenGet();
