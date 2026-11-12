@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 19h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 19h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4144,6 +4144,11 @@ const PROTO = [
       let r; try { await wk.setParameters({tessedit_pageseg_mode: '11', preserve_interword_spaces: '1'}); r = await wk.recognize(pre.blob); } finally { try { await wk.terminate(); } catch(e) {} }
       let words = r && r.data && r.data.words;
       if (!words || !words.length) words = ((r && r.data && r.data.blocks) || []).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[])));
+      /* Ostéo : le tableau lu sur l'image suit le même chemin que l'Excel (postes et personnes créés d'après la photo) */
+      if (SVC === 'osteo' && plMode !== 'ast' && window.XLSX) {
+        const res0 = shotGrid(words);
+        if (res0 && res0.aoa && res0.aoa.length) { const wbS = window.XLSX.utils.book_new(); window.XLSX.utils.book_append_sheet(wbS, window.XLSX.utils.aoa_to_sheet(res0.aoa), 'Photo'); shotBusy = false; shotMsg = ''; renderAstBar(); await readBuffer(null, wbS); return; }
+      }
       const out = shotWrites(words, plMode);
       shotBusy = false; shotMsg = '';
       if (!out.writes.length) { renderAstBar(); return notify(out.msg || 'Rien de nouveau trouvé dans cette capture : vérifiez qu’elle montre bien le tableau avec les jours et les noms.', true); }
