@@ -1173,7 +1173,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 11h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 12h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4416,7 +4416,7 @@ const PROTO = [
   });
   /* ---------- rappels envoyés par Rim ---------- */
   let msgSel = new Set(), msgPush = {}, msgHist = [], msgLoaded = false;
-  const ADMIN_LABELS = ['rm','rim','rayann'];   /* Rim et Rayann : exactement le même profil administrateur */
+  const ADMIN_LABELS = SVC === 'osteo' ? ['rm','rim','rayann','admin osteo'] : ['rm','rim','rayann'];   /* Rim et Rayann : exactement le même profil administrateur */
   const isBaseAdmin = () => !!(me && (me === 'rim' || me === 'rayann' || (doctors[me] && ADMIN_LABELS.includes(plNorm(doctors[me].label)))));
   const NOADM_MSG = 'Seuls les administrateurs modifient le planning. Pour échanger une vacation, utilisez l’onglet « Échanges ».';
   const isRim = () => isBaseAdmin() || !!(me && doctors[me] && doctors[me].admin === true);   /* administrateurs désignés : mêmes droits que Rim et Rayann */
@@ -7409,6 +7409,8 @@ const PROTO = [
         next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', admin: v.admin === true, ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, alias: (v.alias && typeof v.alias==='object') ? v.alias : {}, noAst: v.noAst === true, astMax: typeof v.astMax === 'number' && v.astMax > 0 ? Math.floor(v.astMax) : 0, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, dem: (v.dem && typeof v.dem === 'object') ? v.dem : {}, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : '', rap: (v.rap && typeof v.rap === 'object') ? v.rap : {}, pres: (v.pres && typeof v.pres === 'object') ? v.pres : {}};
       });
       doctors = next; loaded = true; renderAll(); maybePatch();
+      /* service Ostéo : un compte administrateur « Admin Osteo » est créé d'office quand la base est encore vide */
+      if (SVC === 'osteo' && snap.empty && !snap.metadata.fromCache) db.doc('medecins/admin-osteo').set({label: 'Admin Osteo', order: 1, days: {}, role: 'Médecin', admin: true}).catch(()=>{});
     }, err=>{
       loaded = true; notify('La connexion au planning partagé a été interrompue. Rechargez la page.', true); renderAll();
     });
