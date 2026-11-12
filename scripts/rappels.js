@@ -3,9 +3,10 @@
 const admin = require('firebase-admin');
 const {annDue, dueFor, neededDates, chgDates, snapshotFor, changeMessage} = require('../functions/plan');
 /* un service = une base Firebase (uro-vasculaire, ostéo) : mêmes règles, données séparées */
-async function run(saJson, name, link, title) {
+async function run(saJson, name, link, title, pfx) {
   const app = admin.initializeApp({credential: admin.credential.cert(JSON.parse(saJson))}, name);
-  const fs = app.firestore();
+  const raw = app.firestore(), P = pfx || '';
+  const fs = {collection: n => raw.collection(P + n), doc: p => raw.doc(P + p)};
   const parts = new Intl.DateTimeFormat('fr-CA', {timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'}).formatToParts(new Date());
   const g = t => parts.find(p => p.type === t).value;
   const now = {date: g('year') + '-' + g('month') + '-' + g('day'), hm: g('hour') + ':' + g('minute')};
@@ -64,5 +65,6 @@ async function run(saJson, name, link, title) {
 (async () => {
   const BASE = 'https://rayannsou.github.io/urovasc/';
   if (process.env.FIREBASE_SERVICE_ACCOUNT) await run(process.env.FIREBASE_SERVICE_ACCOUNT, 'uro', BASE, 'Planning Imagerie');
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_OSTEO) await run(process.env.FIREBASE_SERVICE_ACCOUNT_OSTEO, 'osteo', BASE + '?s=osteo', 'Planning Ostéo');
+  /* Ostéo : même projet, collections préfixées « osteo_ » */
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) await run(process.env.FIREBASE_SERVICE_ACCOUNT, 'osteo', BASE + '?s=osteo', 'Planning Ostéo', 'osteo_');
 })().catch(e => { console.error(e); process.exit(1); });

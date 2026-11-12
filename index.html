@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 14h45</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 15h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -7473,7 +7473,7 @@ const PROTO = [
       const user = await window.claude.use('user');
       if (user) { const c = await user.can('data.write'); if (c === false) canWrite = false; }
     } catch(e) {}
-    setTimeout(()=>{ if (!loaded) { const n = $('#notice'); if (n) { n.textContent = SVC === 'osteo' ? "La base « Ostéo » ne répond pas. Vérifiez dans la console Firebase du projet osteo-159a0 que Firestore est créé (Build → Firestore Database → Créer) et que les règles sont publiées, puis rechargez." : "Le planning met du temps à se charger. Vérifiez votre connexion, puis rechargez la page."; n.hidden = false; } } }, 8000);
+    setTimeout(()=>{ if (!loaded) { const n = $('#notice'); if (n) { n.textContent = "Le planning met du temps à se charger. Vérifiez votre connexion, puis rechargez la page."; n.hidden = false; } } }, 8000);
     db.collection('medecins').onSnapshot(snap=>{
       const next = {};
       snap.docs.forEach(s=>{
@@ -7548,14 +7548,15 @@ const PROTO = [
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore, doc, collection, getDoc, setDoc, deleteDoc, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-const app = initializeApp(SVC === 'osteo' ? {"apiKey": "AIzaSyCczcHZ8EFsnVpxrq9iUpXacZP9HaP6Ffc", "authDomain": "osteo-159a0.firebaseapp.com", "projectId": "osteo-159a0", "storageBucket": "osteo-159a0.firebasestorage.app", "messagingSenderId": "1078783269394", "appId": "1:1078783269394:web:b41b4c9acccaa7a03096cb"} : {"apiKey": "AIzaSyCv7F339zZWjVR9AS3FjQ0yi9IqEMHZv-8", "authDomain": "planning-uro.firebaseapp.com", "projectId": "planning-uro", "storageBucket": "planning-uro.firebasestorage.app", "messagingSenderId": "843050426921", "appId": "1:843050426921:web:fb6c5d2bd88f5491213238"});
+const app = initializeApp({"apiKey": "AIzaSyCv7F339zZWjVR9AS3FjQ0yi9IqEMHZv-8", "authDomain": "planning-uro.firebaseapp.com", "projectId": "planning-uro", "storageBucket": "planning-uro.firebasestorage.app", "messagingSenderId": "843050426921", "appId": "1:843050426921:web:fb6c5d2bd88f5491213238"});
+const PFX = SVC === 'osteo' ? 'osteo_' : '';  /* même projet Firebase ; données Ostéo dans des collections préfixées */
 let fs; try { fs = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); } catch (e) { fs = getFirestore(app); }
 const TRAME = SVC === 'osteo' ? {"cases": {}, "off": {}, "postes": [], "regles": []} : {"cases": {"bloc_0_AM": {"who": []}, "bloc_0_M": {"who": []}, "bloc_1_AM": {"who": []}, "bloc_1_M": {"who": []}, "bloc_2_AM": {"who": []}, "bloc_2_M": {"who": []}, "bloc_3_AM": {"who": []}, "bloc_3_M": {"who": []}, "bloc_4_AM": {"who": []}, "bloc_4_M": {"who": []}, "consultation_0_AM": {"who": []}, "consultation_0_M": {"who": []}, "consultation_1_M": {"who": []}, "consultation_2_M": {"who": []}, "consultation_3_AM": {"who": []}, "consultation_3_M": {"who": []}, "consultation_4_AM": {"who": []}, "echo-sa_2_AM": {"who": []}, "echo_0_AM": {"who": []}, "echo_0_M": {"who": []}, "echo_1_AM": {"who": []}, "echo_1_M": {"who": []}, "echo_2_AM": {"who": []}, "echo_2_M": {"who": []}, "echo_3_AM": {"who": []}, "echo_3_M": {"who": []}, "echo_4_AM": {"who": []}, "echo_4_M": {"who": []}, "irm_1_AM": {"who": []}, "irm_2_AM": {"who": []}, "irm_2_M": {"ou": false, "who": []}, "irm_3_M": {"who": []}, "irm_4_AM": {"who": []}, "rcp_0_M": {"who": []}, "rcp_1_AM": {"who": []}, "scanner-ext_2_AM": {"who": []}, "scanner-ext_3_M": {"who": []}, "scanner-ext_4_AM": {"who": []}, "scanner-rdc_0_AM": {"who": []}, "scanner-rdc_0_M": {"who": []}, "scanner-rdc_4_AM": {"who": []}, "scanner-rdc_4_M": {"who": []}, "scanner-sa_0_AM": {"who": []}, "scanner-sa_0_M": {"who": []}, "scanner-sa_2_AM": {"who": []}, "scanner-sa_2_M": {"who": []}, "scanner-sa_3_AM": {"who": []}, "scanner-sa_3_M": {"texte": "ostéo", "who": []}, "scanner-urg_0_AM": {"who": []}}, "off": {}, "postes": [{"id": "echo", "label": "Écho"}, {"id": "bloc", "label": "Bloc"}, {"id": "consultation", "label": "Consultation"}, {"id": "irm", "label": "IRM"}, {"id": "scanner-ext", "label": "Scanner EXT"}, {"id": "scanner-rdc", "label": "Scanner RDC", "variante": "interventionnel"}, {"id": "scanner-urg", "label": "Scanner URG"}, {"id": "scanner-sa", "label": "Scanner SA"}, {"id": "echo-sa", "label": "Écho SA"}, {"id": "rcp", "label": "RCP"}], "regles": [{"jour": 0, "poste": "scanner-rdc", "rang": 4, "variante": "diagnostique"}]};
 let seeded = false;
 const wrap = s => ({ id: s.id, exists: s.exists(), data: () => s.data() });
 const db = {
   doc(path) {
-    const ref = doc(fs, path);
+    const ref = doc(fs, PFX + path);
     return {
       id: ref.id, path,
       get: async () => wrap(await getDoc(ref)),
@@ -7568,7 +7569,7 @@ const db = {
     };
   },
   collection(name) {
-    const ref = collection(fs, name);
+    const ref = collection(fs, PFX + name);
     return {
       onSnapshot: (next, err) => onSnapshot(ref, qs => next({ docs: qs.docs.map(wrap) }), err),
       get: async () => ({ docs: (await getDocs(ref)).docs.map(wrap) }),
@@ -7585,7 +7586,7 @@ const downloads = { save: async ({ filename, data }) => {
 } };
 window.claude = { use: async n => n === 'db' ? db : n === 'user' ? { can: async () => true } : n === 'downloads' ? downloads : null };
 const ROLES = {"e62883514d217e41ba3f301483919006cae904b105b9f889a2ef3120361b39e7": "senior", "b0c0c9bab3b0e7405b80d3f89554328f659738faffe59d1adff1d46e14262982": "senior", "e8b49088fe29424e468256a236c5efe51f49fcf25b115e72c66e499dfdb65661": "interne"};
-const VAPID = SVC === 'osteo' ? "BMTaa5A3dQsiaXsYWWNXtsvZrX3fF7RxoIu6OWBGIUPRa45WqPxyHa0QuLFKL3WiwXOyihg-5aQGIby-d-5rqvw" : "BISPDVqu6asNA_VPPfg4AXj3TixNhutxrprQb8IFmW4ER2S_UIGZir6H2H0CGkN_8-aPWjN9fy7DiIU5K4PBH_c";
+const VAPID = "BISPDVqu6asNA_VPPfg4AXj3TixNhutxrprQb8IFmW4ER2S_UIGZir6H2H0CGkN_8-aPWjN9fy7DiIU5K4PBH_c";
 const MSGURL = "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 window.__push = { vapid: !!VAPID, supported: async () => { try { if (!('Notification' in window) || !('serviceWorker' in navigator)) return false; const m = await import(MSGURL); return await m.isSupported(); } catch (e) { return false; } }, token: async () => { const m = await import(MSGURL); const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js'); await navigator.serviceWorker.ready; return m.getToken(m.getMessaging(app), { vapidKey: VAPID, serviceWorkerRegistration: reg }); } };
 
