@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 17h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 18h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -6750,6 +6750,7 @@ const PROTO = [
     }).join('') || '<li class="muted" style="border:0;font-family:inherit">Aucun poste.</li>';
   }
   async function saveTrame(mut, noCode){
+    if (!trame && SVC === 'osteo' && db) trame = normalizeTrame({postes: [], cases: {}, off: {}, regles: []});   /* service Ostéo vierge : trame vide créée au premier ajout */
     if (!db || !canWrite || !trame) { notify('Lecture seule : modification impossible.', true); return false; }
     if (!isRim()) { notify(NOADM_MSG, true); return false; }
     if (!noCode && !(await ensureCode('modifier les postes du service'))) return false;
@@ -7536,7 +7537,7 @@ const PROTO = [
     db.doc('trame/semaine').onSnapshot(s=>{
       trame = s.exists ? normalizeTrame(s.data()) : null; trameLoaded = true;
       /* service Ostéo vierge : trame vide créée d'office (sans elle, « Créer un planning » reste blanc) */
-      if (SVC === 'osteo' && !s.exists && !(s.metadata && s.metadata.fromCache) && !window.__trInit) { window.__trInit = true; const t0 = {postes: [], cases: {}, off: {}, regles: []}; trame = normalizeTrame(t0); db.doc('trame/semaine').set(t0).catch(err=>{ window.__trInit = false; const n = $('#notice'); if (n) { n.textContent = 'Impossible de créer la trame Ostéo ('+(err && err.code || 'erreur')+') : règles Firestore à ouvrir pour les collections « osteo_… ».'; n.hidden = false; } }); }
+      if (SVC === 'osteo' && !s.exists && !window.__trInit) { window.__trInit = true; const t0 = {postes: [], cases: {}, off: {}, regles: []}; trame = normalizeTrame(t0); db.doc('trame/semaine').get().then(g=>{ if (!g.exists) return db.doc('trame/semaine').set(t0); }).catch(err=>{ window.__trInit = false; const n = $('#notice'); if (n) { n.textContent = 'Impossible de créer la trame Ostéo ('+(err && err.code || 'erreur')+').'; n.hidden = false; } }); }
       renderTrame(); renderConflicts(); renderSwaps(); renderSwapForm(); renderAll(); maybeSeed(); ensureAst(); maybePatch();
     }, err=>{ const n = $('#notice'); if (n) { n.textContent = 'Accès à la base refusé ('+(err && err.code || 'erreur')+') : les règles Firestore du projet planning-uro doivent autoriser les collections « osteo_… » (voir les instructions).'; n.hidden = false; } });
     db.collection('notes').onSnapshot(snap=>{
