@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 18h25</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 19h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -3321,7 +3321,7 @@ const PROTO = [
     const back = '<button type="button" class="ghost astback" data-plstage="'+(plStage === 'how' || plStage === 'impm' ? '' : plStage === 'astm' ? 'how' : plStage === 'auto' && ast && astOn ? 'astm' : plStage === 'imp' ? 'impm' : (plStage === 'impx' || plStage === 'impg' || plStage === 'shot' || plStage === 'pdf') ? 'imp' : 'how')+'">‹ Retour</button>';
     const lb = (a, ic, t, x)=>'<button type="button" class="astbtn big lrow" '+a+(x || '')+'><span class="ai">'+ic+'</span><span class="at">'+t+'</span><span class="ac">›</span></button>';
     const astG = '<div class="exfmt astgrp" role="group" aria-label="Pour qui"><button type="button" data-astgrp="medecin" aria-pressed="'+(plGrp === 'medecin')+'">🩺 Seniors</button><button type="button" data-astgrp="interne" aria-pressed="'+(plGrp === 'interne')+'">🎓 Internes</button></div>';
-    if (!ast && !trame.postes.some(p=>!p.info && !p.samedi)) { box.innerHTML = '<p class="aststat"><b>Aucun poste dans ce service</b></p><p class="hint">Avant de créer un planning : 1) Réglages → « Postes du service » : ajoutez vos postes. 2) Réglages → trame : cochez les vacations ouvertes de chaque poste. Ensuite le planning pourra être créé ici.</p><button type="button" class="astbtn go" data-gosettings="1">Aller aux Réglages ›</button>'; return; }
+    const noPost = !ast && !plStage && !trame.postes.some(p=>!p.info && !p.samedi);
     if (!plGrp) box.innerHTML = '<p class="aststat"><b>Pour qui créer le planning ?</b></p><p class="hint">Les médecins et les internes se créent séparément : l’un ne modifie pas l’autre.</p><div class="astcol">'+lb('data-plgrp="medecin"','🩺','Médecins')+lb('data-plgrp="interne"','🎓','Internes')+'</div>';
     else if (!plStage) { const bt = (k, ic, t)=>'<button type="button" class="astbtn big lrow" data-plpick="'+k+'"><span class="ai">'+ic+'</span><span class="at">'+t+'</span><span class="ac">›</span></button>'; box.innerHTML = '<div class="asthead"><span>Planning des <b>'+(plGrp === 'interne' ? 'internes' : 'médecins')+'</b></span><button type="button" class="ghost" data-plgrp="">Changer</button></div><div class="astcol">'+bt('imp','📥','Importer un planning')+bt('week','📅','Créer un planning de semaine')+bt('ast','🔔','Créer un planning d’astreinte')+'</div>'; }
     else if (plStage === 'impm') box.innerHTML = back + '<p class="aststat">Importer un planning…</p><div class="astcol">'+lb('data-implmode="week"','📅','Planning de semaine')+lb('data-implmode="ast"','🔔','Planning d’astreinte')+'</div>';
@@ -3345,6 +3345,7 @@ const PROTO = [
       + (ast && !(qAns === 'no' && astExclOk) ? '' : '<button type="button" class="astbtn go qgo" data-astassign="1"'+(canWrite && qAns === 'no' && (!ast || astExclOk) ? '' : ' disabled')+'><i class="dot '+(allOk ? 'ok' : 'ko')+'"></i>Générer le planning '+(ast ? 'd’astreinte' : 'de la semaine')+'</button>'+(qAns === 'no' && (!ast || astExclOk) ? '' : '<p class="qh" style="text-align:center;margin:6px 0 0">Répondez à la question pour continuer.</p>'))
       + '<p class="aststat '+(allOk ? 'ok' : 'ko')+'">'+stat+'</p>'
       + (canSeeMiss() ? '<button type="button" class="ghost astmiss" data-astmiss="1">Qui n’a pas renseigné ses indisponibilités ? <b class="acn">'+miss.length+'</b></button>' : '');
+    if (noPost) box.innerHTML = '<div class="redoq"><p class="aststat"><b>Service sans poste</b></p><p class="hint">Le plus simple : <b>importez un planning</b> (Excel, PDF, photo ou Google Sheet) : les postes et les personnes sont créés d’après le fichier. Sinon, ajoutez vos postes dans Réglages → « Postes du service ».</p></div>' + box.innerHTML;
   }
   const _rab = renderAstBar;
   renderAstBar = function(){ _rab(); const pb = $('#plPdf'); if (pb) { pb.hidden = true; pb.className = plPdfNew ? 'primary' : 'ghost'; pb.textContent = plPdfNew ? '📄 Planning enregistré · télécharger le PDF' : '📄 Télécharger le PDF de la semaine'; } const pc = $('#plCard'); if (pc) pc.style.order = plStage === 'auto' ? '-1' : ''; const box = $('#astBarBox'); if (box && !box.hidden && plGrp) box.insertAdjacentHTML('afterbegin', planStatus()); };
@@ -5536,6 +5537,15 @@ const PROTO = [
   function splitNames(v){
     return String(v == null ? '' : v).replace(/\(.*?\)/g,'').split(/[,;\/+&\n]|\bet\b|\bou\b/i).map(x=>x.trim()).filter(x=>x && x.length <= 24 && !/^[-–—x.]+$/i.test(x));
   }
+  /* service Ostéo (sans postes prédéfinis) : un poste inconnu du fichier importé est créé d'office */
+  let autoNew = 0;
+  function autoPoste(label){
+    if (SVC !== 'osteo' || !trame) return null;
+    const v = String(label || '').trim().replace(/\s+/g, ' ').slice(0, 40); if (!v || v.length < 2) return null;
+    let id = slug(v) || 'poste', n = 2; const base = id;
+    while (trame.postes.some(p=>p.id === id)) id = base+'-'+(n++);
+    const p = {id, label: v}; trame.postes.push(p); autoNew++; return p;
+  }
   function matchPoste(label){
     const n = normS(label); if (!n) return null;
     const list = trame.postes.map(p=>({p, n: normS(p.label)}));
@@ -5568,7 +5578,7 @@ const PROTO = [
     for (let r=(pr >= 0 ? pr : hr)+1; r<rows.length; r++) {
       const label = rows[r].slice(0, first).map(x=>String(x||'').trim()).filter(Boolean).join(' ');
       if (!label || normS(label) === 'off') continue;
-      const post = matchPoste(label);
+      const post = matchPoste(label) || (rows[r].some((x,c)=>c >= first && String(x||'').trim()) ? autoPoste(label) : null);
       if (!post) { if (rows[r].some((x,c)=>c >= first && String(x||'').trim())) ignored.push(label); continue; }
       for (let c=first;c<width;c++) if (dayCol[c] >= 0 && partCol[c]) cells.push({poste: post.id, day: dayCol[c], part: partCol[c], names: splitNames(rows[r][c])});
     }
@@ -5585,7 +5595,7 @@ const PROTO = [
     const cells = [], ignored = []; let monday = null;
     for (let r=hr+1; r<rows.length; r++) {
       const row = rows[r], label = String(row[ci.p] || '').trim(); if (!label) continue;
-      const post = matchPoste(label); if (!post) { ignored.push(label); continue; }
+      const post = matchPoste(label) || autoPoste(label); if (!post) { ignored.push(label); continue; }
       let day = dayOfCell(row[ci.j]); const d = dateFromAny(row[ci.j]);
       if (d) { if (!monday) monday = mondayOf(d); day = (d.getDay()+6)%7; }
       if (day < 0 || day > 4) continue;
@@ -5727,10 +5737,11 @@ const PROTO = [
   async function readBuffer(buf, wb0){
     const X = window.XLSX;
     if (!X) return notify("La lecture des fichiers Excel n'est pas disponible dans cette vue.", true);
-    if (!trame || !trame.postes.length) return notify('Les postes du service doivent être chargés.', true);
+    if (!trame || (!trame.postes.length && SVC !== 'osteo')) return notify('Les postes du service doivent être chargés.', true);
+    autoNew = 0;
     try {
       const wb = wb0 || X.read(new Uint8Array(buf), {type:'array', cellDates:true});
-      let weeks = PP.parseWorkbook(X, wb), ignored = [];
+      let weeks = SVC === 'osteo' ? Object.assign([], {report: {ok: [], skip: wb.SheetNames.slice(), months: {}}}) : PP.parseWorkbook(X, wb), ignored = [];   /* Ostéo : service à part, chaque feuille est lue en grille/liste simple, postes créés d'après le fichier */
       const report = weeks.report || {ok:[], skip:[]}; weeks = weeks.slice();
       /* feuilles au format simple (modèle) : chacune lue séparément */
       let nextMon = weeks.length ? addDays(parse(weeks[weeks.length-1].monday),7) : cwStart;
@@ -5749,6 +5760,7 @@ const PROTO = [
       if (extra.length) weeks = PP.mergeWeeks(weeks.concat(extra));
       report.skip = stillSkipped;
       if (weeks.length && (report.skip.length || report.ok.length > 1)) setTimeout(()=>notify(report.ok.length+' feuille'+(report.ok.length > 1 ? 's' : '')+' lue'+(report.ok.length > 1 ? 's' : '')+(report.skip.length ? ' · ignorée'+(report.skip.length > 1 ? 's' : '')+' : '+report.skip.join(', ') : '')+'.'), 300);
+      if (autoNew && weeks.length) { const k = autoNew; autoNew = 0; if (await saveTrame(()=>{}, true)) setTimeout(()=>notify(k+' poste'+(k > 1 ? 's' : '')+' créé'+(k > 1 ? 's' : '')+' d’après le fichier (modifiables dans Réglages).'), 400); }
       if (!weeks.length) { xlPlan = null; renderPlan(); return notify("Format non reconnu. Utilisez le fichier du planning du service ou le modèle.", true); }
       xlPlan = planFromWeeks(weeks, ignored); renderPlan();
     } catch(e) { xlPlan = null; renderPlan(); notify('Fichier illisible. Utilisez un .xlsx ou .csv.', true); }
