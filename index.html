@@ -923,6 +923,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <button type="button" id="gToday" class="ghost">Cette semaine</button>
         </div>
         <div class="subtabs" id="secSeg" role="group" aria-label="Vue secrétariat" hidden><button type="button" data-sec="plan" aria-pressed="true">📅 Planning</button><button type="button" data-sec="indis" aria-pressed="false">🚫 Indisponibilités</button></div>
+        <div id="secWhoBar" hidden style="margin:0 0 8px"><select id="secWho" aria-label="Choisir un médecin" style="width:100%;min-height:44px"></select></div>
         <div class="subtabs" id="gGrpBar" role="group" aria-label="Afficher"><button type="button" data-ggrp="" aria-pressed="true">Tous</button><button type="button" data-ggrp="medecin" aria-pressed="false">🩺 Seniors</button><button type="button" data-ggrp="interne" aria-pressed="false">🎓 Internes</button></div>
         <div id="gAlert" class="alert" hidden></div>
         <div id="gPoste" class="col">
@@ -1195,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 14h05</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 14h45</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -5222,17 +5223,25 @@ const PROTO = [
   $('#gaNext').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), 70); renderGAst(); });
   document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-unfall]')) { gUnf = null; renderTrame(); } });
   $('#gaToday').addEventListener('click', ()=>{ gaStart = satOf(new Date()); renderGAst(); });
-  let secView = 'plan';
+  let secView = 'plan', secWho = '';
   function renderSecIndis(){
     const box = $('#secIndis'), seg = $('#secSeg'); if (!box || !seg) return;
     seg.hidden = !window.SEC;
+    { const sel = $('#secWho'), bar = $('#secWhoBar');
+      if (bar) bar.hidden = !window.SEC;
+      if (sel && window.SEC) {
+        const ds = sortedDocs().filter(d=>!gGrp || (isIntId(d.id) === (gGrp === 'interne')));
+        if (secWho && !ds.some(d=>d.id === secWho)) secWho = '';
+        const sr = ds.filter(d=>!isIntId(d.id)), it = ds.filter(d=>isIntId(d.id)), o = d=>'<option value="'+esc(d.id)+'"'+(d.id === secWho ? ' selected' : '')+'>'+esc(dLabel(d.id))+'</option>';
+        sel.innerHTML = '<option value="">👥 Tous les médecins</option>'+(sr.length ? '<optgroup label="🩺 Seniors">'+sr.map(o).join('')+'</optgroup>' : '')+(it.length ? '<optgroup label="🎓 Internes">'+it.map(o).join('')+'</optgroup>' : '');
+      } }
     if (!window.SEC) { box.hidden = true; return; }
     seg.querySelectorAll('[data-sec]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.sec === secView)));
     const showI = secView === 'indis';
     ['#trameWrap','#gAnn','#gNotes'].forEach(q=>{ const el = $(q); if (el) el.style.display = showI ? 'none' : ''; });
     box.hidden = !showI; if (!showI) return;
     const keys = [...Array(6)].map((_,i)=>key(addDays(weekStart,i))), tkk = key(new Date());
-    const vis = id => !gGrp || (isIntId(id) === (gGrp === 'interne'));
+    const vis = id => (!window.SEC || !secWho || id === secWho) && (!gGrp || (isIntId(id) === (gGrp === 'interne')));
     const cell = (d,k,pt,i)=>{
       const inf = dayInfo(d,k);
       if (inf.ferie) return '<td class="sf" title="Jour férié">Férié</td>';
@@ -5255,6 +5264,7 @@ const PROTO = [
       + grp('🩺 Seniors', sen) + grp('🎓 Internes', int)
       + (docs.length ? '' : '<p class="empty">Aucun médecin.</p>');
   }
+  document.addEventListener('change', e=>{ if (e.target && e.target.id === 'secWho' && window.SEC) { secWho = e.target.value; renderTrame(); } });
   document.addEventListener('click', e=>{ const b = e.target.closest('[data-sec]'); if (!b || !window.SEC) return; secView = b.dataset.sec; renderSecIndis(); });
   function renderTrame(){ renderTrameCore(); renderAnn(); renderSecIndis(); renderGNotes(); renderCreate(); renderCompose(); renderGAst(); }
   function renderTrameCore(){
@@ -5276,7 +5286,7 @@ const PROTO = [
       renderGAlert(); renderEditor(); return;
     }
     ensureEd();
-    const vis = id => !gGrp || (isIntId(id) === (gGrp === 'interne'));
+    const vis = id => (!window.SEC || !secWho || id === secWho) && (!gGrp || (isIntId(id) === (gGrp === 'interne')));
     /* seniors et internes séparés, chacun avec son libellé */
     const splitChips = (v, mk, full)=>{
       const all = v.who.filter(vis); if (v.ou) return all.map(mk).join(' ou ');
@@ -7463,6 +7473,7 @@ const PROTO = [
       const user = await window.claude.use('user');
       if (user) { const c = await user.can('data.write'); if (c === false) canWrite = false; }
     } catch(e) {}
+    setTimeout(()=>{ if (!loaded) { const n = $('#notice'); if (n) { n.textContent = SVC === 'osteo' ? "La base « Ostéo » ne répond pas. Vérifiez dans la console Firebase du projet osteo-159a0 que Firestore est créé (Build → Firestore Database → Créer) et que les règles sont publiées, puis rechargez." : "Le planning met du temps à se charger. Vérifiez votre connexion, puis rechargez la page."; n.hidden = false; } } }, 8000);
     db.collection('medecins').onSnapshot(snap=>{
       const next = {};
       snap.docs.forEach(s=>{
