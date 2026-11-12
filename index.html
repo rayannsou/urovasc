@@ -254,6 +254,8 @@ table.trame{table-layout:fixed;width:100%;min-width:860px}table.trame .who{width
 .team td.v.sel{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft)}
 .team td.v.cfl{background:var(--red-soft)}
 .cap.open{color:var(--red);font-weight:700}
+td.v.unf,.pcell.unf{background:color-mix(in srgb,var(--red) 16%,transparent)!important;box-shadow:inset 0 0 0 2px var(--red)}
+td.v.unf .cap.open,.pcell.unf .cap.open{font-weight:800;text-transform:uppercase;letter-spacing:.02em}
 .cap.mod{color:var(--accent);font-weight:700}
 .st{display:inline-block;font:600 12px var(--font-body);padding:2px 10px;border-radius:999px}
 .st-g{background:var(--garde);color:var(--garde-ink)}
@@ -1173,7 +1175,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 12h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 12h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -5020,6 +5022,8 @@ const PROTO = [
     if (s && s.wh && Array.isArray(s.wh[kk]) && !(s.rem && s.rem[kk] && !(s.add && s.add[kk]))) { c = Object.assign({}, c || {}, {who: s.wh[kk].slice()}); delete c.rot; }   /* personnes choisies pour cette semaine seulement */
     return c;
   }
+  /* vacation ouverte (dans la trame) mais personne dessus : à signaler en rouge, à partir d'aujourd'hui */
+  const isUnf = (p, v, k) => !!(v && !p.info && !v.ou && !v.who.length && !v.texte && k >= key(new Date()));
   function vacWho(postId, k, part){
     if (!trame || !isDate(k)) return null;
     const dow = (parse(k).getDay()+6)%7; if (dow > 5) return null;
@@ -5242,14 +5246,13 @@ const PROTO = [
         any = true;
         L += '<div class="prow" style="--pc:'+posteColor(p.id)+'"><div class="pname">'+esc(p.label)+(p.variante ? '<small>'+esc(vv)+'</small>' : '')+'</div>';
         pts.forEach((part,ix)=>{
-          const v = vs[ix]; let cfl = false, inner = '';
+          const v = vs[ix]; let cfl = false, inner = '', unf = false;
           if (v) {
             inner = v.texte ? '<span class="ch">'+esc(v.texte)+'</span>' : '';
             inner += splitChips(v, id=>{ const r = v.ou ? '' : reasonFor(id,dk,part); if (r) cfl = true; return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+(r ? ' · '+esc(r) : '')+'</span>'; }, true);
-            if (v.open) inner += '<span class="cap open">à pourvoir</span>';
-            
+            if (isUnf(p, v, dk)) { inner += '<span class="cap open">⚠ à pourvoir</span>'; unf = true; }
           } else inner = '<span class="muted">—</span>';
-          L += '<div class="pcell'+(cfl ? ' cfl' : '')+(ed.poste === p.id && ed.date === dk && ed.part === part ? ' sel' : '')+'" data-p="'+esc(p.id)+'" data-d="'+dk+'" data-part="'+part+'" tabindex="0" role="button"><span class="pp">'+(part === 'M' ? 'Matin' : 'Après-midi')+'</span><span class="pw">'+inner+'</span></div>';
+          L += '<div class="pcell'+(cfl ? ' cfl' : '')+(unf ? ' unf' : '')+(ed.poste === p.id && ed.date === dk && ed.part === part ? ' sel' : '')+'" data-p="'+esc(p.id)+'" data-d="'+dk+'" data-part="'+part+'" tabindex="0" role="button"><span class="pp">'+(part === 'M' ? 'Matin' : 'Après-midi')+'</span><span class="pw">'+inner+'</span></div>';
         });
         L += '</div>';
       });
@@ -5295,10 +5298,11 @@ const PROTO = [
             const r = v.ou ? '' : reasonFor(id,k,part); if (r) cfl = true;
             return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+(r ? ' title="'+esc(dLabel(id)+' : '+r)+'"' : '')+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+'</span>';
           }, false);
-          if (v.open) inner += '<span class="cap open">à pourvoir</span>';
+          const unf = isUnf(p, v, k);
+          if (unf) inner += '<span class="cap open">⚠ à pourvoir</span>';
           if (p.variante) inner += '<span class="cap'+(vv !== p.variante ? ' alt' : '')+'">'+esc(ABREV[vv] || vv)+'</span>';
           
-          h += '<td class="v'+end+sel+(cfl ? ' cfl' : '')+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : '+esc(v.who.filter(vis).map(dLabel).join(', ') || 'personne')+(cfl ? ', conflit' : '')+'">'+inner+'</td>';
+          h += '<td class="v'+end+sel+(cfl ? ' cfl' : '')+(unf ? ' unf' : '')+'"'+attrs+' aria-label="'+esc(p.label)+', '+DOW[i]+' '+d.getDate()+', '+PART_TXT[part]+' : '+esc(v.who.filter(vis).map(dLabel).join(', ') || 'personne')+(cfl ? ', conflit' : '')+'">'+inner+'</td>';
         });
       });
       h += '</tr>';
