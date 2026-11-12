@@ -1173,7 +1173,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 09h00</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 11h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2134,11 +2134,13 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   function renderAnn(){
     const box = $('#gAnn'); if (!box) return;
     const adm = isRim(), keys = [...Array(6)].map((_,i)=>key(addDays(weekStart,i)));
-    const days = keys.filter(k=>annList(k, false).length);
+    /* un jour passé n'affiche plus ses annonces, sauf si on revient sur ce jour (onglet du jour) */
+    const todayK = key(new Date()), selK = typeof gDay === 'number' && gDay >= 0 ? key(addDays(weekStart, gDay)) : '';
+    const days = keys.filter(k=>(k >= todayK || k === selK) && annList(k, false).length);
     box.hidden = !days.length && !adm;
     if (box.hidden) return;
     box.innerHTML = '<div class="annh"><h2>📣 Annonces de la semaine</h2>'+(adm ? '<button type="button" class="ghost" data-annadd="1">＋ Annonce</button>' : '')+'</div>'
-      + (days.length ? days.map(k=>'<p class="annd">'+esc(fmtLong.format(parse(k)).replace(/^./, c=>c.toUpperCase()))+'</p>'+annHtml(k, false, adm)).join('') : '<p class="hint">Aucune annonce cette semaine. Ajoutez un cours, une réunion… : elle s’affichera avant le planning du jour.</p>');
+      + (days.length ? days.map(k=>'<p class="annd">'+esc(fmtLong.format(parse(k)).replace(/^./, c=>c.toUpperCase()))+'</p>'+annHtml(k, false, adm)).join('') : '<p class="hint">Aucune annonce à venir cette semaine. Ajoutez un cours, une réunion… : elle s’affichera avant le planning du jour.</p>');
   }
 
   /* ---------- rappels personnels (visibles seulement par la personne, comme une annonce) ---------- */
