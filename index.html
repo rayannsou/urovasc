@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 19h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 20h15</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -5544,6 +5544,7 @@ const PROTO = [
   }
   /* service Ostéo (sans postes prédéfinis) : un poste inconnu du fichier importé est créé d'office */
   let autoNew = 0;
+  const OSTEO_ABS = {'off':'Off','rdg':'Repos de garde','repos de garde':'Repos de garde','absence':'Absent(e)','absences':'Absent(e)','absent':'Absent(e)','conges':'Congés annuels','conges annuels':'Congés annuels','cp':'Congés annuels','rtt':'Off','maladie':'Absent(e)'};
   function autoPoste(label){
     if (SVC !== 'osteo' || !trame) return null;
     const v = String(label || '').trim().replace(/\s+/g, ' ').slice(0, 40); if (!v || v.length < 2) return null;
@@ -5579,17 +5580,22 @@ const PROTO = [
       const di = r === hr || r === pr ? dayOfCell(rows[hr][c]) : -1;
       monday = mondayOf(di > 0 ? addDays(d,-di) : d);
     }
-    const cells = [], ignored = []; let lastLabel = '';
+    const cells = [], ignored = [], absOut = []; let lastLabel = '', curAbs = null;
     for (let r=(pr >= 0 ? pr : hr)+1; r<rows.length; r++) {
       let label = rows[r].slice(0, first).map(x=>String(x||'').trim()).filter(Boolean).join(' ');
       if (!label && SVC === 'osteo' && lastLabel && rows[r].some((x,c)=>c >= first && String(x||'').trim())) label = lastLabel;   /* ligne sans titre : même poste que la ligne au-dessus */
-      if (!label || normS(label) === 'off') continue;
+      if (!label || (normS(label) === 'off' && SVC !== 'osteo')) continue;
+      if (SVC === 'osteo' && label !== lastLabel) { const nl = normS(label); curAbs = OSTEO_ABS[nl] || (nl === 'staff' ? '-' : null); }
       lastLabel = label;
+      if (SVC === 'osteo' && curAbs) {   /* section OFF / RDG / ABSENCES… : absences, pas des postes ; « staff » ignoré */
+        if (curAbs !== '-') for (let c=first;c<width;c++) if (dayCol[c] >= 0 && partCol[c]) { const nm = splitNames(rows[r][c]); if (nm.length) absOut.push({day: dayCol[c], part: partCol[c], names: nm, note: curAbs}); }
+        continue;
+      }
       const post = matchPoste(label) || (rows[r].some((x,c)=>c >= first && String(x||'').trim()) ? autoPoste(label) : null);
       if (!post) { if (rows[r].some((x,c)=>c >= first && String(x||'').trim())) ignored.push(label); continue; }
       for (let c=first;c<width;c++) if (dayCol[c] >= 0 && partCol[c]) cells.push({poste: post.id, day: dayCol[c], part: partCol[c], names: splitNames(rows[r][c])});
     }
-    return {monday, cells, ignored};
+    return {monday, cells, ignored, abs: absOut};
   }
   function parseFlat(rows){
     let hr = -1, ci = {};
@@ -5761,7 +5767,7 @@ const PROTO = [
         if (!mon && report.months && report.months[name]) { const f = new Date(report.months[name]); f.setDate(1); const m1 = mondayOf(addDays(f,6)); if (!weeks.concat(extra).some(w=>w.monday === key(m1))) mon = m1; }
         if (!mon) mon = nextMon; nextMon = addDays(mon,7);
         ignored = ignored.concat(parsed.ignored || []);
-        extra.push({monday: key(mon), dates: [0,1,2,3,4].map(i=>key(addDays(mon,i))), cells: parsed.cells.map(c=>({poste: c.poste, date: key(addDays(mon,c.day)), part: c.part, people: c.names.map(n=>({label: SVC === 'osteo' ? (n === n.toLowerCase() ? n.charAt(0).toUpperCase()+n.slice(1) : n) : PP.personLabel(n), star: false})), x: ''})), absences: [], notes: []});
+        extra.push({monday: key(mon), dates: [0,1,2,3,4].map(i=>key(addDays(mon,i))), cells: parsed.cells.map(c=>({poste: c.poste, date: key(addDays(mon,c.day)), part: c.part, people: c.names.map(n=>({label: SVC === 'osteo' ? (n === n.toLowerCase() ? n.charAt(0).toUpperCase()+n.slice(1) : n) : PP.personLabel(n), star: false})), x: ''})), absences: (parsed.abs || []).flatMap(a=>a.names.map(n=>({label: n === n.toLowerCase() ? n.charAt(0).toUpperCase()+n.slice(1) : n, date: key(addDays(mon,a.day)), part: a.part, note: a.note}))), notes: []});
         report.ok.push(name);
       }
       if (extra.length) weeks = PP.mergeWeeks(weeks.concat(extra));
