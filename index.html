@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 16h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 17h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2155,9 +2155,11 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     return '<span style="flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08);font-size:14px"><span style="min-width:0">'+txt+'</span>'+(b ? '<span style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">'+b+'</span>' : '')+'</span>';
   };
   const annHtml = (k, grpOnly, edit)=>{ const l = annList(k, grpOnly); return (grpOnly ? rapHtml(k) : '') + l.map(x=>{ const inner = '<b>📣 '+esc(annTime(x))+'</b>'+(Number(x.r) ? '<small>🔁</small>' : '')+'<span>'+esc(x.t)+'</span>'+(!grpOnly && annGrpTxt(x.g) ? '<small>'+annGrpTxt(x.g)+'</small>' : '')+presHtml(x, k, edit); const wr = x.p ? ' style="flex-wrap:wrap"' : ''; return edit ? '<button type="button" class="annc" data-annedit="'+esc(x.id)+'"'+wr+'>'+inner+'<small>✎</small></button>' : '<div class="annc"'+wr+'>'+inner+'</div>'; }).join(''); };
+  /* tous les seniors (et les administrateurs) peuvent créer / modifier / supprimer des annonces */
+  const annCan = ()=>isRim() || (!!me && !isIntId(me) && !window.SEC);
   function renderAnn(){
     const box = $('#gAnn'); if (!box) return;
-    const adm = isRim(), keys = [...Array(6)].map((_,i)=>key(addDays(weekStart,i)));
+    const adm = annCan(), keys = [...Array(6)].map((_,i)=>key(addDays(weekStart,i)));
     /* un jour passé n'affiche plus ses annonces, sauf si on revient sur ce jour (onglet du jour) */
     const todayK = key(new Date()), selK = typeof gDay === 'number' && gDay >= 0 ? key(addDays(weekStart, gDay)) : '';
     const days = keys.filter(k=>(k >= todayK || k === selK) && annList(k, false).length);
@@ -2254,7 +2256,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const err = m=>{ const e = w.querySelector('#anErr'); e.textContent = m; e.hidden = false; };
     const save = async val=>{
       if (!db || !canWrite) return err('Lecture seule : modification impossible.');
-      if (!(await ensureCode('modifier les annonces'))) return;
+      if (!annCan() && !(await ensureCode('modifier les annonces'))) return;
       const nid = id || ('a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5));
       try { await db.doc('meta/annonces').update({items: {[nid]: val}}); annSeenAdd([nid]); w.remove(); notify(val ? 'Annonce enregistrée.' : 'Annonce supprimée.'); } catch(e) { handleErr(e); }
     };
@@ -2274,7 +2276,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     setTimeout(()=>{ try { w.querySelector('#anT').focus(); } catch(e) {} }, 50);
   }
   document.addEventListener('click', e=>{
-    if (!isRim()) return;
+    if (!annCan()) return;
     const ad = e.target.closest && e.target.closest('[data-annadd]'); if (ad) { const dk = typeof gDay === 'number' && gDay >= 0 ? key(addDays(weekStart, Math.min(gDay, 5))) : key(weekStart); annOpen(null, dk); return; }
     const ed2 = e.target.closest && e.target.closest('[data-annedit]'); if (ed2) annOpen(ed2.dataset.annedit);
   });
