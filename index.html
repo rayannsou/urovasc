@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 21h25</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 21h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'db1c150370';
+  const BUILD = 'd17dbe30ec';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3971,7 +3971,10 @@ const PROTO = [
     $('#genShT').textContent = title;
     writes.forEach(w=>{ w.on = !(genPastAsk && w.k < genTodayK()); if (w.ph && !w.after.length) w.on = false;
       /* un titulaire de la trame remplacé (indisponible) : jamais appliqué sans votre accord */
-      w.gone = (w.before || []).filter(id=>!(w.after || []).includes(id)); w.sub = !!(opts && opts.sub) && plGrp !== 'interne' && !w.ph && w.gone.length > 0 && w.after.length > 0; if (w.sub) w.on = false; });
+      w.gone = (w.before || []).filter(id=>!(w.after || []).includes(id)); w.sub = !!(opts && opts.sub) && plGrp !== 'interne' && !w.ph && w.gone.length > 0 && w.after.length > 0; if (w.sub) w.on = false;
+      /* vacation en alternance : à valider à la main, avec ce qui s'est passé les semaines d'avant */
+      w.alt = false; if (opts && opts.sub && plGrp !== 'interne' && !w.ph && findPost(w.poste)) { try { const c = effCase(w.poste, w.k, (parse(w.k).getDay()+6)%7, w.part); if (c && Array.isArray(c.rot) && c.rot.length > 1) w.alt = c.rot.slice(); } catch(e) {} }
+      if (w.alt && !w.sub && w.after.length) w.on = false; });
     genBuild();
     if (opts && opts.step && genRows.length && !writes.some(w=>w.same)) { genStep = 0; genSolo = false; }
     genRender();
@@ -4032,7 +4035,8 @@ const PROTO = [
     return sr.map(id=>'<b>'+esc(dLabel(id))+'</b>').join(v.ou ? ' ou ' : ', ')+(v.ou ? ' (à confirmer)' : '');
   }
   function genAfter(r){ return genPending[r.idx[0]].after; }
-  function genRowHtml(r){ const w = genPending[r.idx[0]]; if (w.closed) return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>🔒 vacation fermée</small></span>'; if (w.sub && !r.sam) return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>🔁 <b>'+esc(genNm(w.gone))+'</b> indisponible : je propose <b>'+esc(genNm(w.after))+'</b>'+(w.touched ? '' : ' · à valider')+'</small></span>'; return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>'+(w.before.length && !r.sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(genNm(w.before))+' → ' : '')+'<b>'+esc(genNm(r.sam && plGrp ? w.after.filter(inGrp) : w.after))+'</b>'+(genSrTxt(w) ? ' · 🩺 '+genSrTxt(w) : '')+'</small></span>'; }
+  function histShort(poste, date, part, n){ const p = findPost(poste); if (!p) return ''; const pt = p.journee ? 'M' : part, out = []; for (let i = 1; i <= (n || 3); i++) { const dk = key(addDays(parse(date), -7 * i)), x = vacWho(poste, dk, pt); out.push(new Intl.DateTimeFormat('fr-FR', {day: 'numeric', month: 'numeric'}).format(parse(dk))+' : '+(x && x.who.length ? x.who.map(dLabel).join(', ') : '—')); } return out.join(' · '); }
+  function genRowHtml(r){ const w = genPending[r.idx[0]]; if (w.closed) return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>🔒 vacation fermée</small></span>'; if (w.alt && !w.sub && !r.sam) return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>🔁 Alternance ('+esc(genNm(w.alt))+') : tour de <b>'+esc(genNm(w.after))+'</b>'+(w.touched ? '' : ' · à valider')+'<br>Avant : '+esc(histShort(w.poste, w.k, w.part))+'</small></span>'; if (w.sub && !r.sam) return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>🔁 <b>'+esc(genNm(w.gone))+'</b> indisponible : je propose <b>'+esc(genNm(w.after))+'</b>'+(w.touched ? '' : ' · à valider')+'</small></span>'; return '<span><b>'+esc(r.d)+'</b> · '+esc(r.lab)+'<br><small>'+(w.before.length && !r.sam ? (w.ou ? 'à confirmer : ' : 'trame : ')+esc(genNm(w.before))+' → ' : '')+'<b>'+esc(genNm(r.sam && plGrp ? w.after.filter(inGrp) : w.after))+'</b>'+(genSrTxt(w) ? ' · 🩺 '+genSrTxt(w) : '')+'</small></span>'; }
   function genCount(){
     const n = genRows.filter(r=>genPending[r.idx[0]].on).length;
     return '<button type="button" class="primary" data-genok="1"'+(n ? '' : ' disabled')+'>✓ Confirmer '+n+' vacation'+(n > 1 ? 's' : '')+'</button>';
@@ -4054,6 +4058,7 @@ const PROTO = [
       $('#genShL').innerHTML = (genStep === 0 ? genWarnHtml(genWarn) : '')
         + '<div class="genstep"><h4>'+esc(r.d)+' · '+esc(r.lab)+'</h4>'
         + (w.sub && !r.sam ? '<p class="gensay" style="border-left:4px solid #c0392b;padding-left:8px">🔁 <b>'+esc(genNm(w.gone))+'</b> est indisponible : je propose <b>'+esc(genNm(cur))+'</b> à sa place. Validez, choisissez quelqu’un d’autre ou fermez la vacation.</p>' : '')
+        + (w.alt && !w.sub && !r.sam ? '<p class="gensay" style="border-left:4px solid #b8860b;padding-left:8px">🔁 Vacation en alternance (<b>'+esc(genNm(w.alt))+'</b>) : c’est le tour de <b>'+esc(genNm(cur))+'</b> cette semaine. Regardez qui a été posté les semaines d’avant ci-dessous, puis validez ou choisissez quelqu’un d’autre.</p>' : '')
         + (w.closed ? '<p class="gensay">🔒 Cette vacation sera fermée.</p>' : '')
         + (cur.length ? '<p class="gensay">'+cur.map(id=>'<b>'+esc(dLabel(id))+'</b>').join(cur.length > 2 ? ', ' : ' et ')+(cur.length > 1 ? ' seront posté(e)s' : ' sera posté(e)')+(r.sam ? ' d’astreinte' : ' au poste « '+esc(postName(w.poste, w.k))+' »')+' le '+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'long', day:'numeric', month:'long'}).format(parse(w.k)))+(r.sam ? '' : ' ('+esc(PART_TXT[w.part] || w.part)+')')+'.</p>'+(genSrTxt(w) ? '<p class="gensr">🩺 Senior posté ici : '+genSrTxt(w)+'</p>' : '')+'<ul class="genwhy">'+cur.map(id=>'<li><b>'+esc(dLabel(id))+'</b> : '+esc(genWhy(id, w))+'</li>').join('')+'</ul>' : '<p class="gensay">Personne n’est proposé pour cette vacation.</p>')
         + (w.before.length && !r.sam ? '<p class="hint">'+(w.ou ? 'À confirmer dans la trame : ' : 'Dans la trame : ')+esc(genNm(w.before))+'</p>' : '')
@@ -4073,7 +4078,7 @@ const PROTO = [
       + (genPastAsk ? '<p><strong>Que voulez-vous importer ?</strong></p><div class="astpair"><button type="button" class="astbtn" data-genscope="from" aria-pressed="'+(genScope === 'from')+'">À partir d’aujourd’hui</button><button type="button" class="astbtn" data-genscope="all" aria-pressed="'+(genScope === 'all')+'">Tout importer</button></div>' : '')
       + '<button type="button" class="astbtn go" data-genstart="1">▶ Valider une par une</button>'
       + '<p class="hint">Ou relisez la liste : touchez « Accepté » pour refuser une vacation.</p>'
-      + genRows.map((r,ri)=>{ const on = genPending[r.idx[0]].on; return '<div class="astrow">'+genRowHtml(r)+'<button type="button" class="ghost genrow" data-genrow="'+ri+'" aria-pressed="'+on+'">'+(on ? '✓ Accepté' : (genPending[r.idx[0]].sub && !genPending[r.idx[0]].touched ? '⏳ À valider' : '✗ Refusé'))+'</button></div>'; }).join('');
+      + genRows.map((r,ri)=>{ const on = genPending[r.idx[0]].on; return '<div class="astrow">'+genRowHtml(r)+'<button type="button" class="ghost genrow" data-genrow="'+ri+'" aria-pressed="'+on+'">'+(on ? '✓ Accepté' : ((genPending[r.idx[0]].sub || genPending[r.idx[0]].alt) && !genPending[r.idx[0]].touched ? '⏳ À valider' : '✗ Refusé'))+'</button></div>'; }).join('');
     $('#genShF').innerHTML = genCount();
   }
   function genClose(){ $('#genSheet').hidden = true; genPending = null; }
