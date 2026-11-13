@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 16h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 17h05</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2700,14 +2700,14 @@ const PROTO = [
       const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>'+esc(dLabel(id))+' · '+DAYL[d]+' '+PART_TXT[pt]+'</b></p><p class="hint">'+(pl.length ? 'Vacation(s) ouvertes à pourvoir par cette personne (touche pour poser / retirer) :' : 'Aucune vacation ouverte sur cette demi-journée. Pour en poser une, coche-la d’abord dans la trame vierge (①).')+'</p><div style="display:flex;flex-wrap:wrap;gap:6px">'
         + pl.map(p=>'<button type="button" class="astbtn'+(sel.has(p.id) ? ' ov' : '')+'" data-cep="'+esc(p.id)+'" aria-pressed="'+sel.has(p.id)+'">'+esc(p.label)+'</button>').join('')+'</div>'
         + pl.filter(p=>sel.has(p.id)).map(p=>'<p class="hint" style="margin:12px 0 4px"><b>'+esc(p.label)+'</b> · une semaine sur deux avec :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[{id:'',l:'Personne'}].concat(seniorsL.map(q=>({id:q.id,l:dLabel(q.id)}))).map(q=>'<button type="button" class="astbtn'+(alt[p.id] === q.id ? ' ov' : '')+'" data-cea="'+esc(p.id+'|'+q.id)+'" aria-pressed="'+(alt[p.id] === q.id)+'">'+esc(q.l)+'</button>').join('')+'</div>').join('')
-        + (sel.size ? '' : '<p class="hint" style="margin:10px 0 4px">Sans vacation, cette demi-journée est :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[['','Libre'],['h','Off (jamais sollicité)'],['s','Mobilisable']].map(a=>'<button type="button" class="astbtn'+(st === a[0] ? ' ov' : '')+'" data-ces="'+a[0]+'" aria-pressed="'+(st === a[0])+'">'+a[1]+'</button>').join('')+'</div>')
+        + '<p class="hint" style="margin:10px 0 4px">Ou, sans vacation, cette demi-journée est :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[['','Libre'],['h','Off (jamais sollicité)'],['s','Mobilisable']].map(a=>{ const on = !sel.size && st === a[0]; return '<button type="button" class="astbtn'+(on ? ' ov' : '')+'" data-ces="'+a[0]+'" aria-pressed="'+on+'">'+a[1]+'</button>'; }).join('')+'</div>'
         + '<div class="asb"><button type="button" class="primary" data-ceok>Enregistrer</button><button type="button" class="ghost" data-ceno>Annuler</button></div></div>'; };
       draw(); document.body.appendChild(w);
       w.addEventListener('click', async ev=>{
         if (ev.target === w || ev.target.closest('[data-ceno]')) { w.remove(); return; }
         const bp = ev.target.closest('[data-cep]'); if (bp) { const v = bp.dataset.cep; if (sel.has(v)) sel.delete(v); else sel.add(v); draw(); return; }
         const ba = ev.target.closest('[data-cea]'); if (ba) { const [pp, qq] = ba.dataset.cea.split('|'); alt[pp] = qq; draw(); return; }
-        const bs = ev.target.closest('[data-ces]'); if (bs) { st = bs.dataset.ces; draw(); return; }
+        const bs = ev.target.closest('[data-ces]'); if (bs) { st = bs.dataset.ces; sel.clear(); draw(); return; }
         if (!ev.target.closest('[data-ceok]')) return;
         const before = new Set(pl.filter(has).map(p=>p.id)), changed = pl.some(p=>before.has(p.id) !== sel.has(p.id) || (sel.has(p.id) && alt[p.id] !== rotOf(p)));
         let ok = true;
