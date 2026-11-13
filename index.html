@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 16h05</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 16h20</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -7088,7 +7088,9 @@ const PROTO = [
   /* contenu d'une case -> 'J' | 'M' | 'AM' | 'G' | undefined (rien, ou off / astreinte déjà posée : pas une indisponibilité) */
   function iiCode(t, sat){
     const s = normS(t).replace(/[—–_]/g, ' ').replace(/\s+/g, ' ').trim();
-    if (!s || /^[-.0]$/.test(s) || /^(dispo|disponible|ok|present|presente|oui)$/.test(s)) return undefined;
+    if (!s || /^[-.0]$/.test(s) || /^(dispo|disponible|ok|present|presente|oui|false|faux|non)$/.test(s)) return undefined;
+    if (/\?/.test(s)) return undefined;   /* « ? » : pas sûr, on n'importe pas */
+    if (/^(true|vrai|x|✓|✔|☑|1)$/.test(s) || /^(rdg|r\.?d\.?g|ca|c\.?a|f|conge|conges|cp|formation|form|dpc)\b/.test(s) || /repos de garde|conge annuel|formation/.test(s)) return 'J';   /* case cochée, RdG, CA (congé annuel), F (formation) : off toute la journée */
     if (/repos|^off\b|lendemain/.test(s) || /^astreinte/.test(s)) return undefined;
     if (/garde/.test(s)) return 'G';
     if (sat) return 'J';
