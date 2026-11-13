@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 20h15</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 20h35</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2468,7 +2468,7 @@ const PROTO = [
           const v = vacWho(p.id, kk, part), who = v ? v.who.filter(inGrp) : [], r = aPourvoir(p, kk, i, part), closed = v && !who.length && /^ferm/i.test(v.texte || '');
           const txt = closed ? '🔒' : who.length ? who.map(id=>esc(dLabel(id))).join(', ')+(v && v.ou ? ' ?' : '') : r && !r.ok ? '⚠' : '·';
           const bad = !closed && !who.length && r && !r.ok, st = 'padding:3px 4px;font-size:11px;min-width:44px;line-height:1.25;border-radius:8px;'+(bad ? 'background:#f3d6d6;' : who.length ? 'background:rgba(46,125,90,.2);font-weight:600;' : '');
-          return '<td class="v'+(end ? ' end' : '')+'"'+(span ? ' colspan="2"' : '')+' style="padding:2px;text-align:center">'+(clickable ? '<button type="button" class="ghost" data-plday="'+i+'" style="min-height:0;width:100%;'+st+'">'+txt+'</button>' : '<div style="'+st+'">'+txt+'</div>')+'</td>';
+          return '<td class="v'+(end ? ' end' : '')+'"'+(span ? ' colspan="2"' : '')+' style="padding:2px;text-align:center">'+(clickable ? '<button type="button" class="ghost" '+(clickable === 'wk' ? 'data-plwk' : 'data-plday')+'="'+i+'" style="min-height:0;width:100%;'+st+'">'+txt+'</button>' : '<div style="'+st+'">'+txt+'</div>')+'</td>';
         };
         t += p.journee ? cell('M', true, true) : cell('M', false, false) + cell('AM', true, false);
       }
@@ -2476,6 +2476,7 @@ const PROTO = [
     });
     t += '</tbody></table></div>';
     if (!clickable) return t;
+    if (clickable === 'wk') return '<details class="plun card" id="plWeekWk"><summary>📅 Voir le planning de la semaine · le modifier</summary><p class="plone">Touchez une case pour modifier ce jour à la main.</p>'+t+'</details>';
     return '<details class="plun card" id="plWeekOv" open><summary>📅 Vue de la semaine · '+esc(fmtDM.format(days[0]))+' – '+esc(fmtDM.format(days[4]))+'</summary><p class="plone">Toute la semaine d’un coup, comme le planning validé. Touchez une case pour modifier ce jour.</p>'+t+'</details>';
   }
   /* après une génération : publier ou non la semaine (seniors / internes) */
@@ -3244,7 +3245,7 @@ const PROTO = [
     const fer = [0,1,2,3,4].map(i=>key(addDays(plStart, i))).filter(isFerie);
     const pubG = plGrp === 'interne' ? 'i' : 's', pubK = key(plStart), pubOn = !(pubDoc[pubK] && pubDoc[pubK][pubG]);
     const pubBtn = isRim() ? '<button type="button" class="astbtn'+(pubOn ? '' : ' dangerbtn')+'" data-pub="'+pubK+'|'+pubG+'" style="margin-bottom:8px">'+(pubOn ? '📢 Planning publié · dépublier' : '🚫 Non publié (visible des administrateurs seulement) · publier')+'</button>' : '';
-    return '<div class="wktools">'
+    return '<div class="wktools">' + (plMode !== 'ast' && trame ? weekOvHtml(plStart, -1, 'wk') : '')
       + (fer.length ? '<p class="hint">🎌 Jour férié : '+fer.map(k=>esc(fmtShort.format(parse(k))+' ('+ferieName(k)+')')).join(', ')+' · aucune vacation à pourvoir, pas de off.</p>' : '')
       + (un.length ? '<details class="wkun"'+(un.length <= 6 ? ' open' : '')+'><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul>'+un.map(x=>'<li>'+esc(x.charAt(0).toUpperCase()+x.slice(1))+'</li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
       + '<details class="wkun wkmore"><summary>⚙ Plus d’actions</summary>'
@@ -4278,6 +4279,7 @@ const PROTO = [
     if (!Object.keys(patch).length) return;
     if (await setDays(id, patch)) notify(dLabel(id)+(on ? ' : indisponibilité retirée.' : (a[0] === 'w' ? ' : indisponible toute la semaine.' : ' : indisponible ce samedi.')));
   }
+  document.addEventListener('click', e=>{ const b = e.target.closest('[data-plwk]'); if (!b) return; plDay = Number(b.dataset.plwk); plStage = 'man'; renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} });
   const plDayClick = e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} };
   $('#plDays').addEventListener('click', plDayClick);
   $('#plGrid') && $('#plGrid').addEventListener('click', e=>{ if (e.target.closest('.plast')) plDayClick(e); const u = e.target.closest('[data-plun]'); if (u) plToggleUn(u.dataset.plun); if (e.target.closest('[data-astmiss]')) openMiss(false); });
