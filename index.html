@@ -95,6 +95,7 @@ table.team.trame .cap{margin-top:2px}
   table.team.trame tbody th.who{font-size:clamp(11px,.85vw,13px);padding:0 8px;min-width:0;width:1%;white-space:nowrap}
   table.team.trame thead th{font-size:clamp(11px,.85vw,13px)}
 }
+#swPop{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:300;padding:8px 12px;pointer-events:none}.swpin{pointer-events:auto;max-width:560px;margin:0 auto;background:var(--card,#fff);color:var(--ink);border:2px solid var(--accent);border-radius:14px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:6px}.swpt{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.swpx{min-height:32px;min-width:32px;padding:0;border-radius:50%;font-size:18px;line-height:1}.swpq{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}.swpq button{flex:1 1 90px;min-height:44px}
 </style>
 </head>
 <body>
@@ -683,6 +684,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
   <div id="notice" class="notice" hidden></div>
 
+  <div id="swPop" hidden></div>
   <nav class="tabs" role="tablist" aria-label="Vues du planning">
     <button type="button" role="tab" id="tab-auj" aria-selected="true" data-tab="auj"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15.5" r="1.6"/></svg><span class="tl">Ma semaine</span><span class="ts">Ma semaine</span></button>
     <button type="button" role="tab" id="tab-general" aria-selected="false" data-tab="general"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 10h18M9 4v17M15 10v11"/></svg><span class="tl">Planning général</span><span class="ts">Planning</span><span id="gBadge" class="badge red" hidden></span></button>
@@ -1196,7 +1198,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 09h25</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 09h55</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -4369,6 +4371,7 @@ const PROTO = [
   function renderAdminTabs(){ document.body.classList.toggle('nonadm', !isRim()); { const ic = $('#inImpCard'); if (ic) ic.hidden = !isRim(); } const b = $('#tab-plan'); if (b) b.style.setProperty('display', isRim() ? '' : 'none', 'important'); if (!isRim() && $('#view-plan') && !$('#view-plan').hidden) showTab('auj'); }   /* « Créer un planning » : Rim et Rayann seulement */
   if (window.SEC) document.addEventListener('click', e=>{ if (e.target.closest('#trameWrap [data-p], #gAnn button, #gAnn [data-annedit], #gNotes button')) { e.stopPropagation(); e.preventDefault(); } }, true);
   function showTab(t){
+    setTimeout(()=>{ try { renderSwPop(); } catch(e) {} }, 0);
     if (window.SEC) t = 'general';
     if (t !== 'general') gUnf = null;
     if (t === 'plan' && !isRim()) t = 'auj';
@@ -6276,7 +6279,25 @@ const PROTO = [
     return h + '</article>';
   }
 
+  /* pop-up en haut de page : demande d'échange à valider */
+  const swPopDone = new Set();
+  function renderSwPop(){
+    const box = $('#swPop'); if (!box) return;
+    const onEch = $('#view-echanges') && !$('#view-echanges').hidden;
+    const x = (window.SEC || !doctors[me] || onEch) ? null : Object.values(swaps).filter(y=>y.status === 'attente' && y.to === me && y.from !== me && upcomingX(y) && !swPopDone.has(y.id)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0];
+    if (!x) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '<div class="swpin" role="alert"><div class="swpt"><strong>🔄 '+esc(dLabel(x.from))+' vous demande un échange</strong><button type="button" class="swpx" data-swpx="'+esc(x.id)+'" aria-label="Fermer">×</button></div>'
+      + '<div class="sw-m">'+esc(dLabel(x.from))+' cède : '+esc(vacLabel({poste:x.poste, date:x.date, part:x.part}))+'</div>'
+      + '<div class="sw-m">Vous cédez : '+esc(vacLabel({poste:x.poste2, date:x.date2, part:x.part2}))+'</div>'
+      + '<div class="swpq" data-id="'+esc(x.id)+'"><button type="button" class="primary" data-act="accept">✓ Accepter</button><button type="button" data-act="refuse">✗ Refuser</button><button type="button" class="ghost" data-swpsee="1">Voir</button></div></div>';
+  }
+  document.addEventListener('click', e=>{
+    const c = e.target.closest && e.target.closest('[data-swpx]'); if (c) { swPopDone.add(c.dataset.swpx); return renderSwPop(); }
+    if (e.target.closest && e.target.closest('[data-swpsee]')) { showTab('echanges'); renderSwPop(); }
+  });
   function renderSwaps(){
+    renderSwPop();
     const empty = $('#swEmpty'), body = $('#swBody');
     if (!doctors[me]) {
       body.hidden = true; empty.hidden = false;
@@ -6439,7 +6460,8 @@ const PROTO = [
     } catch(err) { handleErr(err); }
   });
 
-  $('#swLists').addEventListener('click', async e=>{
+  document.addEventListener('click', async e=>{
+    if (!e.target.closest('#swLists, #swPop')) return;
     const q = e.target.closest('[data-act]'); if (!q) return;
     const card0 = q.closest('[data-id]'); if (!card0) return;
     const act = q.dataset.act, x0 = swaps[card0.dataset.id];
