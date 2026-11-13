@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 00h50</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 01h05</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '99bcb9ca6c';
+  const BUILD = 'be76f0774e';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3124,7 +3124,7 @@ const PROTO = [
   }
   function wkWeekSt(start){ if (!trame) return {f:0,n:0,st:'todo'}; const x = trame.sem && trame.sem[key(start)], g = x && x[plGrp === 'interne' ? 'int' : 'med']; let f = 0, n = 0; for (let i = 0; i < 5; i++) { const r = dayFill(addDays(start, i), i); f += r.f; n += r.n; } const st = (g && g.done) || (n > 0 && f === n) ? 'done' : f > 0 ? 'part' : 'todo'; return {f, n, st}; }
   function wkFirstTodo(){ let d = mondayOf(new Date()); for (let i = 0; i < 26; i++, d = addDays(d, 7)) if (wkWeekSt(d).st !== 'done') return d; return mondayOf(new Date()); }
-  function wkGlobalHtml(){ let d = mondayOf(new Date()), h = ''; const g = plGrp === 'interne' ? 'i' : 's'; for (let i = 0; i < 9; i++, d = addDays(d, 7)) { const o = wkWeekSt(d), k = key(d), ic = o.st === 'done' ? '✅' : o.st === 'part' ? '🟡' : '⬜', tx = o.st === 'done' ? 'fait' : o.st === 'part' ? o.f+'/'+o.n+' pourvues' : 'à faire', hid = !!(pubDoc[k] && pubDoc[k][g]); h += '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:stretch;flex-wrap:wrap"><button type="button" class="astbtn" data-wkopen="'+k+'" style="flex:1;display:flex;justify-content:space-between;align-items:center;margin:0;padding:8px 12px;text-align:left"><span>'+ic+' Semaine du '+esc(fmtDM.format(d))+'</span><small style="opacity:.75">'+tx+'</small></button>'+(isRim() && o.st !== 'todo' ? '<button type="button" class="'+(hid ? 'ghost' : 'primary')+'" data-pub="'+k+'|'+g+'" style="padding:4px 10px;min-height:0;font-size:12px;white-space:nowrap">'+(hid ? '🚫 Non publié' : '📢 Publié')+'</button>' : '')+(o.st === 'part' && canWrite ? '<button type="button" class="astbtn" data-wkdone="'+k+'" style="flex-basis:100%;margin:0;padding:6px 12px">✅ Passer en « fait » (même incomplet)</button>' : '')+'</div>'; } return '<p class="aststat" style="margin-top:14px"><b>Vue d’ensemble des semaines</b></p><p class="hint" style="margin:0 0 6px">✅ fait · 🟡 incomplet · ⬜ pas encore créé. Touchez une semaine pour l’ouvrir, ou le bouton à droite pour publier / dépublier.</p>'+h; }
+  function wkGlobalHtml(){ let d = mondayOf(new Date()), h = ''; const g = plGrp === 'interne' ? 'i' : 's'; for (let i = 0, nt = 0; i < 20 && (i < 9 || nt < 2); i++, d = addDays(d, 7)) { const o = wkWeekSt(d); if (i >= 9 && o.st !== 'done') nt++; const k = key(d), ic = o.st === 'done' ? '✅' : o.st === 'part' ? '🟡' : '⬜', tx = o.st === 'done' ? 'fait' : o.st === 'part' ? o.f+'/'+o.n+' pourvues' : 'à faire', hid = !!(pubDoc[k] && pubDoc[k][g]); h += '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:stretch;flex-wrap:wrap"><button type="button" class="astbtn" data-wkopen="'+k+'" style="flex:1;display:flex;justify-content:space-between;align-items:center;margin:0;padding:8px 12px;text-align:left"><span>'+ic+' Semaine du '+esc(fmtDM.format(d))+'</span><small style="opacity:.75">'+tx+'</small></button>'+(isRim() && o.st !== 'todo' ? '<button type="button" class="'+(hid ? 'ghost' : 'primary')+'" data-pub="'+k+'|'+g+'" style="padding:4px 10px;min-height:0;font-size:12px;white-space:nowrap">'+(hid ? '🚫 Non publié' : '📢 Publié')+'</button>' : '')+(o.st === 'part' && canWrite ? '<button type="button" class="astbtn" data-wkdone="'+k+'" style="flex-basis:100%;margin:0;padding:6px 12px">✅ Passer en « fait » (même incomplet)</button>' : '')+'</div>'; } return '<p class="aststat" style="margin-top:14px"><b>Vue d’ensemble des semaines</b></p><p class="hint" style="margin:0 0 6px">✅ fait · 🟡 incomplet · ⬜ pas encore créé. Touchez une semaine pour l’ouvrir, ou le bouton à droite pour publier / dépublier.</p>'+h; }
   let redoOk = '', delAsk = false;
   async function plWeekDel(){
     if (!trame || !db) return notify('Les postes du service ne sont pas encore chargés.', true);
