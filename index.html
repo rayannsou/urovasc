@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 16h35</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 16h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2580,6 +2580,8 @@ const PROTO = [
     return {who, pk, idk};
   }
   /* règles applicables à une vacation : ordre de remplacement, personnes exclues / en dernier recours */
+  /* état « Off / Mobilisable / Rien » posé pour une personne sur une demi-journée de cette semaine seulement (undefined = pas de changement) */
+  function wkStOf(id, k, dow, part){ const s = semG(k, 'med'), v = s && s.st ? s.st[id+'|'+dow+part] : undefined; return v === 'h' || v === 's' || v === '' ? v : undefined; }
   function chefSlot(cx, p, k, dow, part, rotC){
     const pk = cx.pk[p.id], sk = dow+part, n = nthOf(k), ids = a=>a.map(x=>cx.who[x]).filter(Boolean);
     const out = {acc: new Set(CHEF_ACC.filter(x=>!(CHEF_ACCX[x] || []).includes(dow+'|'+part+'|'+pk)).map(x=>cx.who[x]).filter(Boolean)), repl: [], ban: new Set(), soft: new Set(), keepBan: new Set(), want: [], replace: false};
@@ -2588,6 +2590,7 @@ const PROTO = [
     replSteps((CHEF_REPL[dow+'|'+part+'|'+pk] || []).concat(CHEF_REPL[pk] || [])).forEach(st=>{ const l = ids(st).filter(id=>!out.repl.includes(id)); if (!l.length) return; l.forEach(id=>{ out.repl.push(id); out.step[id] = sn; }); sn++; });
     if (rotC) ids(rotC).forEach(id=>{ if (!out.repl.includes(id)) out.repl.unshift(id); out.step[id] = -1; });
     Object.keys(CHEF_OFF).forEach(x=>{ const id = cx.who[x]; if (!id) return; const o = CHEF_OFF[x]; if ((o.hard || []).includes(sk)) out.ban.add(id); if ((o.soft || []).includes(sk)) out.soft.add(id); });
+    Object.keys(cx.who).forEach(x=>{ const id = cx.who[x]; if (!id) return; const v = wkStOf(id, k, dow, part); if (v === undefined) return; out.ban.delete(id); out.soft.delete(id); if (v === 'h') out.ban.add(id); else if (v === 's') out.soft.add(id); });   /* modifié pour cette semaine seulement */
     Object.keys(CHEF_SEUL).forEach(x=>{ const id = cx.who[x]; if (id && !CHEF_SEUL[x].includes(sk+'|'+pk)) out.ban.add(id); });
     CHEF_MOIS.forEach(r=>{ const id = cx.who[r.who]; if (!id || r.dow !== dow || !nthOk(r.nth, k)) return; if (r.slots.some(sl=>sl[0] === part && sl[1] === pk)) { out.want.push(id); if (r.replace) out.replace = true; } });
     CHEF_MOIS_OFF.forEach(r=>{ const id = cx.who[r.who]; if (id && r.dow === dow && nthOk(r.nth, k)) { out.ban.add(id); out.keepBan.add(id); } });
@@ -2640,17 +2643,20 @@ const PROTO = [
     const [x, dd, pt] = t.dataset.wkcell.split('|'), d = Number(dd), id = chefCtx().who[x]; if (!id) return;
     const posts = trame.postes.filter(p=>!p.info && !isSam(p) && !(p.journee && pt !== 'M')), mk = key(plStart);
     let sel = new Set(posts.filter(p=>{ const w = wkWho(p, d, pt); return w && w.includes(id); }).map(p=>p.id)); const before = new Set(sel);
+    const o1 = CHEF_OFF[x] || {}, sk1 = d+pt, st00 = wkStOf(id, key(addDays(plStart, d)), d, pt), perm = (o1.hard || []).includes(sk1) ? 'h' : (o1.soft || []).includes(sk1) ? 's' : '', stBefore = st00 !== undefined ? st00 : perm; let st = stBefore;
     const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
-    const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>'+esc(dLabel(id))+' · '+DAYL[d]+' '+PART_TXT[pt]+'</b></p><p class="hint">Vacations pour cette personne, <b>cette semaine seulement</b> :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+posts.map(p=>'<button type="button" class="astbtn'+(sel.has(p.id) ? ' ov' : '')+'" data-wcp="'+esc(p.id)+'" aria-pressed="'+sel.has(p.id)+'">'+esc(p.label)+'</button>').join('')+'</div><div class="asb"><button type="button" class="primary" data-wcok>Enregistrer</button><button type="button" class="ghost" data-wcno>Annuler</button></div></div>'; };
+    const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>'+esc(dLabel(id))+' · '+DAYL[d]+' '+PART_TXT[pt]+'</b></p><p class="hint">Vacations pour cette personne, <b>cette semaine seulement</b> :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+posts.map(p=>'<button type="button" class="astbtn'+(sel.has(p.id) ? ' ov' : '')+'" data-wcp="'+esc(p.id)+'" aria-pressed="'+sel.has(p.id)+'">'+esc(p.label)+'</button>').join('')+'</div><p class="hint" style="margin:10px 0 4px">Ou, sans vacation :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[['','Rien'],['h','Off (jamais sollicité)'],['s','Mobilisable']].map(a=>{ const on = !sel.size && st === a[0]; return '<button type="button" class="astbtn'+(on ? ' ov' : '')+'" data-wcs="'+a[0]+'" aria-pressed="'+on+'">'+a[1]+'</button>'; }).join('')+'</div><div class="asb"><button type="button" class="primary" data-wcok>Enregistrer</button><button type="button" class="ghost" data-wcno>Annuler</button></div></div>'; };
     draw(); document.body.appendChild(w);
     w.addEventListener('click', async ev=>{
       if (ev.target === w || ev.target.closest('[data-wcno]')) { w.remove(); return; }
       const b = ev.target.closest('[data-wcp]'); if (b) { const v = b.dataset.wcp; if (sel.has(v)) sel.delete(v); else sel.add(v); draw(); return; }
+      const bs = ev.target.closest('[data-wcs]'); if (bs) { st = bs.dataset.wcs; sel.clear(); draw(); return; }
       if (!ev.target.closest('[data-wcok]')) return;
-      const ch = posts.filter(p=>before.has(p.id) !== sel.has(p.id)); if (!ch.length) { w.remove(); return; }
+      const ch = posts.filter(p=>before.has(p.id) !== sel.has(p.id)), stNew = sel.size ? (stBefore ? '' : stBefore) : st, stChg = stNew !== stBefore; if (!ch.length && !stChg) { w.remove(); return; }
       const upd = ch.map(p=>{ const cur = (wkWho(p, d, pt) || []).filter(y=>y !== id); return {kk: tk(p.id, d, pt), who: sel.has(p.id) ? cur.concat(id) : cur}; });
       const ok = await saveTrame(tr=>{ tr.sem = tr.sem || {}; const wk = (tr.sem[mk] = tr.sem[mk] || {}), xg = (wk.med = wk.med || {add: {}, rem: {}}); xg.add = xg.add || {}; xg.rem = xg.rem || {}; xg.wh = xg.wh || {};
-        upd.forEach(u=>{ xg.wh[u.kk] = u.who; xg.add[u.kk] = 1; delete xg.rem[u.kk]; }); }, true);
+        upd.forEach(u=>{ xg.wh[u.kk] = u.who; xg.add[u.kk] = 1; delete xg.rem[u.kk]; });
+        if (stChg) { xg.st = xg.st || {}; if (stNew === perm) delete xg.st[id+'|'+sk1]; else xg.st[id+'|'+sk1] = stNew; } }, true);
       if (ok) { w.remove(); trSig = ''; renderCompose(); notify('Modifié pour cette semaine seulement.'); }
     });
   });
@@ -3274,7 +3280,7 @@ const PROTO = [
       + '<div style="overflow-x:auto"><table class="team" style="min-width:520px;font-size:12px"><thead><tr><th class="who" rowspan="2">Chef</th>'+TDN.map((t,i)=>'<th colspan="2" class="end">'+t+(isFerie(key(addDays(plStart, i))) ? ' 🎌' : '')+'</th>').join('')+'</tr><tr class="sub">'+TDN.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>';
     keys.forEach(x=>{ const id = cx.who[x]; if (!id) return;
       h += '<tr><th class="who">'+esc(nm(x))+'</th>'+[0,1,2,3,4].map(d=>PARTS.map((pt,j)=>{
-        const ps = posts.filter(p=>!(p.journee && pt !== 'M')).filter(p=>{ const w = wkWho(p, d, pt); return w && w.includes(id); }), o = CHEF_OFF[x] || {}, st = (o.hard || []).includes(d+pt) ? 'h' : (o.soft || []).includes(d+pt) ? 's' : '';
+        const ps = posts.filter(p=>!(p.journee && pt !== 'M')).filter(p=>{ const w = wkWho(p, d, pt); return w && w.includes(id); }), o = CHEF_OFF[x] || {}, st0 = wkStOf(id, key(addDays(plStart, d)), d, pt), st = st0 !== undefined ? st0 : (o.hard || []).includes(d+pt) ? 'h' : (o.soft || []).includes(d+pt) ? 's' : '';
         const bad = ps.length && reasonFor(id, key(addDays(plStart, d)), pt);
         const txt = (bad ? '⚠ ' : '')+(ps.length ? ps.map(p=>esc(wkShort[cx.pk[p.id]] || p.label.slice(0, 6))).join('+') : st === 'h' ? 'Off' : st === 's' ? 'Mob.' : '·');
         const bg = bad ? 'background:#f3d6d6;font-weight:600;border-color:#c0392b' : ps.length ? 'background:rgba(46,125,90,.2);font-weight:600' : st === 'h' ? 'background:#f3d6d6' : st === 's' ? 'background:#f6e7c8' : '';
