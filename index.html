@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 19h40</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 20h15</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2454,13 +2454,37 @@ const PROTO = [
         if (to.length) { try { await db.collection('messages').add({from: me, to, text: '📅 Le planning de la semaine du '+fmtShort.format(parse(k))+' est en ligne.', at: Date.now(), sent: false}); } catch(e) {} } } } catch(err) { handleErr(err); }
   });
 
+  /* vue de la semaine entière, comme un planning validé (clickable : touchez une case pour aller au jour) */
+  function weekOvHtml(start, activeDay, clickable){
+    const days = [...Array(5)].map((_,i)=>addDays(start, i)), ps = trame.postes.filter(p=>!p.info && !isSam(p)); if (!ps.length) return '';
+    const lab = ['Lun','Mar','Mer','Jeu','Ven'];
+    let t = '<div style="overflow-x:auto"><table class="team" style="min-width:560px;font-size:12px"><thead><tr><th class="who" rowspan="2">Poste</th>'+lab.map((l,i)=>'<th colspan="2" class="end"'+(i === activeDay ? ' style="background:var(--accent-soft)"' : '')+'>'+l+' '+days[i].getDate()+(isFerie(key(days[i])) ? ' 🎌' : '')+'</th>').join('')+'</tr><tr class="sub">'+lab.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>';
+    ps.forEach(p=>{
+      t += '<tr><th class="who">'+esc(p.label)+'</th>';
+      for (let i = 0; i < 5; i++) {
+        const kk = key(days[i]);
+        if (!okDay(p, i)) { t += '<td class="v none end" colspan="2" style="text-align:center;opacity:.4">—</td>'; continue; }
+        const cell = (part, end, span) => {
+          const v = vacWho(p.id, kk, part), who = v ? v.who.filter(inGrp) : [], r = aPourvoir(p, kk, i, part), closed = v && !who.length && /^ferm/i.test(v.texte || '');
+          const txt = closed ? '🔒' : who.length ? who.map(id=>esc(dLabel(id))).join(', ')+(v && v.ou ? ' ?' : '') : r && !r.ok ? '⚠' : '·';
+          const bad = !closed && !who.length && r && !r.ok, st = 'padding:3px 4px;font-size:11px;min-width:44px;line-height:1.25;border-radius:8px;'+(bad ? 'background:#f3d6d6;' : who.length ? 'background:rgba(46,125,90,.2);font-weight:600;' : '');
+          return '<td class="v'+(end ? ' end' : '')+'"'+(span ? ' colspan="2"' : '')+' style="padding:2px;text-align:center">'+(clickable ? '<button type="button" class="ghost" data-plday="'+i+'" style="min-height:0;width:100%;'+st+'">'+txt+'</button>' : '<div style="'+st+'">'+txt+'</div>')+'</td>';
+        };
+        t += p.journee ? cell('M', true, true) : cell('M', false, false) + cell('AM', true, false);
+      }
+      t += '</tr>';
+    });
+    t += '</tbody></table></div>';
+    if (!clickable) return t;
+    return '<details class="plun card" id="plWeekOv" open><summary>📅 Vue de la semaine · '+esc(fmtDM.format(days[0]))+' – '+esc(fmtDM.format(days[4]))+'</summary><p class="plone">Toute la semaine d’un coup, comme le planning validé. Touchez une case pour modifier ce jour.</p>'+t+'</details>';
+  }
   /* après une génération : publier ou non la semaine (seniors / internes) */
   function askPublish(k, g){
     return new Promise(res=>{
       if (!db || !isRim() || !canWrite) return res(false);
       const hidden = !!(pubDoc[k] && pubDoc[k][g]), who = g === 'i' ? 'des internes' : 'des seniors';
       const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
-      w.innerHTML = '<div class="codebox annf"><p><b>📢 Publier le planning '+who+' ?</b></p><p class="hint">Semaine du '+esc(fmtShort.format(parse(k)))+' · actuellement '+(hidden ? '<b>non publié</b> (visible uniquement par les administrateurs)' : '<b>publié</b>')+'.</p><div class="asb"><button type="button" class="primary" data-pubyes>Publier</button><button type="button" class="ghost" data-pubno>Ne pas publier</button></div><p class="hint">Vous pourrez changer plus tard avec le bouton « Planning publié / non publié ».</p></div>';
+      w.innerHTML = '<div class="codebox annf" style="max-width:min(96vw,900px);max-height:90vh;overflow:auto"><p><b>📋 Aperçu du planning '+who+' généré</b></p><p class="hint">Semaine du '+esc(fmtShort.format(parse(k)))+' · actuellement '+(hidden ? '<b>non publié</b> (visible uniquement par les administrateurs)' : '<b>publié</b>')+'.</p>'+(()=>{ try { return weekOvHtml(parse(k), -1, false); } catch(e) { return ''; } })()+'<p><b>Publier ce planning ?</b></p><div class="asb"><button type="button" class="primary" data-pubyes>Publier</button><button type="button" class="ghost" data-pubno>Ne pas publier</button></div><p class="hint">Vous pourrez changer plus tard avec le bouton « Planning publié / non publié ».</p></div>';
       document.body.appendChild(w);
       w.addEventListener('click', async ev=>{
         const y = ev.target.closest('[data-pubyes]'), n = ev.target.closest('[data-pubno]'); if (!y && !n) return;
@@ -2936,28 +2960,7 @@ const PROTO = [
       const n = docs.filter(isOn).length;
       return '<details class="plun card"'+(plUnOpen ? ' open' : '')+'><summary>🚫 Indisponible toute la semaine'+(n ? ' <b class="acn">'+n+'</b>' : '')+'</summary><p class="plone">Touchez un nom : indisponible du lundi au vendredi ('+esc(fmtDM.format(days[0]))+' – '+esc(fmtDM.format(days[4]))+'). Retouchez pour annuler. Les gardes ne sont pas modifiées.</p><div class="plc">'+docs.map(d=>unBtn(d.id, isOn(d), 'w|'+d.id)).join('')+'</div></details>';
     };
-    /* vue de la semaine entière, comme un planning validé : touchez une case pour modifier ce jour */
-    const weekOv = () => {
-      const ps = trame.postes.filter(p=>!p.info && !isSam(p)); if (!ps.length) return '';
-      const lab = ['Lun','Mar','Mer','Jeu','Ven'];
-      let h = '<details class="plun card" id="plWeekOv" open><summary>📅 Vue de la semaine · '+esc(fmtDM.format(days[0]))+' – '+esc(fmtDM.format(days[4]))+'</summary><p class="plone">Toute la semaine d’un coup, comme le planning validé. Touchez une case pour modifier ce jour.</p><div style="overflow-x:auto"><table class="team" style="min-width:560px;font-size:12px"><thead><tr><th class="who" rowspan="2">Poste</th>'+lab.map((t,i)=>'<th colspan="2" class="end"'+(i === plDay ? ' style="background:var(--accent-soft)"' : '')+'>'+t+' '+days[i].getDate()+(isFerie(key(days[i])) ? ' 🎌' : '')+'</th>').join('')+'</tr><tr class="sub">'+lab.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>';
-      ps.forEach(p=>{
-        h += '<tr><th class="who">'+esc(p.label)+'</th>';
-        for (let i = 0; i < 5; i++) {
-          const kk = key(days[i]);
-          if (!okDay(p, i)) { h += '<td class="v none end" colspan="2" style="text-align:center;opacity:.4">—</td>'; continue; }
-          const cell = (part, end, span) => {
-            const v = vacWho(p.id, kk, part), who = v ? v.who.filter(inGrp) : [], r = aPourvoir(p, kk, i, part), closed = v && !who.length && /^ferm/i.test(v.texte || '');
-            const txt = closed ? '🔒' : who.length ? who.map(id=>esc(dLabel(id))).join(', ')+(v && v.ou ? ' ?' : '') : r && !r.ok ? '⚠' : '·';
-            const bad = !closed && !who.length && r && !r.ok;
-            return '<td class="v'+(end ? ' end' : '')+'"'+(span ? ' colspan="2"' : '')+' style="padding:2px;text-align:center"><button type="button" class="ghost" data-plday="'+i+'" style="padding:3px 4px;min-height:0;font-size:11px;min-width:44px;width:100%;line-height:1.25;'+(bad ? 'background:#f3d6d6;' : who.length ? 'background:rgba(46,125,90,.2);font-weight:600;' : '')+'">'+txt+'</button></td>';
-          };
-          h += p.journee ? cell('M', true, true) : cell('M', false, false) + cell('AM', true, false);
-        }
-        h += '</tr>';
-      });
-      return h+'</tbody></table></div></details>';
-    };
+    const weekOv = () => weekOvHtml(plStart, plDay, true);
     const unSat = k => {
       const isOn = d => d.days[k] === 'J' || d.days[k] === 'M' || d.days[k] === 'G', docs = sortedDocs();
       const n = docs.filter(isOn).length;
@@ -4032,7 +4035,11 @@ const PROTO = [
     if (genStep >= 0 && genStep < n) {
       const r = genRows[genStep], w = genPending[r.idx[0]], cur = w.after, dis = canWrite ? '' : ' disabled';
       $('#genShS').textContent = genSolo ? 'Choisissez qui affecter à cette vacation · rien n’est enregistré tant que vous n’avez pas confirmé à la fin.' : 'Vacation '+(genStep+1)+' sur '+n+' · rien n’est enregistré tant que vous n’avez pas confirmé à la fin.';
-      const docs = sortedDocs(), reason = id => reasonFor(id, w.k, w.part);
+      const reason = id => reasonFor(id, w.k, w.part);
+      /* trame de remplacement (seniors) : qui peut remplacer, et qui ne doit pas être seul */
+      let rr0 = null; try { const po = findPost(w.poste); if (!r.sam && po && plGrp !== 'interne') rr0 = chefSlot(chefCtx(), po, w.k, (parse(w.k).getDay()+6)%7, w.part, null); } catch(e) { rr0 = null; }
+      const replL = rr0 ? rr0.repl.filter(id=>doctors[id] && !isIntId(id)) : [];
+      const docs = sortedDocs().slice().sort((a, b)=>(replL.includes(b.id) ? 1 : 0) - (replL.includes(a.id) ? 1 : 0) || 0);
       const here = {};   /* où chacun est posté sur cette demi-journée : la proposition en cours, sinon le planning existant */
       genPending.forEach(x=>{ if (x.k !== w.k || x.part !== w.part || x.on === false || x === w || r.sam) return; (x.after || []).forEach(id=>{ const l = postName(x.poste, x.k); (here[id] = here[id] || []).includes(l) || here[id].push(l); }); });
       if (!r.sam) trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, (parse(w.k).getDay()+6)%7)).forEach(p=>{ const pend = genPending.some(x=>x.k === w.k && x.part === w.part && x.poste === p.id), v = vacWho(p.id, w.k, p.journee ? 'M' : w.part); if (v) v.who.forEach(id=>{ if (pend && isIntId(id)) return; (here[id] = here[id] || []).includes(p.label) || here[id].push(p.label); }); });
@@ -4042,7 +4049,9 @@ const PROTO = [
         + (cur.length ? '<p class="gensay">'+cur.map(id=>'<b>'+esc(dLabel(id))+'</b>').join(cur.length > 2 ? ', ' : ' et ')+(cur.length > 1 ? ' seront posté(e)s' : ' sera posté(e)')+(r.sam ? ' d’astreinte' : ' au poste « '+esc(postName(w.poste, w.k))+' »')+' le '+esc(new Intl.DateTimeFormat('fr-FR',{weekday:'long', day:'numeric', month:'long'}).format(parse(w.k)))+(r.sam ? '' : ' ('+esc(PART_TXT[w.part] || w.part)+')')+'.</p>'+(genSrTxt(w) ? '<p class="gensr">🩺 Senior posté ici : '+genSrTxt(w)+'</p>' : '')+'<ul class="genwhy">'+cur.map(id=>'<li><b>'+esc(dLabel(id))+'</b> : '+esc(genWhy(id, w))+'</li>').join('')+'</ul>' : '<p class="gensay">Personne n’est proposé pour cette vacation.</p>')
         + (w.before.length && !r.sam ? '<p class="hint">'+(w.ou ? 'À confirmer dans la trame : ' : 'Dans la trame : ')+esc(genNm(w.before))+'</p>' : '')
         + (r.sam ? '' : vacHist(w.poste, w.k, w.part))
-        + '<p class="hint">Proposition :</p><div class="plc">'+docs.map(d=>'<button type="button" class="plsg'+(cur.includes(d.id) ? '' : ' alt')+(reason(d.id) ? ' na' : '')+'" data-genpick="'+esc(d.id)+'" aria-pressed="'+cur.includes(d.id)+'"'+dis+'>'+(cur.includes(d.id) ? '✓ ' : '')+esc(d.label)+(r.sam ? '' : '<small class="plwh">'+esc(where(d.id))+'</small>')+'</button>').join('')+'</div>'
+        + (replL.length ? '<p class="hint">🔁 Selon la trame de remplacement : '+replL.map(id=>reason(id) ? '<s>'+esc(dLabel(id))+'</s> (indisponible)' : '<b>'+esc(dLabel(id))+'</b>').join(' · ')+'</p>' : '')
+        + (rr0 && cur.length === 1 && rr0.acc.has(cur[0]) ? '<p class="plwhy">⚠ '+esc(dLabel(cur[0]))+' ne doit pas être seul(e) sur une vacation : ajoutez un autre senior.</p>' : '')
+        + '<p class="hint">Proposition :</p><div class="plc">'+docs.map(d=>'<button type="button" class="plsg'+(cur.includes(d.id) ? '' : ' alt')+(reason(d.id) ? ' na' : '')+'" data-genpick="'+esc(d.id)+'" aria-pressed="'+cur.includes(d.id)+'"'+dis+'>'+(cur.includes(d.id) ? '✓ ' : '')+esc(d.label)+(r.sam ? '' : '<small class="plwh">'+(replL.includes(d.id) && !reason(d.id) ? '🔁 remplaçant prévu · ' : '')+esc(where(d.id))+'</small>')+'</button>').join('')+'</div>'
         + (cur.some(id=>reason(id)) ? '<p class="plwhy">⚠ '+cur.filter(id=>reason(id)).map(id=>esc(dLabel(id))+' : '+esc(reason(id))).join(' · ')+'</p>' : '')
         + '<p class="hint">Touchez un nom pour le changer'+(r.sam ? '' : ' (plusieurs possibles)')+'.</p></div>';
       $('#genShF').innerHTML = '<div class="astpair"><button type="button" class="astbtn" data-gennext="0">✗ Refuser</button><button type="button" class="astbtn primary" data-gennext="1">✓ Valider</button></div>'
@@ -4088,6 +4097,7 @@ const PROTO = [
     if (gn && genStep >= 0) { const r = genRows[genStep]; const on = gn.dataset.gennext === '1' && genPending[r.idx[0]].after.length > 0; r.idx.forEach(i=>{ genPending[i].on = on; }); genStep++; if (genSolo || genStep >= genRows.length) { genStep = -1; genSolo = false; } genRender(); return; }
     if (!e.target.closest('[data-genok]') || !genPending) return;
     if (!(await ensureCode('enregistrer le planning'))) return;
+    const wasDoneBefore = (()=>{ try { return weekDone(); } catch(e) { return false; } })();
     histSave('Génération enregistrée', genPending.filter(w=>w.on).map(w=>w.k));
     const ws = genPending.filter(w=>w.on), imp = genImp; genImp = null; genClose();
     let ok = true;
@@ -4099,7 +4109,10 @@ const PROTO = [
     if (failK.length && !imp) { ok = false; notify('⚠ '+(ws.length - failK.length)+' enregistrée'+(ws.length - failK.length > 1 ? 's' : '')+' sur '+ws.length+', '+failK.length+' non enregistrée'+(failK.length > 1 ? 's' : '')+' (connexion ?) : '+failK.slice(0, 6).map(k=>fmtShort.format(parse(k))).join(', ')+(failK.length > 6 ? '…' : '')+'. Recommencez la création : seules les cases vides seront complétées.', true); }
     if (ok && plMode !== 'ast') plPdfNew = true;
     plStage = 'man'; renderCompose();
-    if (ok && !imp && plMode !== 'ast') { await new Promise(r=>setTimeout(r, 500)); await askPublish(key(plStart), plGrp === 'interne' ? 'i' : 's'); }
+    if (ok && !imp && plMode !== 'ast') { await new Promise(r=>setTimeout(r, 500));
+      /* une semaine nouvellement générée n'est jamais publiée automatiquement */
+      if (!wasDoneBefore && isRim() && db) { const g0 = plGrp === 'interne' ? 'i' : 's', k0 = key(plStart); if (!(pubDoc[k0] && pubDoc[k0][g0])) { try { await db.doc('meta/publication').update({[k0]: {[g0]: true}}); pubDoc = Object.assign({}, pubDoc, {[k0]: Object.assign({}, pubDoc[k0] || {}, {[g0]: true})}); } catch(e) {} } }
+      await askPublish(key(plStart), plGrp === 'interne' ? 'i' : 's'); }
     if (ok && !imp && plMode !== 'ast' && plGrp === 'interne') setTimeout(offOpen, 600);
     if (ok && imp) { importFinish(imp); notify(ws.length+' ajout'+(ws.length > 1 ? 's enregistrés' : ' enregistré')+'. Les personnes déjà sur le planning n’ont pas été touchées.'); return; }
     if (ok) notify(ws.length+' modification'+(ws.length > 1 ? 's enregistrées' : ' enregistrée')+'. Vous pouvez encore les corriger à la main.');
