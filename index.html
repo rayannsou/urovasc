@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 20h35</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 20h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'd8ba7b890b';
+  const BUILD = '27de2f637e';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3240,14 +3240,14 @@ const PROTO = [
     if (!trame) return '';
     const un = []; let f = 0, n = 0;
     for (let i = 0; i < 5; i++) { const d = addDays(plStart, i), k = key(d);
-      trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ const r = aPourvoir(p, k, i, part); if (!r) return; n++; if (r.ok) f++; else un.push(new Intl.DateTimeFormat('fr-FR',{weekday:'long'}).format(d)+' '+(p.journee ? '(journée)' : PART_TXT[part])+' · '+postName(p.id, k)); })); }
+      trame.postes.filter(p=>!p.info && !isSam(p) && okDay(p, i)).forEach(p=>(p.journee ? ['M'] : partsOf(p)).forEach(part=>{ const r = aPourvoir(p, k, i, part); if (!r) return; n++; if (r.ok) f++; else un.push({t: new Intl.DateTimeFormat('fr-FR',{weekday:'long'}).format(d)+' '+(p.journee ? '(journée)' : PART_TXT[part])+' · '+postName(p.id, k), s: p.id+'|'+k+'|'+(p.journee ? 'M' : part)}); })); }
     const dis = canWrite ? '' : ' disabled';
     const fer = [0,1,2,3,4].map(i=>key(addDays(plStart, i))).filter(isFerie);
     const pubG = plGrp === 'interne' ? 'i' : 's', pubK = key(plStart), pubOn = !(pubDoc[pubK] && pubDoc[pubK][pubG]);
     const pubBtn = isRim() ? '<button type="button" class="astbtn'+(pubOn ? '' : ' dangerbtn')+'" data-pub="'+pubK+'|'+pubG+'" style="margin-bottom:8px">'+(pubOn ? '📢 Planning publié · dépublier' : '🚫 Non publié (visible des administrateurs seulement) · publier')+'</button>' : '';
     return '<div class="wktools">' + (plMode !== 'ast' && trame ? weekOvHtml(plStart, -1, 'wk') : '')
       + (fer.length ? '<p class="hint">🎌 Jour férié : '+fer.map(k=>esc(fmtShort.format(parse(k))+' ('+ferieName(k)+')')).join(', ')+' · aucune vacation à pourvoir, pas de off.</p>' : '')
-      + (un.length ? '<details class="wkun"'+(un.length <= 6 ? ' open' : '')+'><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul>'+un.map(x=>'<li>'+esc(x.charAt(0).toUpperCase()+x.slice(1))+'</li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
+      + (un.length ? '<details class="wkun"'+(un.length <= 6 ? ' open' : '')+'><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul style="list-style:none;padding:0">'+un.map(x=>'<li style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:6px 0"><span>'+esc(x.t.charAt(0).toUpperCase()+x.t.slice(1))+'</span><button type="button" class="ghost" data-wkforce="'+esc(x.s)+'"'+dis+' style="padding:4px 10px;min-height:0">Choisir qui…</button></li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
       + '<details class="wkun wkmore"><summary>⚙ Plus d’actions</summary>'
       + (n && f < n && !wkClosed() ? '<button type="button" class="astbtn" data-wkclose="1" style="margin-bottom:8px"'+dis+'>✅ Planning terminé (même incomplet)</button>' : '')
       + (wkClosed() && f < n ? '<button type="button" class="astbtn" data-wkclose="0" style="margin-bottom:8px"'+dis+'>↩ Rouvrir le planning ('+(n-f)+' non pourvue'+(n-f > 1 ? 's' : '')+')</button>' : '')
@@ -3321,7 +3321,7 @@ const PROTO = [
         (by[id] = by[id] || []).push({d, pt, p, why, rep}); }); }); }); });
     const ids = Object.keys(by); if (!ids.length) return '<div class="qcard" style="border-left:4px solid #3a8a5a"><p class="qt">✅ Aucun chef indisponible sur la trame de cette semaine</p></div>';
     return '<div class="qcard" style="border-left:4px solid #c0392b"><p class="qt">⚠️ Indisponibilités à vérifier</p><p class="qh">La génération en tient compte : elle remplace selon les règles (« Qui remplace qui »).</p>'
-      + ids.map(id=>'<p class="hint" style="margin:6px 0;text-align:left"><b>'+esc(dLabel(id))+'</b> est indisponible :<br>'+by[id].map(i=>'• '+DAYL[i.d]+' '+PART_TXT[i.pt]+' · '+esc(i.p.label)+' → '+(i.rep.length ? 'remplacé(e) par <b>'+i.rep.map(r=>esc(dLabel(r))).join(' ou ')+'</b>' : '<i>aucun remplaçant prévu : à pourvoir</i>')).join('<br>')+'</p>').join('')+'</div>';
+      + ids.map(id=>'<p class="hint" style="margin:6px 0;text-align:left"><b>'+esc(dLabel(id))+'</b> est indisponible :<br>'+by[id].map(i=>'• '+DAYL[i.d]+' '+PART_TXT[i.pt]+' · '+esc(i.p.label)+' → '+(i.rep.length ? 'remplacé(e) par <b>'+i.rep.map(r=>esc(dLabel(r))).join(' ou ')+'</b>' : '<i>aucun remplaçant prévu : à pourvoir</i>')+' <button type="button" class="ghost" data-wkforce="'+esc(i.p.id+'|'+key(addDays(plStart, i.d))+'|'+(i.p.journee ? 'M' : i.pt))+'" style="padding:2px 8px;min-height:0;font-size:12px">Choisir qui…</button>').join('<br>')+'</p>').join('')+'</div>';
   }
   function wkChefHtml(){
     const cx = chefCtx(), keys = chefRows(), s = semG(key(plStart), 'med'), dis = canWrite ? '' : ' disabled';
@@ -4280,6 +4280,7 @@ const PROTO = [
     if (await setDays(id, patch)) notify(dLabel(id)+(on ? ' : indisponibilité retirée.' : (a[0] === 'w' ? ' : indisponible toute la semaine.' : ' : indisponible ce samedi.')));
   }
   document.addEventListener('click', e=>{ const b = e.target.closest('[data-plwk]'); if (!b) return; plDay = Number(b.dataset.plwk); plStage = 'man'; renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} });
+  document.addEventListener('click', e=>{ const b = e.target.closest('[data-wkforce]'); if (!b || !trame) return; if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true); plScope = 'once'; openSheet(b.dataset.wkforce); });
   const plDayClick = e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} };
   $('#plDays').addEventListener('click', plDayClick);
   $('#plGrid') && $('#plGrid').addEventListener('click', e=>{ if (e.target.closest('.plast')) plDayClick(e); const u = e.target.closest('[data-plun]'); if (u) plToggleUn(u.dataset.plun); if (e.target.closest('[data-astmiss]')) openMiss(false); });
