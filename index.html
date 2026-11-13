@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 12/11/2026 · 20h15</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 08h20</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1807,6 +1807,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   setTimeout(checkUpdate, 6000); setInterval(checkUpdate, 10*60*1000);
   document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState === 'visible') setTimeout(checkUpdate, 800); });
   function askCode(why){
+    if (SVC === 'osteo' && isRim()) codeUntil = Date.now() + 30*60*1000;   /* Ostéo : les administrateurs n'ont pas de code à saisir */
     if (Date.now() < codeUntil) return true;
     const c = window.prompt('Code requis ('+why+') :');
     if (c === null) return false;
@@ -1815,6 +1816,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   }
   /* code demandé dans l'appli (la fenêtre native de Safari peut être bloquée ou ignorée) */
   function ensureCode(why){
+    if (SVC === 'osteo' && isRim()) codeUntil = Date.now() + 30*60*1000;
     if (Date.now() < codeUntil) return Promise.resolve(true);
     return new Promise(res=>{
       const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
@@ -5545,17 +5547,17 @@ const PROTO = [
   /* service Ostéo (sans postes prédéfinis) : un poste inconnu du fichier importé est créé d'office */
   let autoNew = 0;
   const OSTEO_ABS = {'off':'Off','rdg':'Repos de garde','repos de garde':'Repos de garde','absence':'Absent(e)','absences':'Absent(e)','absent':'Absent(e)','conges':'Congés annuels','conges annuels':'Congés annuels','cp':'Congés annuels','rtt':'Off','maladie':'Absent(e)'};
+  let pendP = {};
   function autoPoste(label){
     if (SVC !== 'osteo' || !trame) return null;
     const v = String(label || '').trim().replace(/\s+/g, ' ').slice(0, 40); if (!v || v.length < 2) return null;
-    let id = slug(v) || 'poste', n = 2; const base = id;
-    while (trame.postes.some(p=>p.id === id)) id = base+'-'+(n++);
-    const p = {id, label: v}; trame.postes.push(p); autoNew++; return p;
+    const id = '?' + (slug(v) || 'poste'); pendP[id] = v; return {id, label: v};
   }
   function matchPoste(label){
     const n = normS(label); if (!n) return null;
     const list = trame.postes.map(p=>({p, n: normS(p.label)}));
-    const ex = list.find(x=>x.n === n); if (ex) return ex.p;
+    const ex = list.find(x=>x.n === n || normS(x.p.id) === n); if (ex) return ex.p;
+    if (SVC === 'osteo') return null;   /* Ostéo : seul un nom identique est reconnu, le reste est demandé à l'utilisateur */
     const inc = list.filter(x=>n.includes(x.n)).sort((a,b)=>b.n.length-a.n.length);
     if (inc.length) return inc[0].p;
     const rev = list.filter(x=>x.n.includes(n));
@@ -5622,7 +5624,7 @@ const PROTO = [
   const impMode = () => (!$('#view-plan').hidden && (plStage === 'impx' || plStage === 'impg')) ? plMode : null;
   function planFromWeeks(weeks, ignored){
     const im = impMode();
-    if (im) weeks = weeks.map(w=>({monday: w.monday, dates: w.dates, cells: w.cells.filter(c=>{ const p = findPost(c.poste); return !!p && (im === 'ast') === isSam(p); }), absences: im === 'ast' ? [] : w.absences, notes: im === 'ast' ? [] : w.notes})).filter(w=>w.cells.length);
+    if (im) weeks = weeks.map(w=>({monday: w.monday, dates: w.dates, cells: w.cells.filter(c=>{ if (c.poste[0] === '?') return im !== 'ast'; const p = findPost(c.poste); return !!p && (im === 'ast') === isSam(p); }), absences: im === 'ast' ? [] : w.absences, notes: im === 'ast' ? [] : w.notes})).filter(w=>w.cells.length);
     const known = {}, fresh = {};
     sortedDocs().forEach(d=>{ known[normS(d.label)] = d.id; known[d.id] = d.id; });
     const idOf = label=>{ const n = normS(label); let id = known[n] || known[slug(label)]; if (!id && ({henry:'hr', nicolas:'np'})[n]) id = known[({henry:'hr', nicolas:'np'})[n]]; if (!id) { id = slug(label); if (id) { fresh[id] = fresh[id] || label; known[n] = id; } } return id || null; };
@@ -5640,7 +5642,12 @@ const PROTO = [
       const cand = grpDocs().map(d=>({id:d.id, label:d.label, sc:Math.max(sim(fresh[fid], d.label), sim(fresh[fid], d.id))})).filter(c=>c.sc >= 0.5).sort((a,b)=>b.sc-a.sc).slice(0,3);
       sugg[fid] = cand; pick[fid] = cand.length && cand[0].sc >= 0.7 ? cand[0].id : '';
     });
-    return {weeks, fresh, sugg, pick, ignored: ignored || []};
+    /* Ostéo : on demande qui est chaque nom inconnu et à quel poste correspond chaque ligne inconnue */
+    const postesUnk = {}, psugg = {};
+    weeks.forEach(w=>w.cells.forEach(c=>{ if (c.poste[0] === '?' && pendP[c.poste]) postesUnk[c.poste] = pendP[c.poste]; }));
+    Object.keys(postesUnk).forEach(pid=>{ psugg[pid] = (trame.postes || []).filter(p=>!p.info && !isSam(p)).map(p=>({id: p.id, label: p.label, sc: sim(postesUnk[pid], p.label)})).sort((a,b)=>b.sc-a.sc).slice(0,3).filter(c=>c.sc >= 0.4); });
+    if (SVC === 'osteo') Object.keys(pick).forEach(k=>{ delete pick[k]; });
+    return {weeks, fresh, sugg, pick, ignored: ignored || [], postesUnk, psugg, ppick: {}};
   }
   /* même plan, limité aux dates à partir de t (« à partir d'aujourd'hui ») */
   function planSince(pl, t){
@@ -5651,24 +5658,35 @@ const PROTO = [
     const box = $('#xlPreview');
     if (!xlPlan) { box.hidden = true; box.innerHTML = ''; return; }
     const pl = xlPlan, fresh = Object.values(pl.fresh);
+    const osteo = SVC === 'osteo', pkU = Object.keys(pl.postesUnk || {}), nPk = pkU.filter(k=>!(pl.ppick || {})[k]).length, nNm = osteo ? Object.keys(pl.fresh).filter(k=>(pl.pick || {})[k] === undefined).length : 0, blocked = nPk + nNm > 0;
     const filled = pl.weeks.reduce((n,w)=>n+w.cells.filter(c=>c.people.length && !(findPost(c.poste) && findPost(c.poste).journee && c.part === 'AM')).length, 0);
     const tk = key(new Date()), fromPl = planSince(pl, tk), nFrom = fromPl.weeks.length, nAll = pl.weeks.length;
     box.hidden = false;
     box.innerHTML = '<div class="xlp"><strong>Aperçu du fichier</strong>'
       + '<ul>'+pl.weeks.map(w=>{ const a = parse(w.monday), b = addDays(a,4); const n = w.cells.filter(c=>c.people.length).length; return '<li>Semaine du '+esc(fmtDM.format(a))+' au '+esc(fmtDM.format(b))+' : '+n+' cases avec médecin, '+new Set(w.absences.map(x=>x.label+x.date)).size+' absences/congés, '+w.notes.length+' note'+(w.notes.length > 1 ? 's' : '')+'</li>'; }).join('')+'</ul>'
+      + (pkU.length ? '<p><strong>Postes non reconnus</strong> : à quel poste correspond chaque ligne du fichier ?</p>' + pkU.map(pid=>{
+          const cur = (pl.ppick || {})[pid] || '', cs = (pl.psugg || {})[pid] || [];
+          return '<div class="xfr"><div><strong>« '+esc(pl.postesUnk[pid])+' »</strong></div><div class="plc">'
+            + cs.map(c=>'<button type="button" class="plsg'+(cur === c.id ? '' : ' alt')+'" data-xppick="'+esc(pid+'|'+c.id)+'" aria-pressed="'+(cur === c.id)+'">'+(cur === c.id ? '✓ ' : '')+'C’est '+esc(c.label)+'</button>').join('')
+            + '<select data-xpsel="'+esc(pid)+'" aria-label="Poste existant"><option value="">Un autre poste du service…</option>'+(trame.postes || []).filter(p=>!p.info && !isSam(p)).map(p=>'<option value="'+esc(p.id)+'"'+(cur === p.id ? ' selected' : '')+'>'+esc(p.label)+'</option>').join('')+'</select>'
+            + '<button type="button" class="plsg'+(cur === '__new' ? '' : ' alt')+'" data-xppick="'+esc(pid+'|__new')+'" aria-pressed="'+(cur === '__new')+'">'+(cur === '__new' ? '✓ ' : '')+'Créer ce poste</button>'
+            + '<button type="button" class="plsg'+(cur === '__skip' ? '' : ' alt')+'" data-xppick="'+esc(pid+'|__skip')+'" aria-pressed="'+(cur === '__skip')+'">'+(cur === '__skip' ? '✓ ' : '')+'Ignorer cette ligne</button></div></div>';
+        }).join('') + (nPk > 1 ? '<div class="plc"><button type="button" class="plsg alt" data-xpall="1">Créer tous les postes restants</button></div>' : '') : '')
       + (Object.keys(pl.fresh).length ? '<p><strong>Noms non reconnus</strong> : est-ce une personne déjà dans la liste ?</p>' + Object.keys(pl.fresh).map(fid=>{
-          const cur = (pl.pick || {})[fid] || '', cs = (pl.sugg || {})[fid] || [];
-          return '<div class="xfr"><div><strong>« '+esc(pl.fresh[fid])+' »</strong></div><div class="plc">'
+          const raw = (pl.pick || {})[fid], cur = raw || '', cs = (pl.sugg || {})[fid] || [], und = osteo && raw === undefined;
+          return '<div class="xfr"><div><strong>« '+esc(pl.fresh[fid])+' »</strong>'+(und ? ' <span class="xw">à préciser</span>' : '')+'</div><div class="plc">'
             + cs.map(c=>'<button type="button" class="plsg'+(cur === c.id ? '' : ' alt')+'" data-xfpick="'+esc(fid+'|'+c.id)+'" aria-pressed="'+(cur === c.id)+'">'+(cur === c.id ? '✓ ' : '')+'C’est '+esc(c.label)+'</button>').join('')
-            + '<button type="button" class="plsg'+(cur ? ' alt' : '')+'" data-xfpick="'+esc(fid+'|')+'" aria-pressed="'+(!cur)+'">'+(cur ? '' : '✓ ')+'Créer « '+esc(pl.fresh[fid])+' »</button>'
+            + (osteo && grpDocs().length ? '<select data-xfsel="'+esc(fid)+'" aria-label="Personne existante"><option value="">Une autre personne de la liste…</option>'+grpDocs().map(d=>'<option value="'+esc(d.id)+'"'+(cur === d.id ? ' selected' : '')+'>'+esc(d.label)+'</option>').join('')+'</select>' : '')
+            + '<button type="button" class="plsg'+(!und && !cur ? '' : ' alt')+'" data-xfpick="'+esc(fid+'|')+'" aria-pressed="'+(!und && !cur)+'">'+(!und && !cur ? '✓ ' : '')+'Créer « '+esc(pl.fresh[fid])+' »</button>'
             + '<button type="button" class="plsg'+(cur === '__skip' ? '' : ' alt')+'" data-xfpick="'+esc(fid+'|__skip')+'" aria-pressed="'+(cur === '__skip')+'">'+(cur === '__skip' ? '✓ ' : '')+'Ignorer cette personne</button></div></div>';
-        }).join('') : '<p>Tous les noms existent déjà dans la liste.</p>')
+        }).join('') + (nNm > 1 ? '<div class="plc"><button type="button" class="plsg alt" data-xfall="1">Créer tous les noms restants</button></div>' : '') : '<p>Tous les noms existent déjà dans la liste.</p>')
       + (pl.ignored.length ? '<p class="xw">Lignes ignorées (poste inconnu) : '+esc(pl.ignored.join(', '))+'</p>' : '')
       + (!filled ? '<p class="xw">Aucun médecin trouvé dans le fichier.</p>' : '')
       + '<p class="hint" style="color:var(--ink)">Seules les personnes absentes du planning seront ajoutées (après confirmation). Rien n’est retiré.</p>'
       + '<p><strong>Que voulez-vous importer ?</strong></p>'
-      + '<div class="xa" style="flex-direction:column;align-items:stretch"><button type="button" class="primary" id="xlApplyFrom"'+(filled && nFrom && canWrite ? '' : ' disabled')+'>À partir d’aujourd’hui ('+esc(fmtDM.format(new Date()))+') · '+nFrom+' semaine'+(nFrom > 1 ? 's' : '')+'</button>'
-      + '<button type="button" class="ghost" id="xlApply"'+(filled && canWrite ? '' : ' disabled')+'>Tout importer · '+nAll+' semaine'+(nAll > 1 ? 's' : '')+'</button><button type="button" class="ghost" id="xlCancel">Annuler</button></div>'
+      + '<div class="xa" style="flex-direction:column;align-items:stretch"><button type="button" class="primary" id="xlApplyFrom"'+(filled && nFrom && canWrite && !blocked ? '' : ' disabled')+'>À partir d’aujourd’hui ('+esc(fmtDM.format(new Date()))+') · '+nFrom+' semaine'+(nFrom > 1 ? 's' : '')+'</button>'
+      + '<button type="button" class="ghost" id="xlApply"'+(filled && canWrite && !blocked ? '' : ' disabled')+'>Tout importer · '+nAll+' semaine'+(nAll > 1 ? 's' : '')+'</button><button type="button" class="ghost" id="xlCancel">Annuler</button></div>'
+      + (blocked ? '<p class="xw">Répondez aux questions ci-dessus ('+(nPk ? nPk+' poste'+(nPk > 1 ? 's' : '') : '')+(nPk && nNm ? ' et ' : '')+(nNm ? nNm+' nom'+(nNm > 1 ? 's' : '') : '')+') pour pouvoir importer.</p>' : '')
       + (nFrom ? '' : '<p class="xw">Rien à partir d’aujourd’hui dans ce fichier : toutes ses dates sont passées.</p>')
       + '</div>';
   }
@@ -5751,7 +5769,7 @@ const PROTO = [
     const X = window.XLSX;
     if (!X) return notify("La lecture des fichiers Excel n'est pas disponible dans cette vue.", true);
     if (!trame || (!trame.postes.length && SVC !== 'osteo')) return notify('Les postes du service doivent être chargés.', true);
-    autoNew = 0;
+    autoNew = 0; pendP = {};
     try {
       const wb = wb0 || X.read(new Uint8Array(buf), {type:'array', cellDates:true});
       let weeks = SVC === 'osteo' ? Object.assign([], {report: {ok: [], skip: wb.SheetNames.slice(), months: {}}}) : PP.parseWorkbook(X, wb), ignored = [];   /* Ostéo : service à part, chaque feuille est lue en grille/liste simple, postes créés d'après le fichier */
@@ -5773,7 +5791,6 @@ const PROTO = [
       if (extra.length) weeks = PP.mergeWeeks(weeks.concat(extra));
       report.skip = stillSkipped;
       if (weeks.length && (report.skip.length || report.ok.length > 1)) setTimeout(()=>notify(report.ok.length+' feuille'+(report.ok.length > 1 ? 's' : '')+' lue'+(report.ok.length > 1 ? 's' : '')+(report.skip.length ? ' · ignorée'+(report.skip.length > 1 ? 's' : '')+' : '+report.skip.join(', ') : '')+'.'), 300);
-      if (autoNew && weeks.length) { const k = autoNew; autoNew = 0; if (await saveTrame(()=>{}, true)) setTimeout(()=>notify(k+' poste'+(k > 1 ? 's' : '')+' créé'+(k > 1 ? 's' : '')+' d’après le fichier (modifiables dans Réglages).'), 400); }
       if (!weeks.length) { xlPlan = null; renderPlan(); return notify("Format non reconnu. Utilisez le fichier du planning du service ou le modèle.", true); }
       xlPlan = planFromWeeks(weeks, ignored); renderPlan();
     } catch(e) { xlPlan = null; renderPlan(); notify('Fichier illisible. Utilisez un .xlsx ou .csv.', true); }
@@ -5861,7 +5878,19 @@ const PROTO = [
     xlPlan = null; renderPlan(); renderCreate();
   }
   async function applyPlan(from){
-    const pl0 = xlPlan; if (!pl0) return;
+    let pl0 = xlPlan; if (!pl0) return;
+    if (pl0.postesUnk && Object.keys(pl0.postesUnk).length) {   /* postes du fichier : correspondance choisie, création, ou ignoré */
+      const map = {}, toNew = [];
+      for (const pid of Object.keys(pl0.postesUnk)) { const ch = (pl0.ppick || {})[pid]; if (!ch) return notify('Indiquez à quel poste correspond « '+pl0.postesUnk[pid]+' ».', true); if (ch === '__new') toNew.push(pid); else map[pid] = ch; }
+      if (toNew.length) {
+        const made = [], ids = new Set(trame.postes.map(p=>p.id));
+        toNew.forEach(pid=>{ let id = pid.slice(1) || 'poste', b = id, n = 2; while (ids.has(id)) id = b+'-'+(n++); ids.add(id); made.push({id, label: pl0.postesUnk[pid]}); map[pid] = id; });
+        if (!(await saveTrame(t=>{ made.forEach(p=>t.postes.push(Object.assign({}, p))); }, true))) return;
+        made.forEach(p=>{ if (!trame.postes.some(q=>q.id === p.id)) trame.postes.push(p); });
+      }
+      pl0 = Object.assign({}, pl0, {weeks: pl0.weeks.map(w=>Object.assign({}, w, {cells: w.cells.map(c=>c.poste[0] === '?' ? Object.assign({}, c, {poste: map[c.poste]}) : c).filter(c=>c.poste && c.poste !== '__skip')}))});
+      pl0.postesUnk = {};
+    }
     const pl = from ? planSince(pl0, key(new Date())) : pl0;
     if (!pl.weeks.length) return notify('Rien à importer à partir d’aujourd’hui.', true);
     const ad = importAdds(pl), nAbs = pl.weeks.reduce((n,w)=>n + w.absences.length, 0);
@@ -5924,9 +5953,16 @@ const PROTO = [
     readBuffer(null, out);
   });
   $('#gsGo').addEventListener('click', ()=>{ const v = $('#gsLink').value.trim(); if (v) readLink(v, $('#gsTab').value); else notify('Collez un lien Google Sheets.', true); });
+  $('#xlPreview').addEventListener('change', e=>{
+    const sp = e.target.closest && e.target.closest('[data-xpsel]'); if (sp && xlPlan && sp.value) { xlPlan.ppick = Object.assign({}, xlPlan.ppick, {[sp.dataset.xpsel]: sp.value}); return renderPlan(); }
+    const sf = e.target.closest && e.target.closest('[data-xfsel]'); if (sf && xlPlan && sf.value) { xlPlan.pick = Object.assign({}, xlPlan.pick, {[sf.dataset.xfsel]: sf.value}); return renderPlan(); }
+  });
   $('#xlFile').addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
   $('#xlModel').addEventListener('click', downloadModel);
   $('#xlPreview').addEventListener('click', e=>{
+    const xpa = e.target.closest('[data-xppick]'); if (xpa && xlPlan) { const a = xpa.dataset.xppick.split('|'); xlPlan.ppick = Object.assign({}, xlPlan.ppick, {[a[0]]: a[1]}); return renderPlan(); }
+    if (e.target.closest('[data-xpall]') && xlPlan) { const pp = Object.assign({}, xlPlan.ppick); Object.keys(xlPlan.postesUnk || {}).forEach(k=>{ if (!pp[k]) pp[k] = '__new'; }); xlPlan.ppick = pp; return renderPlan(); }
+    if (e.target.closest('[data-xfall]') && xlPlan) { const pk = Object.assign({}, xlPlan.pick); Object.keys(xlPlan.fresh).forEach(k=>{ if (pk[k] === undefined) pk[k] = ''; }); xlPlan.pick = pk; return renderPlan(); }
     const xf = e.target.closest('[data-xfpick]'); if (xf && xlPlan) { const a = xf.dataset.xfpick.split('|'); xlPlan.pick = Object.assign({}, xlPlan.pick, {[a[0]]: a[1] || ''}); return renderPlan(); }
     if (e.target.closest('#xlApplyFrom')) applyPlan(true);
     else if (e.target.closest('#xlApply')) applyPlan(false);
