@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 17h55</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 18h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -6253,7 +6253,8 @@ const PROTO = [
     const whereTxt = (id, r)=>{ const o = elsewhere[id] || []; return o.length ? '📍 '+o.join(' · ') : (r ? '⚠ '+r : (dw > 4 || !isIntId(id) ? '' : 'libre (off)')); };
     const chip = id=>{ const r = reasonFor(id, ed.date, ed.part), o = elsewhere[id] || []; return '<button type="button" class="qchip'+(r ? ' bad' : '')+'" data-qrm="'+esc(id)+'" aria-label="Retirer '+esc(dLabel(id))+'">'+(r ? '⚠ ' : '')+esc(dLabel(id))+(o.length ? '<small>📍 '+esc(o.join(' · '))+'</small>' : '')+'<i>✕</i></button>'; };
     $('#qeBody').innerHTML = '<p class="qgt">Sur cette vacation</p>' + (cur.length ? '<div class="qchips">'+cur.map(chip).join('')+'</div>' : '<p class="hint">Personne pour l’instant.</p>')
-      + cur.filter(id=>!(v && v.ou) && reasonFor(id, ed.date, ed.part)).map(id=>'<p class="aststat ko">⚠ '+esc(dLabel(id))+' : '+esc(reasonFor(id, ed.date, ed.part))+'</p>').join('');
+      + cur.filter(id=>!(v && v.ou) && reasonFor(id, ed.date, ed.part)).map(id=>'<p class="aststat ko">⚠ '+esc(dLabel(id))+' : '+esc(reasonFor(id, ed.date, ed.part))+'</p>').join('')
+      + (()=>{ const closed = !!v && !cur.length && /^ferm/i.test(v.texte || ''); return '<div class="qchips" style="margin-top:8px"><button type="button" class="pladd" data-qferm="'+(closed ? '0' : '1')+'"'+(canWrite ? '' : ' disabled')+'>'+(closed ? '🔓 Rouvrir la vacation' : '🔒 Fermer la vacation')+'</button></div>'; })();
     const pool = sortedDocs().filter(d=>!cur.includes(d.id) && (!q || normS(d.label).includes(q)) && (!gGrp || isIntId(d.id) === (gGrp === 'interne')));
     const grp = (t, l)=>l.length ? '<p class="qgt">'+t+'</p><div class="qchips">'+l.map(d=>{ const r = reasonFor(d.id, ed.date, ed.part); return '<button type="button" class="qadd'+(r ? ' bad' : '')+'" data-qadd="'+esc(d.id)+'">＋ '+esc(dLabel(d.id))+'<small>'+esc(whereTxt(d.id, r))+'</small></button>'; }).join('')+'</div>' : '';
     const byAv = l=>l.slice().sort((a,b)=>(reasonFor(a.id, ed.date, ed.part) ? 1 : 0) - (reasonFor(b.id, ed.date, ed.part) ? 1 : 0));
@@ -6264,6 +6265,7 @@ const PROTO = [
     if (e.target.closest('[data-qeclose]')) return qeClose();
     const rm = e.target.closest('[data-qrm]'), ad = e.target.closest('[data-qadd]');
     if (rm || ad) { plScope = 'once'; const cur = edWho(); if (rm) await plApply(ed.poste, ed.date, ed.part, cur.filter(x=>x !== rm.dataset.qrm), null); else if (!cur.includes(ad.dataset.qadd)) await plApply(ed.poste, ed.date, ed.part, cur.concat([ad.dataset.qadd]), ad.dataset.qadd); renderQe(); return; }
+    const fm = e.target.closest('[data-qferm]'); if (fm) { plScope = 'once'; await plClose(ed.poste+'|'+ed.date+'|'+ed.part, fm.dataset.qferm === '1'); renderQe(); return; }
     if (e.target.closest('#qeRev')) { if (await revertSlot(ed.poste, ed.date, ed.part)) notify('Vacation effacée.'); renderQe(); }
   });
   $('#qeQ').addEventListener('input', renderQe);
