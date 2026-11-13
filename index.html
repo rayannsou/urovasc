@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 17h35</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 17h55</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2915,6 +2915,28 @@ const PROTO = [
       const n = docs.filter(isOn).length;
       return '<details class="plun card"'+(plUnOpen ? ' open' : '')+'><summary>🚫 Indisponible toute la semaine'+(n ? ' <b class="acn">'+n+'</b>' : '')+'</summary><p class="plone">Touchez un nom : indisponible du lundi au vendredi ('+esc(fmtDM.format(days[0]))+' – '+esc(fmtDM.format(days[4]))+'). Retouchez pour annuler. Les gardes ne sont pas modifiées.</p><div class="plc">'+docs.map(d=>unBtn(d.id, isOn(d), 'w|'+d.id)).join('')+'</div></details>';
     };
+    /* vue de la semaine entière, comme un planning validé : touchez une case pour modifier ce jour */
+    const weekOv = () => {
+      const ps = trame.postes.filter(p=>!p.info && !isSam(p)); if (!ps.length) return '';
+      const lab = ['Lun','Mar','Mer','Jeu','Ven'];
+      let h = '<details class="plun card" id="plWeekOv" open><summary>📅 Vue de la semaine · '+esc(fmtDM.format(days[0]))+' – '+esc(fmtDM.format(days[4]))+'</summary><p class="plone">Toute la semaine d’un coup, comme le planning validé. Touchez une case pour modifier ce jour.</p><div style="overflow-x:auto"><table class="team" style="min-width:560px;font-size:12px"><thead><tr><th class="who" rowspan="2">Poste</th>'+lab.map((t,i)=>'<th colspan="2" class="end"'+(i === plDay ? ' style="background:var(--accent-soft)"' : '')+'>'+t+' '+days[i].getDate()+(isFerie(key(days[i])) ? ' 🎌' : '')+'</th>').join('')+'</tr><tr class="sub">'+lab.map(()=>'<th>M</th><th class="end">AM</th>').join('')+'</tr></thead><tbody>';
+      ps.forEach(p=>{
+        h += '<tr><th class="who">'+esc(p.label)+'</th>';
+        for (let i = 0; i < 5; i++) {
+          const kk = key(days[i]);
+          if (!okDay(p, i)) { h += '<td class="v none end" colspan="2" style="text-align:center;opacity:.4">—</td>'; continue; }
+          const cell = (part, end, span) => {
+            const v = vacWho(p.id, kk, part), who = v ? v.who.filter(inGrp) : [], r = aPourvoir(p, kk, i, part), closed = v && !who.length && /^ferm/i.test(v.texte || '');
+            const txt = closed ? '🔒' : who.length ? who.map(id=>esc(dLabel(id))).join(', ')+(v && v.ou ? ' ?' : '') : r && !r.ok ? '⚠' : '·';
+            const bad = !closed && !who.length && r && !r.ok;
+            return '<td class="v'+(end ? ' end' : '')+'"'+(span ? ' colspan="2"' : '')+' style="padding:2px;text-align:center"><button type="button" class="ghost" data-plday="'+i+'" style="padding:3px 4px;min-height:0;font-size:11px;min-width:44px;width:100%;line-height:1.25;'+(bad ? 'background:#f3d6d6;' : who.length ? 'background:rgba(46,125,90,.2);font-weight:600;' : '')+'">'+txt+'</button></td>';
+          };
+          h += p.journee ? cell('M', true, true) : cell('M', false, false) + cell('AM', true, false);
+        }
+        h += '</tr>';
+      });
+      return h+'</tbody></table></div></details>';
+    };
     const unSat = k => {
       const isOn = d => d.days[k] === 'J' || d.days[k] === 'M' || d.days[k] === 'G', docs = sortedDocs();
       const n = docs.filter(isOn).length;
@@ -2926,7 +2948,7 @@ const PROTO = [
       const sats = [...Array(6)].map((_,i)=>addDays(days[5], 7*i));
       grid.innerHTML = sats.map(d=>plCard(astP, key(d)).replace('<h3><i', '<h3 data-sat="'+key(d)+'"><i').replace('</section>', unSat(key(d))+'</section>')).join('');
     } else {
-      grid.innerHTML = unWeek() + (posts.map(p=>plCard(p, k)).join('') || '<p class="empty">Aucun poste ce jour-là.</p>');
+      grid.innerHTML = weekOv() + unWeek() + (posts.map(p=>plCard(p, k)).join('') || '<p class="empty">Aucun poste ce jour-là.</p>');
     }
   }
   /* personne déjà posté(e) ailleurs au même moment ? */
