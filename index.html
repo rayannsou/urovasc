@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 21h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 21h25</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'eff9cd59ce';
+  const BUILD = 'db1c150370';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -4314,7 +4314,11 @@ const PROTO = [
     const docs = grpDocs().filter(d=>!q || plNorm(d.label).includes(q));
     const rawQ = $('#plShQ').value.trim(), exact = sortedDocs().some(d=>plNorm(d.label) === q);
     const mk = rawQ && !exact && /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{0,30}$/.test(rawQ) ? '<button type="button" class="plopt" data-plnew="'+esc(rawQ)+'"><span class="lt"><span>＋ Créer « '+esc(rawQ)+' »</span><small style="color:var(--muted)">Nouveau médecin, ajouté à la liste</small></span></button>' : '';
-    $('#plShL').innerHTML = vacHist(a[0], a[1], a[2]) + mk + docs.map(d=>{ const on = cur.includes(d.id), r = on ? '' : reasonFor(d.id,a[1],a[2]); return '<button type="button" class="plopt'+(r ? ' warn' : '')+'" data-pld="'+esc(d.id)+'" aria-pressed="'+on+'"><span class="lt"><span>'+esc(dLabel(d.id))+'</span>'+(r ? '<small>⚠ '+esc(r)+'</small>' : '')+'</span><span class="tk">'+(on ? '✓' : '')+'</span></button>'; }).join('') || '<p class="empty">Aucun médecin ne correspond.</p>';
+    /* où chacun est posté sur cette même demi-journée (autres vacations), sinon « off » */
+    const dw = (parse(a[1]).getDay()+6)%7, where = {};
+    if (dw <= 4) (p.journee ? ['M', 'AM'] : [a[2]]).forEach(pt=>{ trame.postes.forEach(q2=>{ if (q2.id === a[0] || q2.info || isSam(q2) || !okDay(q2, dw)) return; const x = vacWho(q2.id, a[1], q2.journee ? 'M' : pt); if (x) x.who.forEach(id=>{ const l = (q2.label || '') + (q2.journee ? ' (journée)' : ''); (where[id] = where[id] || []).includes(l) || where[id].push(l); }); }); });
+    const whereTxt = (id, r) => dw > 4 ? '' : (where[id] ? '📍 '+where[id].join(' · ') : (r ? '' : '💤 Off'));
+    $('#plShL').innerHTML = vacHist(a[0], a[1], a[2]) + mk + docs.map(d=>{ const on = cur.includes(d.id), r = on ? '' : reasonFor(d.id,a[1],a[2]), wt = on ? '' : whereTxt(d.id, r); return '<button type="button" class="plopt'+(r ? ' warn' : '')+'" data-pld="'+esc(d.id)+'" aria-pressed="'+on+'"><span class="lt"><span>'+esc(dLabel(d.id))+'</span>'+(r ? '<small>⚠ '+esc(r)+(where[d.id] ? ' · 📍 '+esc(where[d.id].join(' · ')) : '')+'</small>' : (wt ? '<small>'+esc(wt)+'</small>' : ''))+'</span><span class="tk">'+(on ? '✓' : '')+'</span></button>'; }).join('') || '<p class="empty">Aucun médecin ne correspond.</p>';
   }
   async function plCreateAndAdd(name){
     if (!db || !canWrite) return notify('Lecture seule : modification impossible.', true);
