@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 00h30</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 00h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '1293a1b671';
+  const BUILD = '99bcb9ca6c';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3229,7 +3229,7 @@ const PROTO = [
   let genAvoid = [];   /* [{id, poste}] : « pas sur ce poste » pour la génération */
   const avoids = (id, po) => genAvoid.some(x=>x.id === id && x.poste === po);
   let wzStep = 1, genPref = [], prefWho = '', prefPost = '';   /* genPref : [{id, poste}] préférences de pose pour la génération */
-  function wzSteps(){ const st = ['trame','close','post']; if (plGrp === 'interne') { st.push('pref'); st.push('prio'); if (trame && trame.postes.some(p=>p.id === 'echo' || p.id === 'scanner-urg')) st.push('echo'); st.push('custom'); } else st.push('go'); return st; }
+  function wzSteps(){ const st = plGrp === 'interne' ? ['trame','close','post'] : ['trame','indis']; if (plGrp === 'interne') { st.push('pref'); st.push('prio'); if (trame && trame.postes.some(p=>p.id === 'echo' || p.id === 'scanner-urg')) st.push('echo'); st.push('custom'); } else st.push('go'); return st; }
   /* vacations non pourvues de la semaine + accès au planning / suppression */
   /* récap de la semaine (planning fait) : off par interne, avec affectation d'une vacation supplémentaire */
   function wkRecap(){
@@ -3369,8 +3369,9 @@ const PROTO = [
       if (wzTrSub === 'mod') body = q('✏️ Voulez-vous modifier une vacation en particulier&nbsp;?', 'Vous ouvrez la trame pour changer des vacations <b>cette semaine seulement</b> (la trame générale reste inchangée).', '<button type="button" data-wzsub="edit" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="skip" aria-pressed="false">Non</button>');
       else if (wzTrSub === 'edit') body = (sen ? wkChefHtml()+'<details class="info" style="margin:10px 0"><summary><b>Vacations qui existent cette semaine</b></summary>'+wkTrHtml()+'</details>' : wkTrHtml()) + '<button type="button" class="astbtn go wznext" data-wzsub="skip">Appliquer cette trame · Suivant ›</button>';
       else body = q('🗓 Voulez-vous appliquer la trame '+(sen ? 'des chefs' : 'générale')+'&nbsp;?', (sen ? 'Tableau des chefs : ' : 'Trame interne : ')+(n0 ? n0+' vacation'+(n0 > 1 ? 's' : '')+' à pourvoir chaque semaine.' : 'aucune vacation définie (Réglages → Trame du planning).')+(sen ? ' « Oui » : la génération suit ce tableau, les jours off, les remplaçants et les règles du mois (ex. dernier mardi du mois pour Rim).' : '')+' « Non » : vous ouvrez la trame pour la modifier, cette semaine seulement (elle reste inchangée).', '<button type="button" data-wzsub="yes" aria-pressed="false">Oui</button>', '<button type="button" data-wzsub="no" aria-pressed="false">Non</button>')
-        + (sen ? wkIndisoHtml() + '<details class="info" style="margin:10px 0"><summary><b>🗓 Vérifier la trame de cette semaine</b></summary>'+wkChefHtml()+'</details><details class="info" style="margin:10px 0"><summary><b>📋 Voir la trame générale et les règles</b></summary>'+chefTblHtml()+'</details>' : '');
+        + (sen ? '<details class="info" style="margin:10px 0"><summary><b>🗓 Vérifier la trame de cette semaine</b></summary>'+wkChefHtml()+'</details><details class="info" style="margin:10px 0"><summary><b>📋 Voir la trame générale et les règles</b></summary>'+chefTblHtml()+'</details>' : '');
     }
+    else if (s === 'indis') body = wkIndisoHtml() + next;
     else if (s === 'close') body = q('🔒 Voulez-vous fermer une vacation&nbsp;?', 'Une vacation fermée reste sans personne : elle ne sera pas remplie.', '<button type="button" data-astyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
     else if (s === 'post') body = q('✋ Voulez-vous poster quelqu’un quelque part&nbsp;?', 'Les vacations déjà pourvues sont conservées : la génération complète seulement les autres.', '<button type="button" data-wkpostyes="1" aria-pressed="false">Oui</button>', '<button type="button" data-wzgo="'+(i+2)+'" aria-pressed="false">Non</button>');
     else if (s === 'pref') {
