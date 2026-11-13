@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 16h20</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 16h35</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -7329,7 +7329,7 @@ const PROTO = [
   async function iiRun(kind, file){
     if (ii.busy || !file) return;
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
-    ii.busy = true; ii.rawTxt = ''; ii.month = $('#iiMonth').value || iiMonthKey(new Date().getFullYear(), new Date().getMonth()); iiStat(kind === 'xlsx' || kind === 'wb' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
+    ii.busy = true; ii.rawTxt = ''; ii.month = ($('#iiMonth').value && $('#iiMonth').value !== 'auto' ? $('#iiMonth').value : '') || iiMonthKey(new Date().getFullYear(), new Date().getMonth()); iiStat(kind === 'xlsx' || kind === 'wb' ? 'Lecture du fichier…' : 'Chargement du lecteur…');
     try {
       const entries = await iiRead(kind, file, ii.month), c = iiCollect(entries);
       ii.rows = c.rows; ii.unknown = c.unknown; ii.repl = false; ii.want = entries.some(x=>x.v === 'W'); ii.all = false; ii.months = iiMonthsOf(entries); ii.busy = false; iiStat('');
@@ -7339,6 +7339,7 @@ const PROTO = [
   }
   /* Google Sheet : on récupère le(s) onglet(s) en CSV puis on le traite comme un fichier Excel */
   async function iiGsGo(){
+    if (!iiMonthOk()) return;
     const url = $('#iiGsLink').value.trim(), m = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(url);
     if (!m) return notify('Collez un lien Google Sheets (docs.google.com/spreadsheets/…).', true);
     const X = window.XLSX; if (!X) return notify("La lecture des fichiers Excel n'est pas disponible dans cette vue.", true);
@@ -7422,12 +7423,13 @@ const PROTO = [
     for (let t = 0; t < 20 && !doctors[id]; t++) await new Promise(ok=>setTimeout(ok, 150));
     iiAssign(ii.rows.indexOf(r), id); notify(label+' ajouté(e) à la liste.');
   }
+  function iiMonthOk(){ const sel = $('#iiMonth'); if (sel.value) return true; notify('Quel mois voulez-vous importer ? Choisissez-le d’abord dans « Mois du tableau ».', true); sel.focus(); return false; }
   function iiInit(){
     const sel = $('#iiMonth'); if (!sel || sel.dataset.done) return; sel.dataset.done = '1';
-    const t = new Date(); sel.innerHTML = '<option value="" selected>Automatique : tous les mois du fichier</option>'+[...Array(10)].map((_,i)=>{ const m = iiMonthKey(t.getFullYear(), t.getMonth() - 1 + i); return '<option value="'+m+'">'+esc(monthLbl(m))+'</option>'; }).join('');
+    const t = new Date(); sel.innerHTML = '<option value="" selected disabled>Choisir le mois…</option><option value="auto">Automatique : tous les mois du fichier</option>'+[...Array(10)].map((_,i)=>{ const m = iiMonthKey(t.getFullYear(), t.getMonth() - 1 + i); return '<option value="'+m+'">'+esc(monthLbl(m))+'</option>'; }).join('');
     [['iiFx', 'xlsx'], ['iiFp', 'pdf'], ['iiFi', 'img']].forEach(([id, kind])=>$('#'+id).addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) iiRun(kind, f); }));
-    $('#iiBtns').addEventListener('click', e=>{ const b = e.target.closest('[data-iipick]'); if (b) $('#'+b.dataset.iipick).click(); });
-    $('#iiGsBtn').addEventListener('click', ()=>{ const bx = $('#iiGsBox'); bx.hidden = !bx.hidden; if (!bx.hidden) $('#iiGsLink').focus(); });
+    $('#iiBtns').addEventListener('click', e=>{ const b = e.target.closest('[data-iipick]'); if (!b) return; if (!iiMonthOk()) return; $('#'+b.dataset.iipick).click(); });
+    $('#iiGsBtn').addEventListener('click', ()=>{ if (!iiMonthOk()) return; const bx = $('#iiGsBox'); bx.hidden = !bx.hidden; if (!bx.hidden) $('#iiGsLink').focus(); });
     $('#iiGsGo').addEventListener('click', iiGsGo);
     $('#iiSheet').addEventListener('click', e=>{ const sg = e.target.closest('[data-iisug]'); if (sg) { const a = sg.dataset.iisug.split('|'); return iiAssign(+a[0], a[1]); } const cm = e.target.closest('[data-iicutmode]'); if (cm) { const r = ii.rows[+cm.dataset.iicutmode]; r.manual = true; r.cuts = []; return renderIi(); } const ct = e.target.closest('[data-iicut]'); if (ct) { const a = ct.dataset.iicut.split('|'), r = ii.rows[+a[0]], p = +a[1]; r.cuts = (r.cuts || []).includes(p) ? r.cuts.filter(x=>x !== p) : (r.cuts || []).concat([p]).sort((x, y)=>x - y); return renderIi(); } const cn = e.target.closest('[data-iicutno]'); if (cn) { const r = ii.rows[+cn.dataset.iicutno]; r.manual = false; r.cuts = []; return renderIi(); } const cg = e.target.closest('[data-iicutgo]'); if (cg) return iiCutGo(+cg.dataset.iicutgo); const sp = e.target.closest('[data-iisplit]'); if (sp) return iiSplitRow(+sp.dataset.iisplit); const nw = e.target.closest('[data-iinew]'); if (nw) return iiCreate(+nw.dataset.iinew); const dr = e.target.closest('[data-iidrop]'); if (dr) { ii.rows.splice(+dr.dataset.iidrop, 1); return renderIi(); } if (e.target.closest('[data-iix]')) { $('#iiSheet').hidden = true; return; } if (e.target.closest('#iiGo')) iiApply(); });
     $('#iiSheet').addEventListener('change', e=>{ const c = e.target.closest('[data-iion]'); if (c) { ii.rows[+c.dataset.iion].on = c.checked; renderIi(); } else if (e.target.closest('[data-iiwho]')) { const sel = e.target.closest('[data-iiwho]'); if (sel.value) iiAssign(+sel.dataset.iiwho, sel.value); } else if (e.target.id === 'iiRepl') { ii.repl = e.target.checked; } else if (e.target.id === 'iiAll') { ii.all = e.target.checked; } else if (e.target.id === 'iiWant') { ii.want = e.target.checked; renderIi(); } });
