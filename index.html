@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 19h25</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 19h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -3153,7 +3153,9 @@ const PROTO = [
     if (!trame) return '';
     const ds = [...Array(5)].map((_,i)=>addDays(plStart,i)).map((d,i)=>dayFill(d,i)), f = ds.reduce((a,x)=>a+x.f,0), n = ds.reduce((a,x)=>a+x.n,0);
     const row = (ok, txt, btn)=>'<div class="plrow '+(ok === 1 ? 'ok' : ok === 0 ? 'ko' : 'mid')+(btn ? ' plrem' : '')+'"><span class="pt">'+(ok === 1 ? '✅ ' : ok === 0 ? '⛔ ' : '🟠 ')+txt+'</span>'+(btn || '')+'</div>';
-    let h = '<div class="plstat">' + (!['auto','man','astask'].includes(plStage) || plMode === 'ast' ? '' : row(!n ? 0 : (f === n || wkClosed()) ? 1 : f ? 2 : 0, 'Semaine du '+esc(fmtDM.format(plStart))+' : '+(!n ? 'aucune vacation' : f === n ? 'planning fait' : wkClosed() ? 'planning terminé' : f ? 'à compléter' : 'pas encore fait')+' <small>('+f+' pourvues sur '+n+' à pourvoir)</small>', n && (f === n || wkClosed()) ? '<button type="button" class="ghost" data-plpdf="1">📄 Voir</button>' : ''));
+    const pubG = plGrp === 'interne' ? 'i' : 's', pubK = key(plStart), pubOn = !(pubDoc[pubK] && pubDoc[pubK][pubG]);
+    const pubTop = isRim() && plMode !== 'ast' && ['auto','man','astask'].includes(plStage) ? '<button type="button" data-pub="'+pubK+'|'+pubG+'" style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:52px;padding:10px 14px;margin:0 0 10px;border-radius:12px;font-size:15px;font-weight:700;text-align:left;border:2px solid '+(pubOn ? '#2e7d5a' : '#c0392b')+';background:'+(pubOn ? 'rgba(46,125,90,.18)' : 'rgba(192,57,43,.16)')+';color:inherit"><span>'+(pubOn ? '📢 Planning publié' : '🚫 Planning non publié')+'<small style="display:block;font-weight:500;opacity:.8">'+(pubOn ? 'Visible de tous · touchez pour dépublier' : 'Visible des administrateurs seulement · touchez pour publier')+'</small></span><span style="font-size:13px;white-space:nowrap">'+(pubOn ? 'Dépublier' : 'Publier')+'</span></button>' : '';
+    let h = pubTop + '<div class="plstat">' + (!['auto','man','astask'].includes(plStage) || plMode === 'ast' ? '' : row(!n ? 0 : (f === n || wkClosed()) ? 1 : f ? 2 : 0, 'Semaine du '+esc(fmtDM.format(plStart))+' : '+(!n ? 'aucune vacation' : f === n ? 'planning fait' : wkClosed() ? 'planning terminé' : f ? 'à compléter' : 'pas encore fait')+' <small>('+f+' pourvues sur '+n+' à pourvoir)</small>', n && (f === n || wkClosed()) ? '<button type="button" class="ghost" data-plpdf="1">📄 Voir</button>' : ''));
     const ap = trame.postes.find(isSam);
     if (ap && plMode === 'ast' && plStage) { const sats = astSatsOf(astMonthList().slice(0,1).concat(astMonthList().slice(1,2))).filter(d=>d >= addDays(new Date(), -6)).slice(0,6), fs_ = sats.filter(d=>{ const v = vacWho(ap.id, key(d), 'M'); return v && v.who.filter(inGrp).length; }).length; if (sats.length) h += row(fs_ === sats.length ? 1 : fs_ ? 2 : 0, 'Astreintes des '+sats.length+' prochains samedis : '+(fs_ === sats.length ? 'faites' : fs_ ? 'à compléter' : 'pas encore faites')+' <small>('+fs_+' / '+sats.length+')</small>'); }
     /* 3e ligne : qui n'a pas renseigné ses indispos, avec un bouton de rappel (notification) */
@@ -3239,7 +3241,7 @@ const PROTO = [
     const fer = [0,1,2,3,4].map(i=>key(addDays(plStart, i))).filter(isFerie);
     const pubG = plGrp === 'interne' ? 'i' : 's', pubK = key(plStart), pubOn = !(pubDoc[pubK] && pubDoc[pubK][pubG]);
     const pubBtn = isRim() ? '<button type="button" class="astbtn'+(pubOn ? '' : ' dangerbtn')+'" data-pub="'+pubK+'|'+pubG+'" style="margin-bottom:8px">'+(pubOn ? '📢 Planning publié · dépublier' : '🚫 Non publié (visible des administrateurs seulement) · publier')+'</button>' : '';
-    return '<div class="wktools">' + pubBtn
+    return '<div class="wktools">'
       + (fer.length ? '<p class="hint">🎌 Jour férié : '+fer.map(k=>esc(fmtShort.format(parse(k))+' ('+ferieName(k)+')')).join(', ')+' · aucune vacation à pourvoir, pas de off.</p>' : '')
       + (un.length ? '<details class="wkun"'+(un.length <= 6 ? ' open' : '')+'><summary>⚠ '+un.length+' vacation'+(un.length > 1 ? 's' : '')+' non pourvue'+(un.length > 1 ? 's' : '')+'</summary><ul>'+un.map(x=>'<li>'+esc(x.charAt(0).toUpperCase()+x.slice(1))+'</li>').join('')+'</ul></details>' : (n ? '<p class="aststat ok">✅ Toutes les vacations sont pourvues ('+n+').</p>' : ''))
       + '<details class="wkun wkmore"><summary>⚙ Plus d’actions</summary>'
