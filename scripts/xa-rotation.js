@@ -13,15 +13,21 @@ const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLow
   const cands = (t.postes || []).filter(p => !p.info && /photonique|\bxa\b|lyric/.test(norm(p.id + ' ' + p.label)));
   console.log('Postes XA trouvés :', JSON.stringify(cands));
   if (cands.length !== 1) throw new Error('Il faut exactement un poste XA : abandon.');
-  const ids = [...new Set(CYCLE)];
-  const docs = await db.collection('medecins').get();
-  const have = new Set(docs.docs.map(d => d.id));
-  const missing = ids.filter(i => !have.has(i));
-  if (missing.length) throw new Error('Médecins introuvables : ' + missing.join(', ') + ' — présents : ' + [...have].join(', '));
+  const AL = {eva:['eva','fourage'], isabelle:['ima','isabelle','molina'], antoine:['antoine','martin'], clement:['clement','marcelin','cm'], rim:['rim','rm','maaloum']};
+  const docs = (await db.collection('medecins').get()).docs.map(d => ({id: d.id, label: norm(d.data().label)}));
+  console.log('Médecins :', docs.map(d => d.id + '=' + d.label).join(' | '));
+  const R = {};
+  for (const k of Object.keys(AL)) {
+    const al = AL[k], d = docs.find(x => al.includes(x.label) || al.includes(x.id)) || docs.find(x => al.some(a => a.length > 3 && x.label.startsWith(a)));
+    if (!d) throw new Error('Médecin introuvable : ' + k);
+    R[k] = d.id;
+  }
+  console.log('Correspondance :', JSON.stringify(R));
+  const ROT = CYCLE.map(k => R[k]), ids = [...new Set(ROT)];
   const key = cands[0].id + '_4_M', prev = (t.cases || {})[key] || null;
   console.log('=== CASE ACTUELLE (sauvegarde) ' + key + ' ===\n' + JSON.stringify(prev) + '\n=== FIN ===');
   const who = (prev && Array.isArray(prev.who) ? prev.who : []).filter(x => !ids.includes(x));
-  const nc = Object.assign({}, prev || {}, {who, rot: CYCLE});
+  const nc = Object.assign({}, prev || {}, {who, rot: ROT});
   delete nc.rotn;
   await ref.update({['cases.' + key]: nc});
   console.log('Écrit :', JSON.stringify(nc));
