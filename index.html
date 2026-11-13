@@ -1198,7 +1198,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 09h55</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 13h55</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2465,11 +2465,19 @@ const PROTO = [
     [3,'M','irm',['amandine'],{t:'IRM 8'}], [3,'AM','sa',['amandine']], [4,'M','sa',['amandine']],
     [0,'AM','echo',['rim']], [2,'M','cs',['rim']], [2,'AM','irm',['rim'],{t:'IRM 7'}]
   ];
+  /* Ostéo : les lignes « Qui remplace qui » suivent les postes créés dans Réglages, pas la liste de l'imagerie */
+  function syncChefPostes(){
+    if (SVC !== 'osteo' || !trame) return;
+    Object.keys(CHEF_POSTES).forEach(k=>{ delete CHEF_POSTES[k]; });
+    trame.postes.filter(p=>!p.info && !isSam(p)).forEach(p=>{ CHEF_POSTES[p.id] = [p.label]; });
+  }
   function chefPlan(){
+    syncChefPostes();
     const docs = sortedDocs(), who = {}, miss = new Set(), noPost = new Set(), put = {};
     Object.keys(CHEF_NOMS).forEach(k=>{ const al = CHEF_NOMS[k]; const d = docs.find(x=>al.includes(plNorm(x.label)) || al.includes(x.id)) || docs.find(x=>al.some(a=>a.length > 3 && plNorm(x.label).startsWith(a))); if (d) who[k] = d.id; });
     const posts = trame.postes.filter(p=>!p.info), pick = {}, rx = {bloc:/\bbloc\b/, echosa:/(echo|echographie).*\bsa\b/, cs:/consult/, irm:/\birm\b(?!.*urg)/, ext:/(scanner|tdm).*ext/, rdc:/(scanner|tdm).*(rdc|\bri\b|interv)|(rdc|\bri\b)/, urg:/(scanner|tdm).*urg/, sa:/(scanner|tdm).*\bsa\b/, xa:/photonique|\bxa\b|lyric/, rcp:/\brcp\b/};
-    Object.keys(CHEF_POSTES).forEach(k=>{ pick[k] = posts.find(p=>{ const t = plNorm(p.id+' '+p.label); if (k === 'echo') return /(echo|echographie)/.test(t) && !/\bsa\b/.test(t); if (k === 'sa') return rx.sa.test(t) && !/echo|photonique|\bxa\b/.test(t); if (k === 'irm') return /\birm\b/.test(t) && !/urg/.test(t); return rx[k].test(t); }) || null; });
+    if (SVC === 'osteo') Object.keys(CHEF_POSTES).forEach(k=>{ pick[k] = posts.find(p=>p.id === k) || null; });
+    else Object.keys(CHEF_POSTES).forEach(k=>{ pick[k] = posts.find(p=>{ const t = plNorm(p.id+' '+p.label); if (k === 'echo') return /(echo|echographie)/.test(t) && !/\bsa\b/.test(t); if (k === 'sa') return rx.sa.test(t) && !/echo|photonique|\bxa\b/.test(t); if (k === 'irm') return /\birm\b/.test(t) && !/urg/.test(t); return rx[k].test(t); }) || null; });
     CHEF_TRAME.forEach(([dow, part, pk, names, o])=>{
       const po = pick[pk]; const lbl = CHEF_POSTES[pk][0];
       if (!po) { noPost.add(lbl); return; }
