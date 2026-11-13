@@ -1,0 +1,14 @@
+name: Rotation Scanner XA (ponctuel)
+on: workflow_dispatch
+jobs:
+  xa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm i --no-save --no-audit --no-fund firebase-admin@12
+      - run: node scripts/xa-rotation.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
