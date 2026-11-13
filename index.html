@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 08h45</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 09h05</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -5703,6 +5703,17 @@ const PROTO = [
     const names = (tabs || '').split(/[,;]+/).map(t=>t.trim()).filter(Boolean);
     const fail = "Impossible de lire ce lien. Vérifiez qu'il est partagé « Toute personne disposant du lien » et que le nom de l'onglet est exact (ex. oct 26). Sinon, téléchargez le .xlsx (Fichier → Télécharger) et importez-le.";
     const csvOf = async (q)=>{ const r = await fetch(base+'/gviz/tq?tqx=out:csv&headers=0&'+q); if (!r.ok) throw new Error('http '+r.status); const t = await r.text(); if (/^\s*<(!doctype|html)/i.test(t)) throw new Error('html'); return t; };
+    if (SVC === 'osteo') {   /* Ostéo : on lit l'onglet indiqué (ou le premier) tel quel, sans recherche d'onglets « mois » */
+      try {
+        const out = X.utils.book_new(), list = names.length ? names : [null];
+        for (const n of list) {
+          const t = await csvOf(n ? 'sheet='+encodeURIComponent(n) : 'gid='+(gid || 0));
+          const w1 = X.read(t, {type: 'string'});
+          X.utils.book_append_sheet(out, w1.Sheets[w1.SheetNames[0]], (n || 'Feuille '+(gid || 1)).slice(0,31));
+        }
+        return readBuffer(null, out);
+      } catch(e) { return notify(fail, true); }
+    }
     try {
       if (names.length || gid) {
         const out = X.utils.book_new();
