@@ -1196,7 +1196,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 08h20</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 08h45</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -5542,7 +5542,7 @@ const PROTO = [
     return null;
   }
   function splitNames(v){
-    return String(v == null ? '' : v).replace(/\(.*?\)/g,'').split(/[,;\/+&\n]|\bet\b|\bou\b/i).map(x=>x.trim()).filter(x=>x && x.length <= 24 && !/^[-–—x.]+$/i.test(x) && !(SVC === 'osteo' && /^(internes?|ferme[e]?s?|ouvert[e]?s?|off|ferie[e]?s?|conges?|tous|libre)$/.test(normS(x))));
+    return String(v == null ? '' : v).replace(/\(.*?\)/g,'').split(/[,;\/+&\n]|\bet\b|\bou\b/i).map(x=>x.trim()).filter(x=>x && x.length <= 24 && !/^[-–—x.]+$/i.test(x) && !(SVC === 'osteo' && (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' .-]*$/.test(x) || /^(ferm|intern)/.test(normS(x)))) && !(SVC === 'osteo' && /^(internes?|ferme[e]?s?|ouvert[e]?s?|off|ferie[e]?s?|conges?|tous|libre)$/.test(normS(x))));
   }
   /* service Ostéo (sans postes prédéfinis) : un poste inconnu du fichier importé est créé d'office */
   let autoNew = 0;
@@ -5666,6 +5666,7 @@ const PROTO = [
       + '<ul>'+pl.weeks.map(w=>{ const a = parse(w.monday), b = addDays(a,4); const n = w.cells.filter(c=>c.people.length).length; return '<li>Semaine du '+esc(fmtDM.format(a))+' au '+esc(fmtDM.format(b))+' : '+n+' cases avec médecin, '+new Set(w.absences.map(x=>x.label+x.date)).size+' absences/congés, '+w.notes.length+' note'+(w.notes.length > 1 ? 's' : '')+'</li>'; }).join('')+'</ul>'
       + (pkU.length ? '<p><strong>Postes non reconnus</strong> : à quel poste correspond chaque ligne du fichier ?</p>' + pkU.map(pid=>{
           const cur = (pl.ppick || {})[pid] || '', cs = (pl.psugg || {})[pid] || [];
+          if (osteo) return '<div class="xfr"><div><strong>« '+esc(pl.postesUnk[pid])+' »</strong>'+(!cur ? ' <span class="xw">à préciser</span>' : '')+'</div><div class="plc"><select data-xpsel="'+esc(pid)+'" aria-label="Poste « '+esc(pl.postesUnk[pid])+' »" style="flex:1;min-height:44px"><option value=""'+(!cur ? ' selected' : '')+' disabled>Quel poste ? Choisir…</option>'+(trame.postes || []).filter(p=>!p.info && !isSam(p)).map(p=>'<option value="'+esc(p.id)+'"'+(cur === p.id ? ' selected' : '')+'>C’est '+esc(p.label)+'</option>').join('')+'<option value="__new"'+(cur === '__new' ? ' selected' : '')+'>＋ Créer le poste « '+esc(pl.postesUnk[pid])+' »</option><option value="__skip"'+(cur === '__skip' ? ' selected' : '')+'>Ignorer cette ligne</option></select></div></div>';
           return '<div class="xfr"><div><strong>« '+esc(pl.postesUnk[pid])+' »</strong></div><div class="plc">'
             + cs.map(c=>'<button type="button" class="plsg'+(cur === c.id ? '' : ' alt')+'" data-xppick="'+esc(pid+'|'+c.id)+'" aria-pressed="'+(cur === c.id)+'">'+(cur === c.id ? '✓ ' : '')+'C’est '+esc(c.label)+'</button>').join('')
             + '<select data-xpsel="'+esc(pid)+'" aria-label="Poste existant"><option value="">Un autre poste du service…</option>'+(trame.postes || []).filter(p=>!p.info && !isSam(p)).map(p=>'<option value="'+esc(p.id)+'"'+(cur === p.id ? ' selected' : '')+'>'+esc(p.label)+'</option>').join('')+'</select>'
@@ -5674,6 +5675,7 @@ const PROTO = [
         }).join('') + (nPk > 1 ? '<div class="plc"><button type="button" class="plsg alt" data-xpall="1">Créer tous les postes restants</button></div>' : '') : '')
       + (Object.keys(pl.fresh).length ? '<p><strong>Noms non reconnus</strong> : est-ce une personne déjà dans la liste ?</p>' + Object.keys(pl.fresh).map(fid=>{
           const raw = (pl.pick || {})[fid], cur = raw || '', cs = (pl.sugg || {})[fid] || [], und = osteo && raw === undefined;
+          if (osteo) return '<div class="xfr"><div><strong>« '+esc(pl.fresh[fid])+' »</strong>'+(und ? ' <span class="xw">à préciser</span>' : '')+'</div><div class="plc"><select data-xfsel="'+esc(fid)+'" aria-label="Qui est '+esc(pl.fresh[fid])+' ?" style="flex:1;min-height:44px"><option value=""'+(und ? ' selected' : '')+' disabled>Qui est « '+esc(pl.fresh[fid])+' » ? Choisir…</option>'+grpDocs().map(d=>'<option value="'+esc(d.id)+'"'+(cur === d.id ? ' selected' : '')+'>C’est '+esc(d.label)+'</option>').join('')+'<option value="__create"'+(!und && !cur ? ' selected' : '')+'>＋ Créer « '+esc(pl.fresh[fid])+' » (nouvelle personne)</option><option value="__skip"'+(cur === '__skip' ? ' selected' : '')+'>Ignorer cette personne</option></select></div></div>';
           return '<div class="xfr"><div><strong>« '+esc(pl.fresh[fid])+' »</strong>'+(und ? ' <span class="xw">à préciser</span>' : '')+'</div><div class="plc">'
             + cs.map(c=>'<button type="button" class="plsg'+(cur === c.id ? '' : ' alt')+'" data-xfpick="'+esc(fid+'|'+c.id)+'" aria-pressed="'+(cur === c.id)+'">'+(cur === c.id ? '✓ ' : '')+'C’est '+esc(c.label)+'</button>').join('')
             + (osteo && grpDocs().length ? '<select data-xfsel="'+esc(fid)+'" aria-label="Personne existante"><option value="">Une autre personne de la liste…</option>'+grpDocs().map(d=>'<option value="'+esc(d.id)+'"'+(cur === d.id ? ' selected' : '')+'>'+esc(d.label)+'</option>').join('')+'</select>' : '')
@@ -5955,7 +5957,7 @@ const PROTO = [
   $('#gsGo').addEventListener('click', ()=>{ const v = $('#gsLink').value.trim(); if (v) readLink(v, $('#gsTab').value); else notify('Collez un lien Google Sheets.', true); });
   $('#xlPreview').addEventListener('change', e=>{
     const sp = e.target.closest && e.target.closest('[data-xpsel]'); if (sp && xlPlan && sp.value) { xlPlan.ppick = Object.assign({}, xlPlan.ppick, {[sp.dataset.xpsel]: sp.value}); return renderPlan(); }
-    const sf = e.target.closest && e.target.closest('[data-xfsel]'); if (sf && xlPlan && sf.value) { xlPlan.pick = Object.assign({}, xlPlan.pick, {[sf.dataset.xfsel]: sf.value}); return renderPlan(); }
+    const sf = e.target.closest && e.target.closest('[data-xfsel]'); if (sf && xlPlan && sf.value) { xlPlan.pick = Object.assign({}, xlPlan.pick, {[sf.dataset.xfsel]: sf.value === '__create' ? '' : sf.value}); return renderPlan(); }
   });
   $('#xlFile').addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
   $('#xlModel').addEventListener('click', downloadModel);
