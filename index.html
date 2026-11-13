@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 02h00</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 02h15</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '2fc6df5c16';
+  const BUILD = '2012ef29ee';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2468,7 +2468,7 @@ const PROTO = [
           const v = vacWho(p.id, kk, part), who = v ? v.who.filter(inGrp) : [], r = aPourvoir(p, kk, i, part), closed = v && !who.length && /^ferm/i.test(v.texte || '');
           const txt = closed ? '🔒' : who.length ? who.map(id=>esc(dLabel(id))).join(', ')+(v && v.ou ? ' ?' : '') : r && !r.ok ? '⚠' : '·';
           const bad = !closed && !who.length && r && !r.ok, st = 'padding:3px 4px;font-size:11px;min-width:44px;line-height:1.25;border-radius:8px;'+(bad ? 'background:#f3d6d6;' : who.length ? 'background:rgba(46,125,90,.2);font-weight:600;' : '');
-          return '<td class="v'+(end ? ' end' : '')+'"'+(span ? ' colspan="2"' : '')+' style="padding:2px;text-align:center">'+(clickable ? '<button type="button" class="ghost" data-wkforce="'+p.id+'|'+kk+'|'+part+'" style="min-height:0;width:100%;'+st+'">'+txt+'</button>' : '<div style="'+st+'">'+txt+'</div>')+'</td>';
+          return '<td class="v'+(end ? ' end' : '')+'"'+(span ? ' colspan="2"' : '')+' style="padding:2px;text-align:center">'+(clickable ? '<button type="button" class="ghost" data-wkforce="'+p.id+'|'+kk+'|'+part+'" style="min-height:34px;width:100%;touch-action:manipulation;'+st+'">'+txt+'</button>' : '<div style="'+st+'">'+txt+'</div>')+'</td>';
         };
         t += p.journee ? cell('M', true, true) : cell('M', false, false) + cell('AM', true, false);
       }
