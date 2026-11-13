@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 01h20</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 01h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '41608e5afd';
+  const BUILD = '5c2d42510a';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3315,15 +3315,16 @@ const PROTO = [
   }
   /* indispos des chefs qui touchent la trame de la semaine + remplaçant prévu par les règles */
   function wkIndisoHtml(){
-    const cx = chefCtx(), keys = chefRows(), posts = trame.postes.filter(p=>!p.info && !isSam(p)), by = {};
+    const cx = chefCtx(), keys = chefRows(), posts = trame.postes.filter(p=>!p.info && !isSam(p)), by = {}; let nAll = 0;
+    const chkSeen = kk=>{ const w = semG(key(plStart), 'med'); return !!(w && w.chk && w.chk[kk]); };
     keys.forEach(x=>{ const id = cx.who[x]; if (!id) return;
       [0,1,2,3,4].forEach(d=>{ const k = key(addDays(plStart, d)); PARTS.forEach(pt=>{ posts.filter(p=>!(p.journee && pt !== 'M')).forEach(p=>{
         const w = wkWho(p, d, pt); if (!w || !w.includes(id)) return; const why = reasonFor(id, k, pt); if (!why) return;
-        if (overrides[k] && overrides[k][p.id+'_'+(p.journee ? 'M' : pt)]) return;   /* déjà traitée (validée, remplacée ou fermée) : la ligne disparaît */
+        nAll++; if (chkSeen(p.id+'|'+k+'|'+(p.journee ? 'M' : pt)+'|'+id)) return;   /* déjà traitée (validée, remplacée ou fermée) : la ligne disparaît */
         const cs = effCase(p.id, k, d, pt), rr = chefSlot(cx, p, k, d, pt, cs && Array.isArray(cs.rot) ? cs.rot : null);
         const okc = rr.repl.filter(r=>r !== id && !w.includes(r) && !reasonFor(r, k, pt) && !rr.ban.has(r)), m0 = okc.length ? Math.min(...okc.map(r=>rr.step[r])) : 0, rep = okc.filter(r=>rr.step[r] === m0);
         (by[id] = by[id] || []).push({d, pt, p, why, rep}); }); }); }); });
-    const ids = Object.keys(by); if (!ids.length) return '<div class="qcard" style="border-left:4px solid #3a8a5a"><p class="qt">✅ Aucun chef indisponible sur la trame de cette semaine</p></div>';
+    const ids = Object.keys(by); if (!ids.length) return '<div class="qcard" style="border-left:4px solid #3a8a5a"><p class="qt">'+(nAll ? '✅ Toutes les indisponibilités ont été vérifiées' : '✅ Aucun chef indisponible sur la trame de cette semaine')+'</p></div>';
     const bt = (attr, v, t, pri)=>'<button type="button" class="'+(pri ? 'primary' : 'ghost')+'" '+attr+'="'+esc(v)+'" style="padding:3px 9px;min-height:0;font-size:12px">'+t+'</button>';
     return '<div class="qcard" style="border-left:4px solid #c0392b"><p class="qt">⚠️ Indisponibilités à vérifier</p><p class="qh">Rien n’est remplacé sans votre accord : validez le remplaçant proposé, choisissez quelqu’un d’autre ou fermez la vacation.</p>'
       + ids.map(id=>'<div style="margin:8px 0;text-align:left"><p class="hint" style="margin:0 0 4px;text-align:left"><b>'+esc(dLabel(id))+'</b> est indisponible :</p>'+by[id].map(i=>{ const slot = i.p.id+'|'+key(addDays(plStart, i.d))+'|'+(i.p.journee ? 'M' : i.pt), r0 = i.rep[0];
@@ -4304,12 +4305,13 @@ const PROTO = [
   document.addEventListener('click', e=>{ const b = e.target.closest('[data-plwk]'); if (!b) return; plDay = Number(b.dataset.plwk); plStage = 'man'; renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} });
   document.addEventListener('click', e=>{ const b = e.target.closest('[data-wkforce]'); if (!b || !trame) return; if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true); plScope = 'once'; openSheet(b.dataset.wkforce); });
   document.addEventListener('click', async e=>{
-    const ok = e.target.closest('[data-wkok]'); if (ok && trame) { if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true); plScope = 'once'; const [po, dk, pt, old] = ok.dataset.wkok.split('|'); await plApply(po, dk, pt, whoOf(po, dk, pt).filter(x=>x !== old)); renderCompose(); return; }
+    const chkMark = async (po, dk, pt, id)=>{ const keep = plStart; plStart = mondayOf(parse(dk)); try { await wkSemSet([], x=>{ x.chk = x.chk || {}; x.chk[po+'|'+dk+'|'+pt+'|'+id] = 1; }); } finally { plStart = keep; } };
+    const ok = e.target.closest('[data-wkok]'); if (ok && trame) { if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true); plScope = 'once'; const [po, dk, pt, old] = ok.dataset.wkok.split('|'); await plApply(po, dk, pt, whoOf(po, dk, pt).filter(x=>x !== old)); await chkMark(po, dk, pt, old); renderCompose(); return; }
     const rp = e.target.closest('[data-wkrep]'), cl = e.target.closest('[data-wkclose]'); if ((!rp && !cl) || !trame) return;
     if (!canWrite) return notify('Lecture seule : vous ne pouvez pas modifier le planning.', true);
     plScope = 'once';
-    if (rp) { const [po, dk, pt, old, nw] = rp.dataset.wkrep.split('|'); const cur = whoOf(po, dk, pt).filter(x=>x !== old); await plApply(po, dk, pt, cur.includes(nw) ? cur : cur.concat(nw), nw); renderCompose(); return; }
-    await plClose(cl.dataset.wkclose, true); renderCompose();
+    if (rp) { const [po, dk, pt, old, nw] = rp.dataset.wkrep.split('|'); const cur = whoOf(po, dk, pt).filter(x=>x !== old); await plApply(po, dk, pt, cur.includes(nw) ? cur : cur.concat(nw), nw); await chkMark(po, dk, pt, old); renderCompose(); return; }
+    await plClose(cl.dataset.wkclose, true); if (cl.dataset.wkclose.includes('|')) { const sl = cl.dataset.wkclose.split('|'); const ids0 = new Set(); try { const cxx = chefCtx(); Object.keys(cxx.who).forEach(x=>{ if (cxx.who[x]) ids0.add(cxx.who[x]); }); } catch(er) {} for (const id of ids0) { if (reasonFor(id, sl[1], sl[2])) await chkMark(sl[0], sl[1], sl[2], id); } } renderCompose();
   });
   const plDayClick = e=>{ const b = e.target.closest('[data-plday]'); if (!b) return; plDay = Number(b.dataset.plday); renderCompose(); try { window.scrollTo({top: 0, behavior: 'smooth'}); } catch(err) {} };
   $('#plDays').addEventListener('click', plDayClick);
