@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 19h05</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 19h25</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -2453,6 +2453,27 @@ const PROTO = [
       if (cur) { const to = sortedDocs().map(d=>d.id).filter(id=>id !== me && isIntId(id) === (g === 'i'));
         if (to.length) { try { await db.collection('messages').add({from: me, to, text: '📅 Le planning de la semaine du '+fmtShort.format(parse(k))+' est en ligne.', at: Date.now(), sent: false}); } catch(e) {} } } } catch(err) { handleErr(err); }
   });
+
+  /* après une génération : publier ou non la semaine (seniors / internes) */
+  function askPublish(k, g){
+    return new Promise(res=>{
+      if (!db || !isRim() || !canWrite) return res(false);
+      const hidden = !!(pubDoc[k] && pubDoc[k][g]), who = g === 'i' ? 'des internes' : 'des seniors';
+      const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+      w.innerHTML = '<div class="codebox annf"><p><b>📢 Publier le planning '+who+' ?</b></p><p class="hint">Semaine du '+esc(fmtShort.format(parse(k)))+' · actuellement '+(hidden ? '<b>non publié</b> (visible uniquement par les administrateurs)' : '<b>publié</b>')+'.</p><div class="asb"><button type="button" class="primary" data-pubyes>Publier</button><button type="button" class="ghost" data-pubno>Ne pas publier</button></div><p class="hint">Vous pourrez changer plus tard avec le bouton « Planning publié / non publié ».</p></div>';
+      document.body.appendChild(w);
+      w.addEventListener('click', async ev=>{
+        const y = ev.target.closest('[data-pubyes]'), n = ev.target.closest('[data-pubno]'); if (!y && !n) return;
+        w.remove();
+        if (n === null && y === null) return;
+        const want = !!n;   /* true = masqué */
+        if (want === hidden) { notify(want ? 'Planning laissé non publié.' : 'Planning déjà publié.'); return res(true); }
+        try { await db.doc('meta/publication').update({[k]: {[g]: want}}); notify(want ? 'Planning non publié : visible uniquement par les administrateurs.' : 'Planning publié.');
+          if (!want) { const to = sortedDocs().map(d=>d.id).filter(id=>id !== me && isIntId(id) === (g === 'i')); if (to.length) { try { await db.collection('messages').add({from: me, to, text: '📅 Le planning de la semaine du '+fmtShort.format(parse(k))+' est en ligne.', at: Date.now(), sent: false}); } catch(e) {} } } } catch(err) { handleErr(err); }
+        res(true);
+      });
+    });
+  }
 
   /* ---------- import de la trame des chefs (document « planning chefs ») ---------- */
   const CHEF_NOMS = SVC === 'osteo' ? {} : {nicolas:['nicolas','nico','pangon'], clement:['clement','marcelin','cm'], eva:['eva','fourage'], antoine:['antoine','martin'], henri:['henri','remy'], ima:['ima','isabelle','molina'], yann:['yann','lebras','ylb'], amandine:['amandine','crombe'], rim:['rim','rm','maaloum'], rayann:['rayann']};
@@ -4076,7 +4097,8 @@ const PROTO = [
     if (failK.length && !imp) { ok = false; notify('⚠ '+(ws.length - failK.length)+' enregistrée'+(ws.length - failK.length > 1 ? 's' : '')+' sur '+ws.length+', '+failK.length+' non enregistrée'+(failK.length > 1 ? 's' : '')+' (connexion ?) : '+failK.slice(0, 6).map(k=>fmtShort.format(parse(k))).join(', ')+(failK.length > 6 ? '…' : '')+'. Recommencez la création : seules les cases vides seront complétées.', true); }
     if (ok && plMode !== 'ast') plPdfNew = true;
     plStage = 'man'; renderCompose();
-    if (ok && !imp && plMode !== 'ast' && plGrp === 'interne') setTimeout(offOpen, 1200);
+    if (ok && !imp && plMode !== 'ast') { await new Promise(r=>setTimeout(r, 500)); await askPublish(key(plStart), plGrp === 'interne' ? 'i' : 's'); }
+    if (ok && !imp && plMode !== 'ast' && plGrp === 'interne') setTimeout(offOpen, 600);
     if (ok && imp) { importFinish(imp); notify(ws.length+' ajout'+(ws.length > 1 ? 's enregistrés' : ' enregistré')+'. Les personnes déjà sur le planning n’ont pas été touchées.'); return; }
     if (ok) notify(ws.length+' modification'+(ws.length > 1 ? 's enregistrées' : ' enregistrée')+'. Vous pouvez encore les corriger à la main.');
   });
