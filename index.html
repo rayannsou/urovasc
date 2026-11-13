@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 21h40</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 13/11/2026 · 21h55</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'd17dbe30ec';
+  const BUILD = 'cc32ed447c';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3323,7 +3323,7 @@ const PROTO = [
     const bt = (attr, v, t, pri)=>'<button type="button" class="'+(pri ? 'primary' : 'ghost')+'" '+attr+'="'+esc(v)+'" style="padding:3px 9px;min-height:0;font-size:12px">'+t+'</button>';
     return '<div class="qcard" style="border-left:4px solid #c0392b"><p class="qt">⚠️ Indisponibilités à vérifier</p><p class="qh">Rien n’est remplacé sans votre accord : validez le remplaçant proposé, choisissez quelqu’un d’autre ou fermez la vacation.</p>'
       + ids.map(id=>'<div style="margin:8px 0;text-align:left"><p class="hint" style="margin:0 0 4px;text-align:left"><b>'+esc(dLabel(id))+'</b> est indisponible :</p>'+by[id].map(i=>{ const slot = i.p.id+'|'+key(addDays(plStart, i.d))+'|'+(i.p.journee ? 'M' : i.pt), r0 = i.rep[0];
-        return '<div style="margin:6px 0;padding:6px 8px;border:1px solid var(--line);border-radius:10px"><div style="font-size:13px">'+DAYL[i.d]+' '+PART_TXT[i.pt]+' · '+esc(i.p.label)+'<br>'+(r0 ? '🔁 Je propose <b>'+esc(dLabel(r0))+'</b> à la place de <b>'+esc(dLabel(id))+'</b>'+(i.rep.length > 1 ? ' <small>(ou '+i.rep.slice(1).map(x=>esc(dLabel(x))).join(', ')+')</small>' : '') : '<i>aucun remplaçant prévu : à pourvoir</i>')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'
+        return '<div style="margin:6px 0;padding:6px 8px;border:1px solid var(--line);border-radius:10px"><div style="font-size:13px">'+DAYL[i.d]+' '+PART_TXT[i.pt]+' · '+esc(i.p.label)+'<br>'+(r0 ? '🔁 Je propose <b>'+esc(dLabel(r0))+'</b> à la place de <b>'+esc(dLabel(id))+'</b>'+(i.rep.length > 1 ? ' <small>(ou '+i.rep.slice(1).map(x=>esc(dLabel(x))).join(', ')+')</small>' : '') : '<i>aucun remplaçant prévu : à pourvoir</i>')+'<br>'+(()=>{ const oth = (wkWho(i.p, i.d, i.pt) || []).filter(x=>x !== id); return oth.length ? '👥 Reste posté(e) : <b>'+oth.map(x=>esc(dLabel(x))).join(', ')+'</b>' : '<span style="color:#c0392b">⚠ <b>La vacation devient vacante</b>'+(r0 ? ' tant que vous ne validez pas de remplaçant' : '')+'</span>'; })()+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'
           + (r0 ? bt('data-wkrep', slot+'|'+id+'|'+r0, '✓ Valider '+esc(dLabel(r0)), true) : '')
           + bt('data-wkforce', slot, 'Choisir qui…') + bt('data-wkclose', slot, '🔒 Fermer la vacation') + '</div></div>'; }).join('')+'</div>').join('')+'</div>';
   }
