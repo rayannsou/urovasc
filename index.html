@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 14h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 14h20</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '81bf5f9697';
+  const BUILD = '666f217360';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -6608,8 +6608,6 @@ const PROTO = [
     try {
       await db.collection('echanges').add({from: me, to: wid, poste: mineV.poste, date: mineV.date, part: mineV.part, poste2: tv.poste, date2: tv.date, part2: tv.part, status:'attente', createdAt: Date.now(), updatedAt: Date.now()});
       notify('Demande envoyée à '+dLabel(wid)+' : l’échange sera appliqué dès qu’il/elle aura accepté.');
-      try { const adm = butAdminIds().filter(x=>x && x !== me && x !== wid), dd = x=>new Intl.DateTimeFormat('fr-FR', {weekday: 'short', day: 'numeric', month: 'short'}).format(parse(x)).replace(/\./g, ''), pp = x=>x === 'M' ? 'matin' : 'après-midi';
-        if (adm.length) await db.collection('messages').add({from: me, to: adm, text: '🔁 '+dLabel(me)+' propose un échange à '+dLabel(wid)+' : '+postName(mineV.poste, mineV.date)+' '+dd(mineV.date)+' '+pp(mineV.part)+' ↔ '+postName(tv.poste, tv.date)+' '+dd(tv.date)+' '+pp(tv.part)+'.', at: Date.now(), sent: false}); } catch(er) {}
     } catch(err) { handleErr(err); }
   });
 
