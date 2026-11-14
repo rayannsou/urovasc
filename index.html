@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 14h20</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 14h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '666f217360';
+  const BUILD = '13f38d164d';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3732,7 +3732,7 @@ const PROTO = [
       if (v.ou) { noOu.push(p.label+' '+fmtShort.format(parse(h.k))+' '+PART_TXT[h.part]); return; }   /* « à confirmer » côté seniors : on n'y touche pas */
       const ov = overrides[h.k] && overrides[h.k][p.id+'_'+h.part], mine = ov && ov.w ? ov.w.filter(inGrp) : [];
       const nd = tI ? Math.max(1, intNeedOf(p.id, h.i, h.part)) : intNeedOf(p.id, h.i, h.part); if (nd <= 0) return;
-      const kp = ov && !ov.a && mine.length ? mine : null;
+      const mine2 = mine.filter(id=>!avoids(id, p.id)), kp = ov && !ov.a && mine2.length ? mine2 : null;   /* « éviter ce poste » l'emporte aussi sur une affectation déjà posée */
       if (!kp && !tI && R.sansInterne.some(x=>x.re.test(p.id+' '+p.label) && x.slots.includes(h.i+h.part))) return;
       if ((R.seniorRequis.includes(p.id) || !kp) && !R.toujours.includes(p.id)) {   /* écho et scanner urgences : possibles sans senior */   /* internes uniquement sur une vacation ouverte dans la trame avec un senior posté */
         const vs = p.journee ? PARTS.map(pt=>vacWho(p.id, h.k, pt)).filter(Boolean) : [v];
