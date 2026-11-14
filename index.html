@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 14h40</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 15h00</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '13f38d164d';
+  const BUILD = 'a913d4b4a0';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -3836,7 +3836,7 @@ const PROTO = [
       const order = sl=>(sl.p.id === 'bloc' && blocRes[h.id]) ? -20 : ABS.has(sl.p.id) ? -30 + prRank(sl.p.id) * 0.1 : PR.includes(sl.p.id) ? -10 + prRank(sl.p.id) * 0.1 : R.autonomie.includes(sl.p.id) ? R.priorite.indexOf(sl.p.id) * 0.1 : R.facultatif.includes(sl.p.id) ? 3 : 2;
       here.slice().sort((a,b)=>order(a)-order(b)).forEach(sl=>{
         if (sl.keep) { prev[h.k+'|'+h.part] = prev[h.k+'|'+h.part] || {}; prev[h.k+'|'+h.part][sl.p.id] = sl.keep; return; }
-        const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id) && okFor(id, sl.p.id) && (sl.p.id === 'bloc' || blocRes[h.id] !== id));   /* l'interne réservé au bloc n'est pas repris ailleurs sur la même demi-journée */
+        const pool = ints.map(d=>d.id).filter(id=>okAt(id, h) && !off[id].has(h.id) && !taken[h.id].has(id) && okFor(id, sl.p.id) && !here.some(o=>o !== sl && !o.keep && !o.pick && genForce.some(f=>f.id === id && f.poste === o.p.id) && !genForce.some(f=>f.id === id && f.poste === sl.p.id)) && (sl.p.id === 'bloc' || blocRes[h.id] !== id));   /* l'interne réservé au bloc n'est pas repris ailleurs sur la même demi-journée */
         const best = list => list.slice().sort((a,b)=>score(b, sl) - score(a, sl))[0];
         let pick = [];
         if (sl.p.id === 'bloc' && blocRes[h.id]) pick = taken[h.id].has(blocRes[h.id]) ? [] : [blocRes[h.id]];
@@ -3895,7 +3895,7 @@ const PROTO = [
         const pm = (prev[h.k+'|M'] || {}).echo || [];
         const okSl = (sl, arr)=>!(R.autonomie.includes(sl.p.id) && sl.need >= 2) || ((intNon[sl.p.id] || arr.some(isAuto)) && (!intOnlyAuto[sl.p.id] || arr.every(isAuto)));
         here.filter(sl=>!sl.keep && sl.pick && sl.p.id === 'echo').forEach(es=>{
-          es.pick.filter(x=>pm.includes(x)).forEach(x=>{
+          es.pick.filter(x=>pm.includes(x) && !genForce.some(f=>f.id === x && f.poste === 'echo')).forEach(x=>{
             for (const o of here) {
               if (o === es || o.keep || !o.pick) continue;
               const y = o.pick.find(z=>!pm.includes(z) && !es.pick.includes(z));
