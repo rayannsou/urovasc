@@ -73,6 +73,12 @@ window.SVC_NAME=svc==='osteo'?'Planning Ostéo':'Planning Imagerie';document.tit
 @media(min-width:720px){.cr-sheet-ov{align-items:center}.cr-sheet{border-radius:16px}}
   .telk{color:var(--accent,#2563eb);font-weight:700;text-decoration:underline;padding:6px 2px;display:inline-block}
 /* grille : présentation plus fluide (SR/INT en ligne, cases plus compactes, hachures discrètes) */
+.jferie{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--muted) 14%,transparent) 0 6px,color-mix(in srgb,var(--muted) 5%,transparent) 6px 12px)!important;color:var(--muted)}
+table.team .jferie{opacity:.72}
+.jfl{display:block;font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.jfl2{display:inline-block;margin-left:6px;font-size:12px;color:var(--muted)}
+.daychips button.jferie{opacity:.7;text-decoration:line-through}
+.plist.jferie{border-radius:10px;padding:2px}
 table.team.trame td.v .rg{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:3px 3px;padding:1px 0}
 table.team.trame td.v .rg em{width:auto!important;flex:none;font-size:9px;opacity:.6;margin-right:1px;text-align:left}
 table.team.trame td.v .rg+.rg{margin-top:2px;padding-top:2px;border-top:1px dotted var(--line)}
@@ -1204,7 +1210,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 10h40</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 11h05</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1803,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'f257146164';
+  const BUILD = 'f7b32ac6a2';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2847,7 +2853,7 @@ const PROTO = [
     if (!list.length) { $('#teamWrap').innerHTML = '<p class="empty" style="border:0">'+(loaded?'Aucun médecin dans la liste pour le moment.':'Chargement…')+'</p>'; return; }
     const counts = Array(14).fill(0);
     let h = '<table class="team"><thead><tr><th class="who" rowspan="2" scope="col">Médecin</th>'
-      + keys.map((d,i)=>'<th colspan="2" scope="colgroup" class="end'+(i>4?' we':'')+'">'+DOW[i]+' '+d.getDate()+'</th>').join('')
+      + keys.map((d,i)=>'<th colspan="2" scope="colgroup" class="end'+(i>4?' we':'')+(isFerie(key(d)) ? ' jferie' : '')+'">'+DOW[i]+' '+d.getDate()+'</th>').join('')
       + '</tr><tr class="sub">' + keys.map(()=>'<th scope="col">M</th><th scope="col" class="end">AM</th>').join('') + '</tr></thead><tbody>';
     list.forEach(doc=>{
       h += '<tr'+(doc.id===me?' class="me"':'')+'><th class="who" scope="row">'+esc(doc.label)+(doc.role && doc.role !== 'Médecin' ? ' <small class="role">'+esc(doc.role)+'</small>' : '')+'</th>';
@@ -2857,7 +2863,7 @@ const PROTO = [
           const s = inf[p]; if (s) counts[i*2+j]++;
           const txt = s==='G' ? 'G' : s==='R' ? 'R' : s==='A' ? 'A' : s==='I' ? '×' : '';
           const lab = s==='G' ? 'de garde' : s==='R' ? 'repos de garde' : s==='A' ? 'astreinte' : s==='I' ? 'indisponible' : 'disponible';
-          h += '<td class="c'+(s?' k-'+s:'')+(j?' end':'')+'" aria-label="'+esc(doc.label)+', '+DOW[i]+' '+d.getDate()+', '+(p==='M'?'matin':'après-midi')+' : '+lab+'">'+txt+'</td>';
+          h += '<td class="c'+(s?' k-'+s:'')+(j?' end':'')+(isFerie(key(d)) ? ' jferie' : '')+'" aria-label="'+esc(doc.label)+', '+DOW[i]+' '+d.getDate()+', '+(p==='M'?'matin':'après-midi')+' : '+lab+'">'+txt+'</td>';
         });
       });
       h += '</tr>';
@@ -5472,9 +5478,10 @@ const PROTO = [
       const dd = addDays(weekStart, gDay), dk = key(dd);
       const mineOn = i => { if (!me) return false; const k = key(addDays(weekStart,i)); return trame.postes.some(p=>okDay(p,i) && !p.info && partsOf(p).some(pt=>{ const v = vacWho(p.id,k,pt); return v && !v.ou && v.who.includes(me); })); };
       const mineList = me ? trame.postes.filter(p=>okDay(p,gDay) && !p.info).flatMap(p=>partsOf(p).filter(pt=>{ const v = vacWho(p.id,dk,pt); return v && !v.ou && v.who.includes(me); }).map(pt=>postName(p.id,dk)+(isSam(p) ? '' : ' · '+(pt === 'M' ? 'matin' : 'après-midi')))) : [];
-      let L = '<div class="daychips sticky" role="group" aria-label="Jour">' + [0,1,2,3,4,5].map(i=>{ const x = addDays(weekStart,i); return '<button type="button" data-gd="'+i+'" aria-pressed="'+(i === gDay)+'"'+(key(x) === tk0 ? ' class="tod"' : '')+'>'+DOW[i]+'<strong>'+x.getDate()+'</strong>'+(mineOn(i) ? '<i class="mdot" aria-label="vous travaillez"></i>' : '')+'</button>'; }).join('') + '</div>'
-        + '<div class="gdayh"><b>'+esc(fmtLong.format(dd).replace(/^./, c=>c.toUpperCase()))+'</b>'+(dk === tk0 ? ' <span class="gtod">Aujourd’hui</span>' : '')+(mineList.length ? '<p class="gmine">Vous : '+esc(mineList.join(' · '))+'</p>' : '')+'</div><div class="plist">';
+      let L = '<div class="daychips sticky" role="group" aria-label="Jour">' + [0,1,2,3,4,5].map(i=>{ const x = addDays(weekStart,i); return '<button type="button" data-gd="'+i+'" aria-pressed="'+(i === gDay)+'"'+(key(x) === tk0 || isFerie(key(x)) ? ' class="'+(key(x) === tk0 ? 'tod' : '')+(isFerie(key(x)) ? ' jferie' : '')+'"' : '')+'>'+DOW[i]+'<strong>'+x.getDate()+'</strong>'+(mineOn(i) ? '<i class="mdot" aria-label="vous travaillez"></i>' : '')+'</button>'; }).join('') + '</div>'
+        + '<div class="gdayh"><b>'+esc(fmtLong.format(dd).replace(/^./, c=>c.toUpperCase()))+'</b>'+(dk === tk0 ? ' <span class="gtod">Aujourd’hui</span>' : '')+(isFerie(dk) ? ' <span class="jfl2">🎌 Férié · '+esc(ferieName(dk))+'</span>' : '')+(mineList.length ? '<p class="gmine">Vous : '+esc(mineList.join(' · '))+'</p>' : '')+'</div><div class="plist">';
       let any = false;
+      if (isFerie(dk)) L = L.replace('<div class="plist">', '<div class="plist jferie">');
       trame.postes.forEach(p=>{
         if (!okDay(p, gDay)) return;
         const vv = variantOf(p,dd), pts = partsOf(p), vs = pts.map(part=>vacWho(p.id,dk,part));
@@ -5509,7 +5516,7 @@ const PROTO = [
       renderGAlert(); renderEditor(); return;
     }
     let h = '<table class="team trame"><thead><tr><th class="who" rowspan="2" scope="col">Poste</th>'
-      + keys.map((d,i)=>'<th colspan="'+(i === 5 ? 1 : 2)+'" scope="colgroup" class="end">'+DOW[i]+' '+d.getDate()+'</th>').join('')
+      + keys.map((d,i)=>'<th colspan="'+(i === 5 ? 1 : 2)+'" scope="colgroup" class="end'+(isFerie(key(d)) ? ' jferie' : '')+'"'+(isFerie(key(d)) ? ' title="'+esc(ferieName(key(d)))+'"' : '')+'>'+DOW[i]+' '+d.getDate()+(isFerie(key(d)) ? '<small class="jfl">Férié</small>' : '')+'</th>').join('')
       + '</tr><tr class="sub">' + keys.map((d,i)=>i === 5 ? '<th scope="col" class="end">M</th>' : '<th scope="col">M</th><th scope="col" class="end">AM</th>').join('') + '</tr></thead><tbody>';
     trame.postes.forEach(p=>{
       const notes = [];
@@ -5558,6 +5565,10 @@ const PROTO = [
       return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.filter(vis).map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
     }).join('')).join('') + '</tr>') + '</tbody></table>';
     wrap.innerHTML = h;
+    /* jours fériés : colonne grisée (2 cellules par jour, 1 le samedi) */
+    { const fcol = []; keys.forEach((d,i)=>{ const n = i === 5 ? 1 : 2; for (let q = 0; q < n; q++) fcol.push(isFerie(key(d))); });
+      if (fcol.some(Boolean)) { wrap.querySelectorAll('tbody tr').forEach(tr=>{ [...tr.children].filter(c=>c.tagName === 'TD').forEach((c, ix)=>{ if (fcol[ix]) c.classList.add('jferie'); }); });
+        wrap.querySelectorAll('thead tr.sub').forEach(tr=>[...tr.children].forEach((c, ix)=>{ if (fcol[ix]) c.classList.add('jferie'); })); } }
     renderGAlert(); renderEditor();
   }
 
