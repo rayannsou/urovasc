@@ -1212,7 +1212,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 12h20</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 12h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1805,7 +1805,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '24945d734e';
+  const BUILD = 'e3362f9754';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -6395,7 +6395,9 @@ const PROTO = [
     $('#qeBody').innerHTML = '<p class="qgt">Sur cette vacation</p>' + (cur.length ? '<div class="qchips">'+cur.map(chip).join('')+'</div>' : '<p class="hint">Personne pour l’instant.</p>')
       + cur.filter(id=>!(v && v.ou) && reasonFor(id, ed.date, ed.part)).map(id=>'<p class="aststat ko">⚠ '+esc(dLabel(id))+' : '+esc(reasonFor(id, ed.date, ed.part))+'</p>').join('')
       + vacHist(ed.poste, ed.date, ed.part)
-      + (v && v.texte && !/^ferm/i.test(v.texte) ? '<div class="qchips" style="margin-top:8px"><span class="hint" style="margin:0">Mention : « '+esc(v.texte)+' »</span><button type="button" class="pladd" data-qtxt="1"'+(canWrite ? '' : ' disabled')+'>🗑 Supprimer la mention</button></div>' : '')
+      + (v && /^ferm/i.test(v.texte || '') && !cur.length ? '' : '<div class="qchips" style="margin-top:8px;align-items:center"><input type="text" id="qeTxt" maxlength="80" placeholder="Mention (ex. à confirmer, NP ou HR…)" value="'+esc(v && v.texte ? v.texte : '')+'" style="flex:1;min-width:150px;min-height:40px"><button type="button" class="pladd" data-qtxtset="1"'+(canWrite ? '' : ' disabled')+'>✎ Enregistrer la mention</button>'+(v && v.texte ? '<button type="button" class="pladd" data-qtxt="1"'+(canWrite ? '' : ' disabled')+'>🗑 Supprimer</button>' : '')+'</div>')
+      + cur.filter(id=>!(v && v.ou) && reasonFor(id, ed.date, ed.part)).map(id=>'<div class="qchips" style="margin-top:6px"><button type="button" class="pladd" data-qok="'+esc(id)+'"'+(canWrite ? '' : ' disabled')+'>✓ Valider quand même '+esc(dLabel(id))+'</button></div>').join('')
+      + cur.filter(id=>{ const dd = doctors[id]; return dd && dd.ok && dd.ok[ed.date+'_'+ed.part]; }).map(id=>'<div class="qchips" style="margin-top:6px"><span class="hint" style="margin:0">✓ '+esc(dLabel(id))+' : conflit validé</span><button type="button" class="pladd" data-qokno="'+esc(id)+'">↩ Retirer l’accord</button></div>').join('')
       + (()=>{ const closed = !!v && !cur.length && /^ferm/i.test(v.texte || ''); return '<div class="qchips" style="margin-top:8px"><button type="button" class="pladd" data-qferm="'+(closed ? '0' : '1')+'"'+(canWrite ? '' : ' disabled')+'>'+(closed ? '🔓 Rouvrir la vacation' : '🔒 Fermer la vacation')+'</button></div>'; })();
     const pool = sortedDocs().filter(d=>!cur.includes(d.id) && (!q || normS(d.label).includes(q)) && (!gGrp || isIntId(d.id) === (gGrp === 'interne')));
     const grp = (t, l)=>l.length ? '<p class="qgt">'+t+'</p><div class="qchips">'+l.map(d=>{ const r = reasonFor(d.id, ed.date, ed.part); return '<button type="button" class="qadd'+(r ? ' bad' : '')+'" data-qadd="'+esc(d.id)+'">＋ '+esc(dLabel(d.id))+'<small>'+esc(whereTxt(d.id, r))+'</small></button>'; }).join('')+'</div>' : '';
@@ -6411,7 +6413,11 @@ const PROTO = [
       if (g0) plGrp = isIntId(tid) ? 'interne' : (g0 === 'interne' ? 'medecin' : g0);
       try { if (rm) await plApply(ed.poste, ed.date, ed.part, cur.filter(x=>x !== tid), null); else if (!cur.includes(tid)) await plApply(ed.poste, ed.date, ed.part, cur.concat([tid]), tid); } finally { plGrp = g0; }
       renderQe(); return; }
-    if (e.target.closest('[data-qtxt]')) { let ok = true; for (const pt of slotParts(ed.poste, ed.part)) { const cv = vacWho(ed.poste, ed.date, pt), ov = overrides[ed.date] && overrides[ed.date][ed.poste+'_'+pt], val = {w: cv ? cv.who.slice() : [], t: Date.now(), x: ''}; const st = cv && cv.stars ? cv.stars.filter(id=>val.w.includes(id)) : []; if (st.length) val.s = st; ok = (await setOverride(ed.date, ed.poste+'_'+pt, val)) && ok; } if (ok) notify('Mention supprimée.'); renderQe(); return; }
+    { const bo = e.target.closest('[data-qok]'), bn = e.target.closest('[data-qokno]'), bi = bo || bn;
+      if (bi) { if (!isRim()) return notify(NOADM_MSG, true); if (!(await ensureCode('valider une vacation malgré le conflit'))) return; const id = bi.dataset.qok || bi.dataset.qokno, on = !!bo;
+        try { for (const pt of slotParts(ed.poste, ed.part)) await db.doc('medecins/'+id).update({ok: {[ed.date+'_'+pt]: on}}); notify(on ? 'Vacation validée malgré le conflit.' : 'Accord retiré.'); } catch(err) { handleErr(err); }
+        renderQe(); renderTrame(); return; } }
+    if (e.target.closest('[data-qtxt]') || e.target.closest('[data-qtxtset]')) { const txt = e.target.closest('[data-qtxtset]') ? (($('#qeTxt') || {}).value || '').trim() : ''; let ok = true; for (const pt of slotParts(ed.poste, ed.part)) { const cv = vacWho(ed.poste, ed.date, pt), ov = overrides[ed.date] && overrides[ed.date][ed.poste+'_'+pt], val = {w: cv ? cv.who.slice() : [], t: Date.now(), x: txt}; const st = cv && cv.stars ? cv.stars.filter(id=>val.w.includes(id)) : []; if (st.length) val.s = st; ok = (await setOverride(ed.date, ed.poste+'_'+pt, val)) && ok; } if (ok) notify(txt ? 'Mention enregistrée.' : 'Mention supprimée.'); renderQe(); return; }
     const fm = e.target.closest('[data-qferm]'); if (fm) { plScope = 'once'; await plClose(ed.poste+'|'+ed.date+'|'+ed.part, fm.dataset.qferm === '1'); renderQe(); return; }
     if (e.target.closest('#qeRev')) { if (await revertSlot(ed.poste, ed.date, ed.part)) notify('Vacation effacée.'); renderQe(); }
   });
