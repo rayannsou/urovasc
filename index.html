@@ -166,6 +166,7 @@ button.ghost{background:none}
 #secIndis table.mois th.dh{padding:3px 1px;font-weight:700;line-height:1.2;min-width:24px}
 #secIndis table.mois td{padding:5px 1px;font-size:10px;min-width:24px}
 #secIndis table.mois .mwe{background-image:linear-gradient(color-mix(in srgb,#9AA 14%,transparent),color-mix(in srgb,#9AA 14%,transparent))}
+.catbtn{cursor:pointer;min-height:36px;border:1px dashed var(--line,#9aa);background:transparent;color:inherit;font:inherit;border-radius:10px;padding:0 10px}
 .offadd{cursor:pointer;position:relative}.offadd:hover{background:color-mix(in srgb,var(--accent,#17465A) 10%,transparent)}
 .offplus{display:block;text-align:center;font-size:14px;line-height:1.2;color:var(--muted);opacity:.55}
 #offAddSheet{position:fixed;inset:0;z-index:420;display:flex;align-items:flex-end;justify-content:center}
@@ -1229,7 +1230,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 15h30</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 15h50</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1828,7 +1829,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '677ebf03f6';
+  const BUILD = '6099a14e83';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5529,7 +5530,7 @@ const PROTO = [
       offAddRender(); renderTrame(); return;
     }
     const oa = e.target.closest && e.target.closest('[data-offadd]');
-    if (oa && !window.SEC) { if (!isRim()) return notify(NOADM_MSG, true); const [dk, part] = oa.dataset.offadd.split('|'); offAdd = {dk, part, cat: 'Off'}; offAddRender(); return; }
+    if (oa && !window.SEC) { if (!isRim()) return notify(NOADM_MSG, true); const [dk, part] = oa.dataset.offadd.split('|'); offAdd = {dk, part, cat: oa.dataset.offcat0 || 'Off'}; offAddRender(); return; }
   });
   document.addEventListener('click', async e=>{
     const t = e.target.closest && e.target.closest('[data-indrm]'); if (!t || window.SEC) return;
@@ -5605,12 +5606,13 @@ const PROTO = [
       if (!any) L += '<p class="empty">Aucune vacation ce jour-là.</p>';
       const ab = PARTS.map(part=>{ const g0 = absAt(dk, part), g = {}; Object.keys(g0).forEach(c=>{ const l = g0[c].filter(vis); if (l.length) g[c] = l; }); return {part, g}; });
       ab.forEach(x=>{ const l = offList(gDay, dk, x.part).filter(id=>doctors[id] && vis(id)); if (l.length) { const cur = x.g.Off || []; x.g.Off = cur.concat(l.filter(id=>!cur.includes(id))); } });
-      if (ab.some(x=>Object.keys(x.g).length)) {
+      const admOff = isRim() && !window.SEC && canWrite;
+      if (ab.some(x=>Object.keys(x.g).length) || admOff) {
         const nAb = new Set(ab.reduce((r,x)=>r.concat(Object.keys(x.g).reduce((q,c)=>q.concat(x.g[c]),[])),[])).size;
         L += '<div class="prow pabs"><details class="absd"'+(window.__absOpen ? ' open' : '')+' ontoggle="window.__absOpen=this.open"><summary class="pname">Absences <b class="acn">'+nAb+'</b></summary>';
         ab.forEach(x=>{
           const cs = ABS_CATS.filter(c=>x.g[c]);
-          L += '<div class="pcell"><span class="pp">'+(x.part === 'M' ? 'Matin' : 'Après-midi')+'</span><span class="pw">'+(cs.length ? cs.map(c=>'<span class="cat">'+esc(c)+'</span>'+x.g[c].map(id=>'<span class="ch'+(id === me ? ' me' : '')+'"'+chipSty(id, '')+'>'+esc(dLabel(id))+'</span>').join('')).join('') : '<span class="muted">—</span>')+'</span></div>';
+          L += '<div class="pcell"><span class="pp">'+(x.part === 'M' ? 'Matin' : 'Après-midi')+'</span><span class="pw">'+(cs.length ? cs.map(c=>(admOff ? '<button type="button" class="cat catbtn" data-offadd="'+dk+'|'+x.part+'" data-offcat0="'+esc(c)+'" title="Ajouter quelqu’un en '+esc(c)+'">'+esc(c)+' ＋</button>' : '<span class="cat">'+esc(c)+'</span>')+x.g[c].map(id=>'<span class="ch'+(id === me ? ' me' : '')+'"'+chipSty(id, '')+'>'+esc(dLabel(id))+'</span>').join('')).join('') : '<span class="muted">—</span>')+(admOff ? '<button type="button" class="cat catbtn" data-offadd="'+dk+'|'+x.part+'" data-offcat0="Off">＋ Ajouter un Off</button>' : '')+'</span></div>';
         });
         L += '</details></div>';
       }
