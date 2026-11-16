@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 14/11/2026 · 15h20</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 10h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '7cbac96168';
+  const BUILD = '95eb328509';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -1956,7 +1956,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
       : '<span class="muted">Aucune garde à venir sur votre fiche.</span>';
 
     const days = [...Array(7)].map((_,i)=>addDays(myWeek,i));
-    const lab = fmtDM.format(days[0])+' – '+fmtDM.format(days[6])+' '+days[6].getFullYear();
+    const lab = 'Sem. '+isoWk(days[0])+' · '+fmtDM.format(days[0])+' – '+fmtDM.format(days[6])+' '+days[6].getFullYear();
     $('#mwLabel').textContent = lab; $('#iwLabel').textContent = inMode === 'sat' ? 'Astreintes (samedis) · dès le '+fmtDM.format(addDays(myWeek,5)) : lab;
     document.querySelectorAll('[data-inmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.inmode === inMode)));
     $('#iwJump').closest('.f').hidden = inMode === 'sat';
@@ -2081,7 +2081,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     let auv = 'cards'; try { auv = localStorage.getItem('planning-auv') || 'cards'; } catch(e) {}
     if (!['cards','list','grid'].includes(auv)) auv = 'cards';
     const tabsV = '<div style="display:flex;gap:10px;align-items:stretch;flex-wrap:wrap"><div class="seg segv" role="group" aria-label="Affichage">'+[['cards','Détaillé'],['list','Liste'],['grid','Grille']].map(x=>'<button type="button" data-auv="'+x[0]+'" aria-pressed="'+(auv === x[0])+'">'+x[1]+'</button>').join('')+'</div><button type="button" class="ghost" data-rapadd="1" style="font-weight:600;padding:0 16px;min-height:40px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface)">🔔 Rappel ＋</button></div>';
-    let h = '<div class="wknav"><button type="button" data-wk="-1" aria-label="Semaine précédente">‹</button><span>'+(wkOff === 0 ? 'Cette semaine' : esc(fmtDM.format(startD))+' – '+esc(fmtDM.format(addDays(startD,6))))+'</span><button type="button" data-wk="1" aria-label="Semaine suivante">›</button>'+(wkOff ? '<button type="button" class="ghost" data-wk="0">Aujourd’hui</button>' : '')+'</div>';
+    let h = '<div class="wknav"><button type="button" data-wk="-1" aria-label="Semaine précédente">‹</button><span>Sem. '+isoWk(startD)+' · '+(wkOff === 0 ? 'Cette semaine' : esc(fmtDM.format(startD))+' – '+esc(fmtDM.format(addDays(startD,6))))+'</span><button type="button" data-wk="1" aria-label="Semaine suivante">›</button>'+(wkOff ? '<button type="button" class="ghost" data-wk="0">Aujourd’hui</button>' : '')+'</div>';
     const cf = myVacations(me).filter(v=>v.date >= k && reasonFor(me,v.date,v.part)).length;
     if (cf) h += '<button type="button" class="alert alertbtn" data-cfall="1">⚠ '+cf+' vacation'+(cf > 1 ? 's' : '')+' à venir tomb'+(cf > 1 ? 'ent' : 'e')+' sur vos indisponibilités, votre garde ou votre repos de garde. <strong>Toucher pour accepter ou refuser ›</strong></button>';
     h += tabsV;
@@ -2739,13 +2739,14 @@ const PROTO = [
       const has = p => { const c = trame.cases[tk(p.id, d, pt)]; return !!(c && ((Array.isArray(c.who) && c.who.includes(id)) || (Array.isArray(c.rot) && c.rot.includes(id)))); };
       const sk = d+pt, o0 = CHEF_OFF[x] || {};
       const rotOf = p => { const c = trame.cases[tk(p.id, d, pt)]; return c && Array.isArray(c.rot) && c.rot.includes(id) ? c.rot.filter(y=>y !== id) : []; };
-      const alt = {}, cyc = {}, rotnOf = p => { const c = trame.cases[tk(p.id, d, pt)]; return c && Array.isArray(c.rot) && c.rot.includes(id) ? (c.rotn || 0) : 0; }, effN = (n, a) => Math.max(n || 0, a.length + 1), cycDiff = {}; pl.forEach(p=>{ alt[p.id] = rotOf(p); cyc[p.id] = rotnOf(p); });
+      const swap = {}, swap0 = {}, alt = {}, cyc = {}, rotnOf = p => { const c = trame.cases[tk(p.id, d, pt)]; return c && Array.isArray(c.rot) && c.rot.includes(id) ? (c.rotn || 0) : 0; }, effN = (n, a) => Math.max(n || 0, a.length + 1), cycDiff = {}; pl.forEach(p=>{ alt[p.id] = rotOf(p); cyc[p.id] = rotnOf(p); const c0 = trame.cases[tk(p.id, d, pt)]; swap[p.id] = swap0[p.id] = !!(c0 && Array.isArray(c0.rot) && c0.rot.includes(id) && c0.rot.length === 2 && c0.rot[0] !== id); });
       const seniorsL = sortedDocs().filter(q=>!isIntId(q.id) && q.id !== id);
       let sel = new Set(pl.filter(has).map(p=>p.id)), st = (o0.hard || []).includes(sk) ? 'h' : (o0.soft || []).includes(sk) ? 's' : '';
       const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
       const draw = () => { w.innerHTML = '<div class="codebox annf" style="max-height:88vh;overflow:auto"><p><b>'+esc(dLabel(id))+' · '+DAYL[d]+' '+PART_TXT[pt]+'</b></p><p class="hint">'+(pl.length ? 'Vacation(s) ouvertes à pourvoir par cette personne (touche pour poser / retirer) :' : 'Aucune vacation ouverte sur cette demi-journée. Pour en poser une, coche-la d’abord dans la trame vierge (①).')+'</p><div style="display:flex;flex-wrap:wrap;gap:6px">'
         + pl.map(p=>'<button type="button" class="astbtn'+(sel.has(p.id) ? ' ov' : '')+'" data-cep="'+esc(p.id)+'" aria-pressed="'+sel.has(p.id)+'">'+esc(p.label)+'</button>').join('')+'</div>'
         + pl.filter(p=>sel.has(p.id)).map(p=>'<p class="hint" style="margin:12px 0 4px"><b>'+esc(p.label)+'</b> · en alternance, une semaine sur '+(alt[p.id].length + 1)+(alt[p.id].length ? ' (vous + '+alt[p.id].length+' autre'+(alt[p.id].length > 1 ? 's' : '')+')' : '')+'. Choisissez une ou plusieurs personnes :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[{id:'',l:'Personne'}].concat(seniorsL.map(q=>({id:q.id,l:dLabel(q.id)}))).map(q=>{ const on = q.id ? alt[p.id].includes(q.id) : !alt[p.id].length; return '<button type="button" class="astbtn'+(on ? ' ov' : '')+'" data-cea="'+esc(p.id+'|'+q.id)+'" aria-pressed="'+on+'">'+esc(q.l)+'</button>'; }).join('')+'</div><p class="hint" style="margin:8px 0 4px">Nombre de semaines du cycle :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[...Array(8)].map((_, i)=>i + 1).filter(n=>n >= alt[p.id].length + 1).map(n=>{ const on = effN(cyc[p.id], alt[p.id]) === n; return '<button type="button" class="astbtn'+(on ? ' ov' : '')+'" data-cec="'+esc(p.id+'|'+n)+'" aria-pressed="'+on+'" style="min-width:44px">'+n+'</button>'; }).join('')+'</div>'+(effN(cyc[p.id], alt[p.id]) > alt[p.id].length + 1 ? '<p class="hint" style="margin:4px 0 0">Les semaines en plus sont sans vous ni les autres : la vacation n’est alors pas pourvue par cette alternance.</p>' : '')).join('')
+        + pl.filter(p=>sel.has(p.id) && alt[p.id].length === 1 && effN(cyc[p.id], alt[p.id]) === 2).map(p=>{ const ev = swap[p.id] ? alt[p.id][0] : id, od = swap[p.id] ? id : alt[p.id][0]; return '<p class="hint" style="margin:10px 0 4px">📅 <b>'+esc(p.label)+'</b> · semaine <b>paire</b> (n° 46, 48, 50…) : <b>'+esc(dLabel(ev))+'</b> · semaine <b>impaire</b> (47, 49, 51…) : <b>'+esc(dLabel(od))+'</b></p><button type="button" class="ghost" data-cesw="'+esc(p.id)+'">⇄ Inverser pair / impair</button>'; }).join('')
         + '<p class="hint" style="margin:10px 0 4px">Ou, sans vacation, cette demi-journée est :</p><div style="display:flex;flex-wrap:wrap;gap:6px">'+[['','Libre'],['h','Off (jamais sollicité)'],['s','Mobilisable']].map(a=>{ const on = !sel.size && st === a[0]; return '<button type="button" class="astbtn'+(on ? ' ov' : '')+'" data-ces="'+a[0]+'" aria-pressed="'+on+'">'+a[1]+'</button>'; }).join('')+'</div>'
         + '<div class="asb"><button type="button" class="primary" data-ceok>Enregistrer</button><button type="button" class="ghost" data-ceno>Annuler</button></div></div>'; };
       draw(); document.body.appendChild(w);
@@ -2753,16 +2754,17 @@ const PROTO = [
         if (ev.target === w || ev.target.closest('[data-ceno]')) { w.remove(); return; }
         const bp = ev.target.closest('[data-cep]'); if (bp) { const v = bp.dataset.cep; if (sel.has(v)) sel.delete(v); else sel.add(v); draw(); return; }
         const ba = ev.target.closest('[data-cea]'); if (ba) { const [pp, qq] = ba.dataset.cea.split('|'); if (!qq) alt[pp] = []; else alt[pp] = alt[pp].includes(qq) ? alt[pp].filter(z=>z !== qq) : alt[pp].concat(qq); draw(); return; }
+        const bw = ev.target.closest('[data-cesw]'); if (bw) { swap[bw.dataset.cesw] = !swap[bw.dataset.cesw]; draw(); return; }
         const bc = ev.target.closest('[data-cec]'); if (bc) { const [pp, nn] = bc.dataset.cec.split('|'); cyc[pp] = +nn; draw(); return; }
         const bs = ev.target.closest('[data-ces]'); if (bs) { st = bs.dataset.ces; sel.clear(); draw(); return; }
         if (!ev.target.closest('[data-ceok]')) return;
-        pl.forEach(p=>{ cycDiff[p.id] = effN(cyc[p.id], alt[p.id]) !== effN(rotnOf(p), rotOf(p)); });
+        pl.forEach(p=>{ cycDiff[p.id] = effN(cyc[p.id], alt[p.id]) !== effN(rotnOf(p), rotOf(p)) || swap[p.id] !== swap0[p.id]; });
         const before = new Set(pl.filter(has).map(p=>p.id)), changed = pl.some(p=>before.has(p.id) !== sel.has(p.id) || (sel.has(p.id) && (alt[p.id].join('|') !== rotOf(p).join('|') || cycDiff[p.id])));
         let ok = true;
         if (changed) ok = await saveTrame(tr=>{ pl.forEach(p=>{ const wasAlt = (() => { const c0 = tr.cases[tk(p.id, d, pt)]; return c0 && Array.isArray(c0.rot) && c0.rot.includes(id) ? c0.rot.filter(y=>y !== id) : []; })();
           if (before.has(p.id) === sel.has(p.id) && !(sel.has(p.id) && (alt[p.id].join('|') !== wasAlt.join('|') || cycDiff[p.id]))) return; const k = tk(p.id, d, pt), c = tr.cases[k] = tr.cases[k] || {who: []}; c.who = Array.isArray(c.who) ? c.who : [];
           if (sel.has(p.id)) { const q = alt[p.id];
-            const nn = effN(cyc[p.id], q); if (q.length || nn > 1) { const prev = Array.isArray(c.rot) && c.rot.includes(id) ? c.rot : null, same = prev && prev.length === q.length + 1 && q.every(z=>prev.includes(z)); c.who = c.who.filter(y=>y !== id && !q.includes(y)); c.rot = same ? prev.slice() : [id].concat(q); if (nn > c.rot.length) c.rotn = nn; else delete c.rotn; }
+            const nn = effN(cyc[p.id], q); if (q.length || nn > 1) { const prev = Array.isArray(c.rot) && c.rot.includes(id) ? c.rot : null, same = prev && prev.length === q.length + 1 && q.every(z=>prev.includes(z)); c.who = c.who.filter(y=>y !== id && !q.includes(y)); c.rot = same ? prev.slice() : [id].concat(q); if (q.length === 1 && nn === 2) c.rot = swap[p.id] ? [q[0], id] : [id, q[0]]; if (nn > c.rot.length) c.rotn = nn; else delete c.rotn; }
             else { if (Array.isArray(c.rot) && c.rot.includes(id)) { c.rot = c.rot.filter(y=>y !== id && !wasAlt.includes(y)); if (!c.rot.length) delete c.rot; } delete c.rotn; if (!c.who.includes(id)) c.who.push(id); } } else { c.who = c.who.filter(y=>y !== id); if (Array.isArray(c.rot)) { c.rot = c.rot.filter(y=>y !== id); if (!c.rot.length) delete c.rot; } } }); });
         if (!ok) return;
         const o = CHEF_OFF[x] = CHEF_OFF[x] || {}; o.hard = (o.hard || []).filter(y=>y !== sk); o.soft = (o.soft || []).filter(y=>y !== sk);
@@ -2904,7 +2906,7 @@ const PROTO = [
     const a = document.activeElement;
     const days = [...Array(6)].map((_,i)=>addDays(plStart,i));
     { const wk = Math.round((plStart - mondayOf(new Date())) / 604800000), rel = plMode === 'ast' ? '' : wk === 0 ? 'Cette semaine' : wk === 1 ? 'Semaine prochaine' : wk === -1 ? 'Semaine dernière' : wk > 1 ? 'Dans '+wk+' semaines' : 'Il y a '+(-wk)+' semaines';
-      $('#plLabel').innerHTML = '<span class="wl">'+esc(plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear())+'</span>'+(rel ? '<small class="wr'+(wk === 0 ? ' now' : '')+'">'+rel+'</small>' : ''); }
+      $('#plLabel').innerHTML = '<span class="wl">'+esc(plMode === 'ast' ? 'Astreintes · dès le '+fmtDM.format(days[5]) : 'Sem. '+isoWk(days[0])+' · '+fmtDM.format(days[0])+' – '+fmtDM.format(days[4])+' '+days[4].getFullYear())+'</span>'+(rel ? '<small class="wr'+(wk === 0 ? ' now' : '')+'">'+rel+'</small>' : ''); }
     document.querySelectorAll('[data-plmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.plmode === plMode)));
     $('#plTitle').textContent = plMode === 'ast' ? 'Planning d’astreinte' : 'Planning de la semaine';
     $('#impSlotP').hidden = plStage !== 'impx' && plStage !== 'impg'; { const ci = $('#cwImport'); if (ci) ci.dataset.src = plStage === 'impg' ? 'gs' : 'xl'; }
@@ -3311,7 +3313,7 @@ const PROTO = [
     const k = key(addDays(plStart, d)); if (isFerie(k)) return null;
     const c = effCase(p.id, k, d, pt); if (!c) return null;
     const who = (Array.isArray(c.who) ? c.who : []).filter(x=>!isIntId(x));
-    if (Array.isArray(c.rot) && c.rot.length) { const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7), n = Math.max(c.rotn || 0, c.rot.length), r = c.rot[((wk % n) + n) % n]; if (r && !who.includes(r)) who.push(r); }
+    if (Array.isArray(c.rot) && c.rot.length) { const n = Math.max(c.rotn || 0, c.rot.length), r = c.rot[rotIdx(k, n)]; if (r && !who.includes(r)) who.push(r); }
     return who;
   }
   /* indispos des chefs qui touchent la trame de la semaine + remplaçant prévu par les règles */
@@ -4696,7 +4698,7 @@ const PROTO = [
 
   function renderGLabel(){
     const b = addDays(weekStart,6);
-    $('#gLabel').textContent = fmtDM.format(weekStart)+' – '+fmtDM.format(b)+' '+b.getFullYear();
+    $('#gLabel').textContent = 'Sem. '+isoWk(weekStart)+' · '+fmtDM.format(weekStart)+' – '+fmtDM.format(b)+' '+b.getFullYear();
   }
   /* ---------- PDF de la semaine : dessiné sur un canvas puis encapsulé dans un PDF (sans bibliothèque) ---------- */
   let plPdfNew = false;
@@ -5208,6 +5210,9 @@ const PROTO = [
   }
   /* vacation ouverte (dans la trame) mais personne dessus : à signaler en rouge, à partir d'aujourd'hui */
   const isUnf = (p, v, k) => !!(v && !p.info && !v.ou && !v.who.length && !v.texte && k >= key(new Date()));
+  function isoWk(d){ const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())), dn = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - dn); return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 86400000 + 1) / 7); }
+  /* indice dans une alternance : à 2 personnes, selon le numéro de semaine (paire = 1re personne, impaire = 2e) ; au-delà, cycle continu */
+  function rotIdx(k, n){ if (n === 2) return isoWk(parse(k)) % 2 === 0 ? 0 : 1; const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7); return ((wk % n) + n) % n; }
   function vacWho(postId, k, part){
     if (!trame || !isDate(k)) return null;
     const dow = (parse(k).getDay()+6)%7; if (dow > 5) return null;
@@ -5216,7 +5221,7 @@ const PROTO = [
     if (!c && !(ov && (ov.w.length || ov.x))) return null;
     if (!ov && isFerie(k)) return null;   /* jour férié : la trame ne pose personne (seule une vacation saisie ou importée à la main reste) */
     const who = ov ? ov.w.slice() : (Array.isArray(c.who) ? c.who.slice() : []);
-    if (!ov && c && Array.isArray(c.rot) && c.rot.length) { const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7), n = Math.max(c.rotn || 0, c.rot.length), r = c.rot[((wk % n) + n) % n]; if (r && !who.includes(r)) who.push(r); }   /* alternance semaine par semaine */
+    if (!ov && c && Array.isArray(c.rot) && c.rot.length) { const n = Math.max(c.rotn || 0, c.rot.length), r = c.rot[rotIdx(k, n)]; if (r && !who.includes(r)) who.push(r); }   /* alternance semaine par semaine */
     Object.values(swaps).filter(x=>x.status === 'conclu' && (!ov || (x.updatedAt||0) > ov.t)).sort((a,b)=>(a.updatedAt||0)-(b.updatedAt||0)).forEach(x=>{
       if (x.poste === postId && x.date === k && x.part === part) {
         const i = who.indexOf(x.from); if (i >= 0) who.splice(i,1);
