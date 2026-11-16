@@ -8,7 +8,8 @@
 /* Services : « uro » (par défaut) ou « osteo ». Chaque service a sa propre base Firebase et son propre stockage local. */
 (function(){var svc='uro',KEY='planning-service';
 try{var q=new URLSearchParams(location.search).get('s');if(q==='osteo'||q==='uro'){localStorage.setItem(KEY,q);history.replaceState(null,'',location.pathname+location.hash);}svc=localStorage.getItem(KEY)==='osteo'?'osteo':'uro';}catch(e){}
-window.SVC=svc;window.SVC_KEY=KEY;window.SEC_KEY='planning-secretariat';try{window.SEC=localStorage.getItem('planning-secretariat')==='1';}catch(e){window.SEC=false;}
+window.SVC=svc;window.SVC_KEY=KEY;window.SEC_KEY='planning-secretariat';try{if(/[?&#]secretariat\b/i.test(location.search+location.hash)) localStorage.setItem('planning-secretariat','1');}catch(e){}
+try{window.SEC=localStorage.getItem('planning-secretariat')==='1';}catch(e){window.SEC=false;}
 if(svc==='osteo'){var P='osteo:',g=Storage.prototype.getItem,st=Storage.prototype.setItem,rm=Storage.prototype.removeItem;
 Storage.prototype.getItem=function(k){return k===KEY||k==='planning-secretariat'?g.call(this,k):g.call(this,P+k)};
 Storage.prototype.setItem=function(k,v){return k===KEY||k==='planning-secretariat'?st.call(this,k,v):st.call(this,P+k,v)};
@@ -1210,7 +1211,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 11h05</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 11h20</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1803,7 +1804,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'f7b32ac6a2';
+  const BUILD = '75493339ef';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
