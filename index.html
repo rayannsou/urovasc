@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 10h30</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 10h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '1bc4efe7c6';
+  const BUILD = 'f257146164';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5214,7 +5214,7 @@ const PROTO = [
   /* indice dans une alternance : à 2 personnes, selon le numéro de semaine (paire = 1re personne, impaire = 2e) ; au-delà, cycle continu */
   function rotIdx(k, n){ if (n === 2) return isoWk(parse(k)) % 2 === 0 ? 0 : 1; const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7); return ((wk % n) + n) % n; }
   /* mention du type « NP ou HR » / « AM + EF » : les initiales sont des médecins, on les poste tous les deux */
-  function mentionWho(t){ if (typeof t !== 'string') return null; const tk2 = t.trim().split(/\s*(?:\bou\b|\bet\b|[\/+,&])\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean); if (tk2.length < 2) return null; const ids = []; for (const x of tk2) { if (!doctors[x]) return null; if (!ids.includes(x)) ids.push(x); } return ids.length > 1 ? ids : null; }
+  function mentionWho(t){ if (typeof t !== 'string') return null; const tk2 = t.trim().split(/\s*(?:\bou\b|\bet\b|[\/+,&])\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean); if (tk2.length < 2) return null; const ids = []; for (const x of tk2) { const id = doctors[x] ? x : Object.keys(doctors).find(i=>norm(dLabel(i)) === norm(x)); if (!id) return null; if (!ids.includes(id)) ids.push(id); } return ids.length > 1 ? ids : null; }
   function vacWho(postId, k, part){
     if (!trame || !isDate(k)) return null;
     const dow = (parse(k).getDay()+6)%7; if (dow > 5) return null;
