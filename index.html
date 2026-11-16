@@ -161,6 +161,11 @@ button.ghost{background:none}
 .qconf{margin-top:10px;padding:12px;border:2px solid var(--red);border-radius:12px;background:color-mix(in srgb,var(--red) 10%,transparent)}
 .qconf.okk{border-color:var(--accent,#17465A);background:color-mix(in srgb,var(--accent,#17465A) 10%,transparent);display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-weight:700}
 .qconfok{width:100%;min-height:48px;font-size:16px;font-weight:800}
+.subtabs button[data-secsc]{min-height:40px}
+#secIndis table.mois{min-width:880px;font-size:11px}
+#secIndis table.mois th.dh{padding:3px 1px;font-weight:700;line-height:1.2;min-width:24px}
+#secIndis table.mois td{padding:5px 1px;font-size:10px;min-width:24px}
+#secIndis table.mois .mwe{background-image:linear-gradient(color-mix(in srgb,#9AA 14%,transparent),color-mix(in srgb,#9AA 14%,transparent))}
 #secIndis td.sxrm{cursor:pointer;text-decoration:underline dotted}
 #secIndis td.sx{background:color-mix(in srgb,var(--red) 22%,transparent);color:var(--red);font-weight:800}
 #secIndis td.sg{background:color-mix(in srgb,#2563EB 20%,transparent);color:#1D4ED8;font-weight:700}
@@ -1215,7 +1220,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 13h15</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 13h40</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1808,7 +1813,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'fc4179b0d3';
+  const BUILD = '29cab9a335';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -4709,6 +4714,7 @@ const PROTO = [
 
   function renderGLabel(){
     const b = addDays(weekStart,6);
+    if (secMonthOn() && secMonth) { $('#gLabel').textContent = new Intl.DateTimeFormat('fr-FR',{month:'long', year:'numeric'}).format(secMonth).replace(/^./, c=>c.toUpperCase()); return; }
     $('#gLabel').textContent = 'Sem. '+isoWk(weekStart)+' · '+fmtDM.format(weekStart)+' – '+fmtDM.format(b)+' '+b.getFullYear();
   }
   /* ---------- PDF de la semaine : dessiné sur un canvas puis encapsulé dans un PDF (sans bibliothèque) ---------- */
@@ -4888,7 +4894,7 @@ const PROTO = [
       plPdfNew = false; notify('PDF de la semaine du '+fmtDM.format(mon)+' prêt.'); renderAstBar();
     } catch (e) { notify('Impossible de créer le PDF : '+(e && e.message || e), true); }
   }
-  function moveWeek(n){ gDay = -1; weekStart = n === 0 ? mondayOf(new Date()) : addDays(weekStart, 7*n); renderGLabel(); renderTeam(); renderTrame(); }
+  function moveWeek(n){ gDay = -1; if (secMonthOn()) { const b = secMonth || new Date(weekStart.getFullYear(), weekStart.getMonth(), 1); secMonth = n === 0 ? new Date(new Date().getFullYear(), new Date().getMonth(), 1) : new Date(b.getFullYear(), b.getMonth()+n, 1); weekStart = mondayOf(secMonth); renderGLabel(); renderTrame(); return; } weekStart = n === 0 ? mondayOf(new Date()) : addDays(weekStart, 7*n); renderGLabel(); renderTeam(); renderTrame(); }
   /* balayage gauche / droite pour changer de jour (téléphone) */
   (function(){
     const w = $('#trameWrap'); let x0 = 0, y0 = 0, on = false;
@@ -5403,7 +5409,8 @@ const PROTO = [
   $('#gaNext').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), 70); renderGAst(); });
   document.addEventListener('click', e=>{ if (e.target.closest && e.target.closest('[data-unfall]')) { gUnf = null; renderTrame(); } });
   $('#gaToday').addEventListener('click', ()=>{ gaStart = satOf(new Date()); renderGAst(); });
-  let secView = 'plan', secWho = '';
+  let secView = 'plan', secWho = '', secScope = 'sem', secMonth = null;   /* secScope : 'sem' ou 'mois' (vue Indispos) */
+  const secMonthOn = () => secScope === 'mois' && secView === 'indis' && (window.SEC || isRim());
   function renderSecIndis(){
     const box = $('#secIndis'), seg = $('#secSeg'); if (!box || !seg) return;
     const secOn = !!window.SEC || isRim();   /* Rim et Rayann (admins) ont aussi la vue Indispos de tout le monde */
@@ -5441,18 +5448,47 @@ const PROTO = [
     };
     const docs = sortedDocs().filter(d=>vis(d.id));
     const sen = docs.filter(d=>!isIntId(d.id)), int = docs.filter(d=>isIntId(d.id));
-    box.innerHTML = '<div class="sleg"><span class="sx">Indispo</span><span class="sg">Garde</span><span class="sr">Repos</span><span class="sa">Astreinte</span><span class="sf">Férié</span></div>'
+    const scopeBar = '<div class="subtabs" role="group" aria-label="Période" style="margin-bottom:10px"><button type="button" data-secsc="sem" aria-pressed="'+(secScope === 'sem')+'">Semaine</button><button type="button" data-secsc="mois" aria-pressed="'+(secScope === 'mois')+'">Mois</button></div>';
+    if (secScope === 'mois') {
+      if (!secMonth) secMonth = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1);
+      const nd = new Date(secMonth.getFullYear(), secMonth.getMonth()+1, 0).getDate(), days = [...Array(nd)].map((_,i)=>addDays(secMonth, i)), L = 'LMMJVSD';
+      const adm = isRim() && !window.SEC;
+      const mcell = (d, dt)=>{
+        const k = key(dt), inf = dayInfo(d, k), dow = (dt.getDay()+6)%7, we = dow > 4 ? ' mwe' : '';
+        if (inf.ferie) return '<td class="sf'+we+'" title="Jour férié">F</td>';
+        const tag = (cls, t, ttl, rm)=>'<td class="'+cls+we+(rm ? ' sxrm' : '')+'" title="'+ttl+'"'+(rm ? ' data-indrm="'+esc(d.id)+'|'+k+'|'+rm+'" role="button" tabindex="0"' : '')+'>'+t+'</td>';
+        if (inf.M === 'I' && inf.AM === 'I') return tag('sx', '✕', 'Indisponible (journée)', adm && !inf.auto ? 'J' : '');
+        if (inf.M === 'I') return tag('sx', 'M', 'Indisponible le matin', adm && !inf.auto ? 'M' : '');
+        if (inf.AM === 'I') return tag('sx', 'AM', 'Indisponible l’après-midi', adm && !inf.auto ? 'AM' : '');
+        if (inf.kind === 'G') return '<td class="sg'+we+'" title="Garde">G</td>';
+        if (inf.M === 'R') return '<td class="sr'+we+'" title="Repos après garde">R</td>';
+        if (inf.M === 'A') return '<td class="sa'+we+'" title="Astreinte">A</td>';
+        return '<td class="'+we.trim()+'"></td>';
+      };
+      const mgrp = (title, list)=>{
+        if (!list.length) return '';
+        const head = '<tr><th class="nm">'+title+' <small>('+list.length+')</small></th>'+days.map(dt=>'<th class="dh'+(key(dt) === tkk ? ' tod' : '')+((dt.getDay()+6)%7 > 4 ? ' mwe' : '')+'">'+L[(dt.getDay()+6)%7]+'<br>'+dt.getDate()+'</th>').join('')+'</tr>';
+        const body = list.map(d=>'<tr><th class="nm">'+esc(dLabel(d.id))+'</th>'+days.map(dt=>mcell(d, dt)).join('')+'</tr>').join('');
+        return '<div class="sgrp"><table class="mois"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+      };
+      box.innerHTML = scopeBar + '<div class="sleg"><span class="sx">Indispo (✕ jour · M · AM)</span><span class="sg">G garde</span><span class="sr">R repos</span><span class="sa">A astreinte</span><span class="sf">F férié</span></div>'
+        + (adm ? '<p class="hint" style="margin:0 0 8px">Administrateur : touchez une indispo pour l’enlever.</p>' : '')
+        + mgrp('🩺 Seniors', sen) + mgrp('🎓 Internes', int) + (docs.length ? '' : '<p class="empty">Aucun médecin.</p>');
+      return;
+    }
+    box.innerHTML = scopeBar + '<div class="sleg"><span class="sx">Indispo</span><span class="sg">Garde</span><span class="sr">Repos</span><span class="sa">Astreinte</span><span class="sf">Férié</span></div>'
       + (isRim() && !window.SEC ? '<p class="hint" style="margin:0 0 8px">Administrateur : touchez une « Indispo ✕ » pour l’enlever.</p>' : '')
       + grp('🩺 Seniors', sen) + grp('🎓 Internes', int)
       + (docs.length ? '' : '<p class="empty">Aucun médecin.</p>');
   }
+  document.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-secsc]'); if (!b) return; secScope = b.dataset.secsc; if (secScope === 'mois') secMonth = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1); else if (secMonth) { weekStart = mondayOf(secMonth); secMonth = null; } renderGLabel(); renderTeam(); renderTrame(); });
   document.addEventListener('click', async e=>{
     const t = e.target.closest && e.target.closest('[data-indrm]'); if (!t || window.SEC) return;
     if (!isRim()) return notify(NOADM_MSG, true);
     const [id, k, pt] = t.dataset.indrm.split('|'), d = doctors[id]; if (!d) return;
     const cur = (d.days || {})[k], other = pt === 'M' ? 'AM' : 'M';
-    const nv = cur === 'J' ? other : null;   /* journée entière : on n'enlève que la demi-journée touchée */
-    const lbl = dLabel(id)+' · '+fmtShort.format(parse(k))+' '+(cur === 'J' ? PART_TXT[pt] : 'indisponibilité');
+    const nv = pt === 'J' ? null : cur === 'J' ? other : null;   /* journée entière : on n'enlève que la demi-journée touchée (vue mois : tout le jour) */
+    const lbl = dLabel(id)+' · '+fmtShort.format(parse(k))+' '+(pt === 'J' ? 'journée' : cur === 'J' ? PART_TXT[pt] : 'indisponibilité');
     if (!window.confirm('Enlever l’indisponibilité de '+lbl+' ?')) return;
     if (!(await ensureCode('modifier les indisponibilités de quelqu’un'))) return;
     if (await setDays(id, {[k]: nv})) notify('Indisponibilité enlevée : '+lbl+'.');
