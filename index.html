@@ -162,6 +162,7 @@ button.ghost{background:none}
 .qconf.okk{border-color:var(--accent,#17465A);background:color-mix(in srgb,var(--accent,#17465A) 10%,transparent);display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-weight:700}
 .qconfok{width:100%;min-height:48px;font-size:16px;font-weight:800}
 .subtabs button[data-secsc]{min-height:40px}
+#gKind button{padding:0 6px;font-size:14px;white-space:nowrap;min-width:0}
 #secIndis table.mois{min-width:880px;font-size:11px}
 #secIndis table.mois th.dh{padding:3px 1px;font-weight:700;line-height:1.2;min-width:24px}
 #secIndis table.mois td{padding:5px 1px;font-size:10px;min-width:24px}
@@ -957,7 +958,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
     <section id="view-general" aria-labelledby="tab-general" hidden>
       <div class="col">
-        <div class="subtabs" id="gKind" role="group" aria-label="Type de planning"><button type="button" data-gkind="week" aria-pressed="true">📅 Planning de semaine</button><button type="button" data-gkind="ast" aria-pressed="false">🔔 Planning d’astreinte</button><button type="button" data-gkind="indis" id="gKindIndis" aria-pressed="false" hidden>🚫 Planning des indispos</button></div>
+        <div class="subtabs" id="gKind" role="group" aria-label="Type de planning"><button type="button" data-gkind="week" aria-pressed="true" title="Planning de semaine">📅 Semaine</button><button type="button" data-gkind="ast" aria-pressed="false" title="Planning d’astreinte">🔔 Astreinte</button><button type="button" data-gkind="indis" id="gKindIndis" aria-pressed="false" title="Planning des indispos" hidden>🚫 Indispos</button></div>
         <div id="gWeekWrap" class="col">
         <div class="weekbar">
           <button type="button" id="gPrev" aria-label="Semaine précédente">‹</button>
@@ -1240,7 +1241,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 16h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 16h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1839,7 +1840,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '9678046e9c';
+  const BUILD = 'e4e53ff8c4';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
