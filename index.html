@@ -6595,6 +6595,13 @@ const PROTO = [
   }
   function qeClose(){ qeOpen = false; $('#qeSheet').hidden = true; renderTrame(); }
   /* qui était posté sur cette même vacation les semaines d'avant (valable pour tous les postes) */
+  /* nombre de fois où chacun a été posté sur cette vacation les semaines d'avant */
+  function vacCounts(poste, date, part, n){
+    const p = findPost(poste), c = {}; if (!p || !trame) return c;
+    const pt = p.journee ? 'M' : (part || 'M');
+    for (let i = 1; i <= (n || 8); i++) { const x = vacWho(poste, key(addDays(parse(date), -7 * i)), pt); if (x) x.who.forEach(id=>{ c[id] = (c[id] || 0) + 1; }); }
+    return c;
+  }
   function vacHist(poste, date, part, n){
     const p = findPost(poste); if (!p || !trame) return '';
     const pt = p.journee ? 'M' : (part || 'M'), rows = [], cnt = {}, order = [];
@@ -6622,8 +6629,9 @@ const PROTO = [
       + (v && /^ferm/i.test(v.texte || '') && !cur.length ? '' : '<div class="qchips" style="margin-top:8px;align-items:center"><input type="text" id="qeTxt" maxlength="80" placeholder="Mention (ex. à confirmer, NP ou HR…)" value="'+esc(v && v.texte ? v.texte : '')+'" style="flex:1;min-width:150px;min-height:40px"><button type="button" class="pladd" data-qtxtset="1"'+(canWrite ? '' : ' disabled')+'>✎ Enregistrer la mention</button>'+(v && v.texte ? '<button type="button" class="pladd" data-qtxt="1"'+(canWrite ? '' : ' disabled')+'>🗑 Supprimer</button>' : '')+'</div>')
       + (()=>{ const closed = !!v && !cur.length && /^ferm/i.test(v.texte || ''); return '<div class="qchips" style="margin-top:8px"><button type="button" class="pladd" data-qferm="'+(closed ? '0' : '1')+'"'+(canWrite ? '' : ' disabled')+'>'+(closed ? '🔓 Rouvrir la vacation' : '🔒 Fermer la vacation')+'</button></div>'; })();
     const pool = sortedDocs().filter(d=>!cur.includes(d.id) && (!q || normS(d.label).includes(q)) && (!gGrp || isIntId(d.id) === (gGrp === 'interne')));
-    const grp = (t, l)=>l.length ? '<p class="qgt">'+t+'</p><div class="qchips">'+l.map(d=>{ const r = reasonFor(d.id, ed.date, ed.part); return '<button type="button" class="qadd'+(r ? ' bad' : '')+'" data-qadd="'+esc(d.id)+'">＋ '+esc(dLabel(d.id))+'<small>'+esc(whereTxt(d.id, r))+'</small></button>'; }).join('')+'</div>' : '';
-    const byAv = l=>l.slice().sort((a,b)=>(reasonFor(a.id, ed.date, ed.part) ? 1 : 0) - (reasonFor(b.id, ed.date, ed.part) ? 1 : 0));
+    const grp = (t, l)=>l.length ? '<p class="qgt">'+t+'</p><div class="qchips">'+l.map(d=>{ const r = reasonFor(d.id, ed.date, ed.part); return '<button type="button" class="qadd'+(r ? ' bad' : '')+'" data-qadd="'+esc(d.id)+'">＋ '+esc(dLabel(d.id))+(hc[d.id] ? ' <small style="display:inline;opacity:.7">· '+hc[d.id]+'×</small>' : '')+'<small>'+esc(whereTxt(d.id, r))+'</small></button>'; }).join('')+'</div>' : '';
+    const hc = vacCounts(ed.poste, ed.date, ed.part);
+    const byAv = l=>l.slice().sort((a,b)=>(hc[b.id] || 0) - (hc[a.id] || 0) || (reasonFor(a.id, ed.date, ed.part) ? 1 : 0) - (reasonFor(b.id, ed.date, ed.part) ? 1 : 0));
     $('#qeAdd').innerHTML = grp('Seniors', byAv(pool.filter(d=>!isIntId(d.id)))) + grp('Internes', byAv(pool.filter(d=>isIntId(d.id)))) || '<p class="hint">Personne à ajouter.</p>';
     const ov = overrides[ed.date] && overrides[ed.date][ed.poste+'_'+ed.part]; $('#qeRev').hidden = !ov;
   }
