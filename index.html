@@ -5499,7 +5499,7 @@ const PROTO = [
       if (inf.kind === 'G') return '<td class="sg" title="Garde">Garde</td>';
       if (inf[pt] === 'R') return '<td class="sr" title="Repos après garde">Repos</td>';
       if (inf[pt] === 'A') return '<td class="sa" title="Astreinte">Astr.</td>';
-      return '<td></td>';
+      return !window.SEC && isRim() ? '<td title="Toucher pour mettre en indisponibilité" data-celset="'+esc(d.id)+'|'+k+'" role="button" tabindex="0"></td>' : '<td></td>';
     };
     const cnt = (list,k,pt)=>list.filter(d=>dayInfo(d,k)[pt] === 'I' && !dayInfo(d,k).ferie).length;
     const grp = (title, list)=>{
@@ -5542,7 +5542,7 @@ const PROTO = [
       return;
     }
     box.innerHTML = scopeBar + '<div class="sleg"><span class="sx">Indispo</span><span class="sg">Garde</span><span class="sr">Repos</span><span class="sa">Astreinte</span><span class="sf">Férié</span></div>'
-      + (isRim() && !window.SEC ? '<p class="hint" style="margin:0 0 8px">Administrateur : touchez une case pour changer le motif (CA, RDG, F, R, Off…) ou retirer l’indisponibilité.</p>' : '')
+      + (isRim() && !window.SEC ? '<p class="hint" style="margin:0 0 8px">Administrateur : touchez une case pour mettre quelqu’un en indisponibilité, changer le motif (CA, RDG, F, R, Off…) ou la retirer.</p>' : '')
       + grp('🩺 Seniors', sen) + grp('🎓 Internes', int)
       + (docs.length ? '' : '<p class="empty">Aucun médecin.</p>');
   }
