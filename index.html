@@ -938,7 +938,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
     <section id="view-general" aria-labelledby="tab-general" hidden>
       <div class="col">
-        <div class="subtabs" id="gKind" role="group" aria-label="Type de planning"><button type="button" data-gkind="week" aria-pressed="true">📅 Planning de semaine</button><button type="button" data-gkind="ast" aria-pressed="false">🔔 Planning d’astreinte</button></div>
+        <div class="subtabs" id="gKind" role="group" aria-label="Type de planning"><button type="button" data-gkind="week" aria-pressed="true">📅 Planning de semaine</button><button type="button" data-gkind="ast" aria-pressed="false">🔔 Planning d’astreinte</button><button type="button" data-gkind="indis" id="gKindIndis" aria-pressed="false" hidden>🚫 Planning des indispos</button></div>
         <div id="gWeekWrap" class="col">
         <div class="weekbar">
           <button type="button" id="gPrev" aria-label="Semaine précédente">‹</button>
@@ -1220,7 +1220,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 13h40</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 14h20</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1813,7 +1813,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '29cab9a335';
+  const BUILD = '7765b820ca';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5362,7 +5362,8 @@ const PROTO = [
   function renderGAst(){
     const list = $('#gaList'); if (!list) return;
     $('#gWeekWrap').hidden = gKind !== 'week'; $('#gAstWrap').hidden = gKind !== 'ast';
-    document.querySelectorAll('[data-gkind]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.gkind === gKind)));
+    { const ib = $('#gKindIndis'); if (ib) ib.hidden = !isRim() || !!window.SEC; }
+    document.querySelectorAll('[data-gkind]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.gkind === 'indis' ? (gKind === 'week' && secView === 'indis' && !window.SEC) : b.dataset.gkind === 'week' ? (gKind === 'week' && !(secView === 'indis' && !window.SEC && isRim())) : b.dataset.gkind === gKind)));
     document.querySelectorAll('[data-ggrp]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.ggrp === gGrp)));
     if (gKind !== 'ast') return;
     if (!gaStart) gaStart = satOf(new Date());
@@ -5403,7 +5404,7 @@ const PROTO = [
     if (e.target.closest('[data-gaclear]')) { $('#gaSheet').hidden = true; await writeWho(ap.id, gaEditK, 'M', [], null, 'Astreinte laissée vide.'); renderGAst(); return; }
     if (e.target.closest('[data-garevert]')) { $('#gaSheet').hidden = true; if (await revertSlot(ap.id, gaEditK, 'M')) notify('Trame rétablie pour ce samedi.'); renderGAst(); }
   });
-  document.querySelectorAll('[data-gkind]').forEach(b=>b.addEventListener('click', ()=>{ gKind = b.dataset.gkind; renderGAst(); }));
+  document.querySelectorAll('[data-gkind]').forEach(b=>b.addEventListener('click', ()=>{ const k = b.dataset.gkind; if (k === 'indis') { gKind = 'week'; secView = 'indis'; } else { gKind = k; if (k === 'week' && !window.SEC) secView = 'plan'; } renderGAst(); renderGLabel(); renderSecIndis(); }));
   document.querySelectorAll('[data-ggrp]').forEach(b=>b.addEventListener('click', ()=>{ gGrp = b.dataset.ggrp; try { localStorage.setItem('planning-ggrp', gGrp); } catch(e) {} renderTrame(); renderGAst(); }));
   $('#gaPrev').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), -70); renderGAst(); });
   $('#gaNext').addEventListener('click', ()=>{ gaStart = addDays(gaStart || satOf(new Date()), 70); renderGAst(); });
@@ -5414,7 +5415,7 @@ const PROTO = [
   function renderSecIndis(){
     const box = $('#secIndis'), seg = $('#secSeg'); if (!box || !seg) return;
     const secOn = !!window.SEC || isRim();   /* Rim et Rayann (admins) ont aussi la vue Indispos de tout le monde */
-    seg.hidden = !secOn;
+    seg.hidden = !window.SEC;
     { const sel = $('#secWho'), bar = $('#secWhoBar');
       if (bar) bar.hidden = !window.SEC;
       if (sel && window.SEC) {
@@ -5423,7 +5424,7 @@ const PROTO = [
         const sr = ds.filter(d=>!isIntId(d.id)), it = ds.filter(d=>isIntId(d.id)), o = d=>'<option value="'+esc(d.id)+'"'+(d.id === secWho ? ' selected' : '')+'>'+esc(dLabel(d.id))+'</option>';
         sel.innerHTML = '<option value="">👥 Tous les médecins</option>'+(sr.length ? '<optgroup label="🩺 Seniors">'+sr.map(o).join('')+'</optgroup>' : '')+(it.length ? '<optgroup label="🎓 Internes">'+it.map(o).join('')+'</optgroup>' : '');
       } }
-    if (!secOn) { box.hidden = true; return; }
+    if (!secOn) { secView = 'plan'; ['#trameWrap','#gAnn','#gNotes'].forEach(q=>{ const el = $(q); if (el) el.style.display = ''; }); box.hidden = true; return; }   /* changement de profil depuis une vue Indispos : on réaffiche le planning */
     seg.querySelectorAll('[data-sec]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.sec === secView)));
     const showI = secView === 'indis';
     ['#trameWrap','#gAnn','#gNotes'].forEach(q=>{ const el = $(q); if (el) el.style.display = showI ? 'none' : ''; });
