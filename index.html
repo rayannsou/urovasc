@@ -1204,7 +1204,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 10h10</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 10h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1797,7 +1797,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '95eb328509';
+  const BUILD = '1bc4efe7c6';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5213,6 +5213,8 @@ const PROTO = [
   function isoWk(d){ const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())), dn = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - dn); return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 86400000 + 1) / 7); }
   /* indice dans une alternance : à 2 personnes, selon le numéro de semaine (paire = 1re personne, impaire = 2e) ; au-delà, cycle continu */
   function rotIdx(k, n){ if (n === 2) return isoWk(parse(k)) % 2 === 0 ? 0 : 1; const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7); return ((wk % n) + n) % n; }
+  /* mention du type « NP ou HR » / « AM + EF » : les initiales sont des médecins, on les poste tous les deux */
+  function mentionWho(t){ if (typeof t !== 'string') return null; const tk2 = t.trim().split(/\s*(?:\bou\b|\bet\b|[\/+,&])\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean); if (tk2.length < 2) return null; const ids = []; for (const x of tk2) { if (!doctors[x]) return null; if (!ids.includes(x)) ids.push(x); } return ids.length > 1 ? ids : null; }
   function vacWho(postId, k, part){
     if (!trame || !isDate(k)) return null;
     const dow = (parse(k).getDay()+6)%7; if (dow > 5) return null;
@@ -5232,13 +5234,15 @@ const PROTO = [
         if (!who.includes(x.from)) who.push(x.from);
       }
     });
+    let mTxt = ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : '');
+    if (!who.length && mTxt && !/^ferm/i.test(mTxt) && !(ov && ov.dl)) { const mw = mentionWho(mTxt); if (mw) { mw.forEach(x=>who.push(x)); mTxt = ''; } }
     if (pubOff(k) && !isRim()) { const w2 = who.filter(id=>!pubHidden(k, id)); if (!w2.length && who.length) return null; who.length = 0; w2.forEach(x=>who.push(x)); }
     /* RCP du lundi matin et du mardi après-midi : un des internes d'écho y est affiché aussi (désactivable dans Réglages → Trame) */
     if (postId === 'rcp' && !trame.rcpOff && ((dow === 0 && part === 'M') || (dow === 1 && part === 'AM')) && !who.some(id=>!isSrId(id))) {
       const ev = vacWho('echo', k, part), cand = ev && !ev.ou ? ev.who.filter(id=>!isSrId(id) && doctors[id]).sort() : [], it = cand.length ? cand[(Math.floor(parse(k).getTime() / 604800000) * 2 + (dow === 0 ? 0 : 1)) % cand.length] : '';   /* tour de rôle d'une semaine à l'autre */
       if (it && !(pubOff(k) && !isRim() && pubHidden(k, it))) who.push(it);
     }
-    return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: ov ? (ov.x || '') : (c && typeof c.texte === 'string' ? c.texte : ''), edited: !!(ov && c && (()=>{ const sg = a=>(Array.isArray(a) ? a : []).filter(id=>!isIntId(id)).sort().join(','), ig = a=>(Array.isArray(a) ? a : []).filter(isIntId).sort().join(','); return sg(ov.w) !== sg(c.who) || (ig(c.who) && ig(ov.w) !== ig(c.who)) || String(ov.x || '') !== String(c.texte || ''); })()), open: !!ov && !who.length && !ov.x && !ov.dl, dl: !!(ov && ov.dl)};
+    return {who, stars: ov && ov.s ? ov.s : [], ou: ov ? false : !!(c && c.ou), texte: mTxt, edited: !!(ov && c && (()=>{ const sg = a=>(Array.isArray(a) ? a : []).filter(id=>!isIntId(id)).sort().join(','), ig = a=>(Array.isArray(a) ? a : []).filter(isIntId).sort().join(','); return sg(ov.w) !== sg(c.who) || (ig(c.who) && ig(ov.w) !== ig(c.who)) || String(ov.x || '') !== String(c.texte || ''); })()), open: !!ov && !who.length && !ov.x && !ov.dl, dl: !!(ov && ov.dl)};
   }
   /* pourquoi id ne peut pas être sur ce créneau ('' si tout va bien) */
   function reasonFor(id, date, part){
