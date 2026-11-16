@@ -6597,9 +6597,12 @@ const PROTO = [
   /* qui était posté sur cette même vacation les semaines d'avant (valable pour tous les postes) */
   function vacHist(poste, date, part, n){
     const p = findPost(poste); if (!p || !trame) return '';
-    const pt = p.journee ? 'M' : (part || 'M'), rows = [];
-    for (let i = 1; i <= (n || 8); i++) { const dk = key(addDays(parse(date), -7 * i)), x = vacWho(poste, dk, pt), names = x && x.who.length ? x.who.map(id=>isSrId(id) ? '<b>'+esc(dLabel(id))+'</b>' : esc(dLabel(id))).join(', ')+(x.ou ? ' (à confirmer)' : '') : esc(x && x.texte ? x.texte : '—'); rows.push('<li><span style="opacity:.7">'+esc(new Intl.DateTimeFormat('fr-FR', {weekday: 'short', day: 'numeric', month: 'short'}).format(parse(dk)).replace(/\./g, ''))+'</span> · '+names+'</li>'); }
-    return '<details class="qhist" open style="margin-top:10px"><summary class="qgt" style="cursor:pointer">Les semaines d’avant (même vacation)</summary><ul style="margin:4px 0 0;padding-left:18px;font-size:13px;line-height:1.55">'+rows.join('')+'</ul></details>';
+    const pt = p.journee ? 'M' : (part || 'M'), rows = [], cnt = {}, order = [];
+    for (let i = 1; i <= (n || 8); i++) { const dk = key(addDays(parse(date), -7 * i)), x = vacWho(poste, dk, pt); if (x) x.who.forEach(id=>{ if (!(id in cnt)) { cnt[id] = 0; order.push(id); } cnt[id]++; }); const names = x && x.who.length ? x.who.map(id=>isSrId(id) ? '<b>'+esc(dLabel(id))+'</b>' : esc(dLabel(id))).join(', ')+(x.ou ? ' (à confirmer)' : '') : esc(x && x.texte ? x.texte : '—'); rows.push('<li><span style="opacity:.7">'+esc(new Intl.DateTimeFormat('fr-FR', {weekday: 'short', day: 'numeric', month: 'short'}).format(parse(dk)).replace(/\./g, ''))+'</span> · '+names+'</li>'); }
+    /* classement : le plus souvent posté en premier (à égalité, le plus récent d'abord) */
+    const rank = order.slice().sort((a, b)=>cnt[b] - cnt[a] || order.indexOf(a) - order.indexOf(b)), nb = n || 8;
+    const rankHtml = rank.length ? '<p class="hint" style="margin:6px 0 2px">Classement sur les '+nb+' dernières semaines</p><ol style="margin:0 0 6px;padding-left:22px;font-size:13px;line-height:1.55">'+rank.map(id=>'<li><b>'+esc(dLabel(id))+'</b> : '+cnt[id]+' fois</li>').join('')+'</ol>' : '';
+    return '<details class="qhist" open style="margin-top:10px"><summary class="qgt" style="cursor:pointer">Les semaines d’avant (même vacation)</summary>'+rankHtml+'<ul style="margin:4px 0 0;padding-left:18px;font-size:13px;line-height:1.55">'+rows.join('')+'</ul></details>';
   }
   function renderQe(){
     if (!qeOpen) return;
