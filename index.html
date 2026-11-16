@@ -166,6 +166,15 @@ button.ghost{background:none}
 #secIndis table.mois th.dh{padding:3px 1px;font-weight:700;line-height:1.2;min-width:24px}
 #secIndis table.mois td{padding:5px 1px;font-size:10px;min-width:24px}
 #secIndis table.mois .mwe{background-image:linear-gradient(color-mix(in srgb,#9AA 14%,transparent),color-mix(in srgb,#9AA 14%,transparent))}
+.offadd{cursor:pointer;position:relative}.offadd:hover{background:color-mix(in srgb,var(--accent,#17465A) 10%,transparent)}
+.offplus{display:block;text-align:center;font-size:14px;line-height:1.2;color:var(--muted);opacity:.55}
+#offAddSheet{position:fixed;inset:0;z-index:420;display:flex;align-items:flex-end;justify-content:center}
+.offaddbk{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.offaddbox{position:relative;width:min(560px,100%);max-height:88%;overflow:auto;background:var(--card,var(--bg));color:var(--ink,inherit);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.3)}
+.offaddbox h3{margin:0 0 10px;font-size:17px}
+.offaddcats,.offaddppl{display:flex;flex-wrap:wrap;gap:8px}
+.offaddcats button,.offaddppl button{min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line,#c9d3d7);background:var(--bg);color:inherit;font:inherit;font-weight:600}
+.offaddcats button[aria-pressed=true]{background:var(--accent,#17465A);color:var(--accent-ink,#fff);border-color:transparent}
 #secIndis td.sxrm{cursor:pointer;text-decoration:underline dotted}
 #secIndis td.sx{background:color-mix(in srgb,var(--red) 22%,transparent);color:var(--red);font-weight:800}
 #secIndis td.sg{background:color-mix(in srgb,#2563EB 20%,transparent);color:#1D4ED8;font-weight:700}
@@ -1220,7 +1229,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 14h45</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 15h30</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1819,7 +1828,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '521dcc1e35';
+  const BUILD = '677ebf03f6';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5136,7 +5145,12 @@ const PROTO = [
     if (!trame || dow > 4 || !loaded) return out;
     const busy = new Set();
     trame.postes.forEach(p=>{ if (p.info || !okDay(p, dow)) return; const v = vacWho(p.id, dk, part); if (v) v.who.forEach(id=>busy.add(id)); });
-    sortedDocs().forEach(d=>{ if (!busy.has(d.id) && !dayInfo(d, dk)[part] && !out.includes(d.id)) out.push(d.id); });
+    /* « Off » = personne normalement dans la trame ce jour-là (titulaire ou alternance), mais non postée ; quelqu'un qui n'est jamais en trame ce jour-là (ex. Nicolas le jeudi) n'est pas noté Off */
+    const normal = new Set();
+    trame.postes.forEach(p=>{ if (p.info || !okDay(p, dow)) return; const c = trame.cases[tk(p.id, dow, part)]; if (!c) return;
+      (Array.isArray(c.who) ? c.who : []).forEach(id=>normal.add(id)); (Array.isArray(c.rot) ? c.rot : []).forEach(id=>normal.add(id));
+      const mw = c.texte ? mentionWho(c.texte) : null; if (mw) mw.forEach(id=>normal.add(id)); });
+    sortedDocs().forEach(d=>{ if (normal.has(d.id) && !busy.has(d.id) && !dayInfo(d, dk)[part] && !out.includes(d.id)) out.push(d.id); });
     return out;
   }
   const PART_TXT = {M:'matin', AM:'après-midi'};
@@ -5489,6 +5503,34 @@ const PROTO = [
       + (docs.length ? '' : '<p class="empty">Aucun médecin.</p>');
   }
   document.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-secsc]'); if (!b) return; secScope = b.dataset.secsc; if (secScope === 'mois') secMonth = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1); else if (secMonth) { weekStart = mondayOf(secMonth); secMonth = null; } renderGLabel(); renderTeam(); renderTrame(); });
+  /* clic sur la ligne OFF en bas de la grille : mettre quelqu'un en Off / repos de garde / congés… (rangé ensuite selon sa cause) */
+  let offAdd = null;
+  function offAddClose(){ const o = $('#offAddSheet'); if (o) o.remove(); offAdd = null; }
+  function offAddRender(){
+    let o = $('#offAddSheet'); if (!offAdd) return;
+    if (!o) { o = document.createElement('div'); o.id = 'offAddSheet'; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true'); document.body.appendChild(o); }
+    const {dk, part, cat} = offAdd, free = new Set(offList((parse(dk).getDay()+6)%7, dk, part));
+    const list = sortedDocs().filter(d=>(!gGrp || (isIntId(d.id) === (gGrp === 'interne'))) && !dayInfo(d, dk)[part]).sort((a,b)=>(free.has(b.id)?1:0)-(free.has(a.id)?1:0));
+    o.innerHTML = '<div class="offaddbk" data-offclose="1"></div><div class="offaddbox"><h3>Mettre en Off · '+esc(fmtShort.format(parse(dk)))+' '+(part === 'M' ? 'matin' : 'après-midi')+'</h3>'
+      + '<p class="hint" style="margin:0 0 6px">Cause :</p><div class="offaddcats">'+['Off','Repos de garde','Congés annuels','Absent(e)'].map(c=>'<button type="button" data-offcat="'+esc(c)+'" aria-pressed="'+(c === cat)+'">'+esc(c)+'</button>').join('')+'</div>'
+      + '<p class="hint" style="margin:10px 0 6px">Qui ? (touchez un nom)</p><div class="offaddppl">'+(list.length ? list.map(d=>'<button type="button" data-offwho="'+esc(d.id)+'">'+esc(dLabel(d.id))+'</button>').join('') : '<span class="muted">Tout le monde est déjà indisponible.</span>')+'</div>'
+      + '<button type="button" class="ghost" data-offclose="1" style="margin-top:12px;width:100%;min-height:44px">Fermer</button></div>';
+  }
+  document.addEventListener('click', async e=>{
+    const oc = e.target.closest && e.target.closest('[data-offclose]'); if (oc) { offAddClose(); return; }
+    const ct = e.target.closest && e.target.closest('[data-offcat]'); if (ct && offAdd) { offAdd.cat = ct.dataset.offcat; offAddRender(); return; }
+    const ow = e.target.closest && e.target.closest('[data-offwho]');
+    if (ow && offAdd) {
+      if (!isRim()) return notify(NOADM_MSG, true);
+      if (!(await ensureCode('mettre quelqu’un en Off'))) return;
+      const id = ow.dataset.offwho, {dk, part, cat} = offAdd, d = doctors[id]; if (!d) return;
+      const cur = (d.days || {})[dk], other = part === 'M' ? 'AM' : 'M', nv = cur === other || cur === 'J' ? 'J' : part;
+      if (await setDays(id, {[dk]: nv})) { try { await db.doc('medecins/'+id).update({abs: {[dk+'_'+part]: cat}}); notify(dLabel(id)+' : '+cat+' · '+fmtShort.format(parse(dk))+' '+(part === 'M' ? 'matin' : 'après-midi')+'.'); } catch(err) { handleErr(err); } }
+      offAddRender(); renderTrame(); return;
+    }
+    const oa = e.target.closest && e.target.closest('[data-offadd]');
+    if (oa && !window.SEC) { if (!isRim()) return notify(NOADM_MSG, true); const [dk, part] = oa.dataset.offadd.split('|'); offAdd = {dk, part, cat: 'Off'}; offAddRender(); return; }
+  });
   document.addEventListener('click', async e=>{
     const t = e.target.closest && e.target.closest('[data-indrm]'); if (!t || window.SEC) return;
     if (!isRim()) return notify(NOADM_MSG, true);
@@ -5623,7 +5665,8 @@ const PROTO = [
     h += ('<tr><th class="who" scope="row">OFF</th>' + keys.map((d,i)=>PARTS.map(part=>{
       if (i === 5 && part === 'AM') return '';
       const l = offList(i, key(d), part);
-      return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.filter(vis).map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
+      const adm = isRim() && !window.SEC && canWrite;
+      return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+(adm ? ' offadd' : '')+'"'+(adm ? ' data-offadd="'+key(d)+'|'+part+'" role="button" tabindex="0" title="Toucher pour mettre quelqu’un en Off / congés"' : '')+'>'+l.filter(vis).map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+(adm ? '<span class="offplus" aria-hidden="true">＋</span>' : '')+'</td>';
     }).join('')).join('') + '</tr>') + '</tbody></table>';
     wrap.innerHTML = h;
     /* jours fériés : colonne grisée (2 cellules par jour, 1 le samedi) */
