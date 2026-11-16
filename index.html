@@ -1253,7 +1253,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 17h40</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 18h00</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1856,7 +1856,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'ced759b778';
+  const BUILD = '9065f6289c';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5495,7 +5495,7 @@ const PROTO = [
     const cell = (d,k,pt,i)=>{
       const inf = dayInfo(d,k);
       if (inf.ferie) return '<td class="sf" title="Jour férié">Férié</td>';
-      if (inf[pt] === 'I') { const cz = inf.auto ? ['Off','off'] : (ABS_CODE[absCause(d, k, pt)] || ['I','i']), cl = inf.auto ? 'Indispo' : absCause(d, k, pt); return window.SEC || inf.auto || !isRim() ? '<td class="sx cz-'+cz[1]+'" title="'+esc(cl)+'">'+(inf.auto ? 'Indispo' : esc(cl))+'</td>' : '<td class="sx cz-'+cz[1]+'" title="Toucher pour modifier le motif ou retirer" data-celset="'+esc(d.id)+'|'+k+'" role="button" tabindex="0">'+esc(cl)+' ✎</td>'; }
+      if (inf[pt] === 'I') { const cz = inf.auto ? ['Off','off'] : (ABS_CODE[absCause(d, k, pt)] || ['I','i']), cl = inf.auto ? 'Indispo' : absCause(d, k, pt); return window.SEC || inf.auto || !isRim() ? '<td class="sx cz-'+cz[1]+'" title="'+esc(cl)+'">'+(inf.auto ? 'Indispo' : esc(cz[0]))+'</td>' : '<td class="sx cz-'+cz[1]+'" title="'+esc(cl)+' · toucher pour changer le motif ou retirer" data-celset="'+esc(d.id)+'|'+k+'" role="button" tabindex="0">'+esc(cz[0])+' ✎</td>'; }
       if (inf.kind === 'G') return '<td class="sg" title="Garde">Garde</td>';
       if (inf[pt] === 'R') return '<td class="sr" title="Repos après garde">Repos</td>';
       if (inf[pt] === 'A') return '<td class="sa" title="Astreinte">Astr.</td>';
@@ -5542,7 +5542,7 @@ const PROTO = [
       return;
     }
     box.innerHTML = scopeBar + '<div class="sleg"><span class="sx">Indispo</span><span class="sg">Garde</span><span class="sr">Repos</span><span class="sa">Astreinte</span><span class="sf">Férié</span></div>'
-      + (isRim() && !window.SEC ? '<p class="hint" style="margin:0 0 8px">Administrateur : touchez une « Indispo ✕ » pour l’enlever.</p>' : '')
+      + (isRim() && !window.SEC ? '<p class="hint" style="margin:0 0 8px">Administrateur : touchez une case pour changer le motif (CA, RDG, F, R, Off…) ou retirer l’indisponibilité.</p>' : '')
       + grp('🩺 Seniors', sen) + grp('🎓 Internes', int)
       + (docs.length ? '' : '<p class="empty">Aucun médecin.</p>');
   }
