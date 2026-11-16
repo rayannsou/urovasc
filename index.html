@@ -1215,7 +1215,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 13h00</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 13h15</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1808,7 +1808,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'e23fdd1b23';
+  const BUILD = 'fc4179b0d3';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -6396,7 +6396,7 @@ const PROTO = [
     const whereTxt = (id, r)=>{ const o = elsewhere[id] || []; return o.length ? '📍 '+o.join(' · ') : (r ? '⚠ '+r : (dw > 4 || !isIntId(id) ? '' : 'libre (off)')); };
     const chip = id=>{ const r = reasonFor(id, ed.date, ed.part), o = elsewhere[id] || []; return '<button type="button" class="qchip'+(r ? ' bad' : '')+'" data-qrm="'+esc(id)+'" aria-label="Retirer '+esc(dLabel(id))+'">'+(r ? '⚠ ' : '')+esc(dLabel(id))+(o.length ? '<small>📍 '+esc(o.join(' · '))+'</small>' : '')+'<i>✕</i></button>'; };
     $('#qeBody').innerHTML = '<p class="qgt">Sur cette vacation</p>' + (cur.length ? '<div class="qchips">'+cur.map(chip).join('')+'</div>' : '<p class="hint">Personne pour l’instant.</p>')
-      + cur.filter(id=>!(v && v.ou) && reasonFor(id, ed.date, ed.part)).map(id=>'<div class="qconf"><p class="aststat ko" style="margin:0 0 8px">⚠ '+esc(dLabel(id))+' : '+esc(reasonFor(id, ed.date, ed.part))+'</p>'+(isRim() ? '<button type="button" class="primary qconfok" data-qok="'+esc(id)+'"'+(canWrite ? '' : ' disabled')+'>✓ Valider quand même '+esc(dLabel(id))+'</button>' : '')+'</div>').join('')
+      + cur.filter(id=>!(v && v.ou) && reasonFor(id, ed.date, ed.part)).map(id=>'<div class="qconf"><p class="aststat ko" style="margin:0 0 8px">⚠ '+esc(dLabel(id))+' : '+esc(reasonFor(id, ed.date, ed.part))+(()=>{ const dd = doctors[id]; if (!dd || dayInfo(dd, ed.date)[ed.part] !== 'I') return ''; const cat = (dd.abs && dd.abs[ed.date+'_'+ed.part]) || 'Off'; return ' — <b>'+esc(cat === 'Off' ? 'Off standard' : cat)+'</b>'; })()+'</p>'+(isRim() ? '<button type="button" class="primary qconfok" data-qok="'+esc(id)+'"'+(canWrite ? '' : ' disabled')+'>✓ Valider quand même '+esc(dLabel(id))+'</button>' : '')+'</div>').join('')
       + cur.filter(id=>{ const dd = doctors[id]; return dd && dd.ok && dd.ok[ed.date+'_'+ed.part]; }).map(id=>'<div class="qconf okk"><span>✓ '+esc(dLabel(id))+' : conflit validé</span><button type="button" class="pladd" data-qokno="'+esc(id)+'">↩ Retirer l’accord</button></div>').join('')
       + vacHist(ed.poste, ed.date, ed.part)
       + (v && /^ferm/i.test(v.texte || '') && !cur.length ? '' : '<div class="qchips" style="margin-top:8px;align-items:center"><input type="text" id="qeTxt" maxlength="80" placeholder="Mention (ex. à confirmer, NP ou HR…)" value="'+esc(v && v.texte ? v.texte : '')+'" style="flex:1;min-width:150px;min-height:40px"><button type="button" class="pladd" data-qtxtset="1"'+(canWrite ? '' : ' disabled')+'>✎ Enregistrer la mention</button>'+(v && v.texte ? '<button type="button" class="pladd" data-qtxt="1"'+(canWrite ? '' : ' disabled')+'>🗑 Supprimer</button>' : '')+'</div>')
