@@ -168,6 +168,8 @@ button.ghost{background:none}
 #secIndis table.mois td{padding:5px 1px;font-size:10px;min-width:24px}
 #secIndis table.mois .mwe{background-image:linear-gradient(color-mix(in srgb,#9AA 14%,transparent),color-mix(in srgb,#9AA 14%,transparent))}
 .catbtn{cursor:pointer;min-height:36px;border:1px dashed var(--line,#9aa);background:transparent;color:inherit;font:inherit;border-radius:10px;padding:0 10px}
+.offrm{cursor:pointer;border:0;font:inherit}
+@media(min-width:701px){.onlynarrow{display:none}}
 .offadd{cursor:pointer;position:relative}.offadd:hover{background:color-mix(in srgb,var(--accent,#17465A) 10%,transparent)}
 .offplus{display:block;text-align:center;font-size:14px;line-height:1.2;color:var(--muted);opacity:.55}
 #offAddSheet{position:fixed;inset:0;z-index:420;display:flex;align-items:flex-end;justify-content:center}
@@ -966,7 +968,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <button type="button" id="gNext" aria-label="Semaine suivante">›</button>
           <button type="button" id="gToday" class="ghost">Cette semaine</button>
         </div>
-        <div class="subtabs" id="gScope" role="group" aria-label="Période du planning"><button type="button" data-gscope="sem" aria-pressed="true">Semaine</button><button type="button" data-gscope="mois" aria-pressed="false">Mois</button></div>
+        <div class="subtabs" id="gScope" role="group" aria-label="Période du planning"><button type="button" data-gscope="sem" aria-pressed="true">Semaine</button><button type="button" data-gscope="mois" aria-pressed="false">Mois</button><button type="button" class="onlynarrow" data-gscope="tab" aria-pressed="false">Tableau</button></div>
         <div class="subtabs" id="secSeg" role="group" aria-label="Vue secrétariat" hidden><button type="button" data-sec="plan" aria-pressed="true">📅 Planning</button><button type="button" data-sec="indis" aria-pressed="false">🚫 Indisponibilités</button></div>
         <div id="secWhoBar" hidden style="margin:0 0 8px"><select id="secWho" aria-label="Choisir un médecin" style="width:100%;min-height:44px"></select></div>
         <div class="subtabs" id="gGrpBar" role="group" aria-label="Afficher"><button type="button" data-ggrp="" aria-pressed="true">Tous</button><button type="button" data-ggrp="medecin" aria-pressed="false">🩺 Seniors</button><button type="button" data-ggrp="interne" aria-pressed="false">🎓 Internes</button></div>
@@ -1241,7 +1243,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 16h30</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 17h10</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1785,7 +1787,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const v = days[k] || null;
     const prev = days[key(addDays(parse(k),-1))] || null;
     if (v === 'G') return {kind:'G', M:null, AM:null};   /* le jour de garde on travaille normalement : seul le lendemain est « repos de garde » */
-    if (prev === 'G') return {kind:'R', M:'R', AM:'R'};
+    if (prev === 'G' && !(doc.norest && doc.norest[k])) return {kind:'R', M:'R', AM:'R'};   /* norest : repos de garde retiré à la main par un administrateur */
     if (!v && parse(k).getDay() === 0 && days[key(addDays(parse(k),-1))] === 'J' && days[key(addDays(parse(k),1))] === 'J') return {kind:'I', M:'I', AM:'I', part:'J', auto:true};   /* samedi et lundi indisponibles : le dimanche l'est aussi */
     if (!v && isFerie(k)) return {kind:'I', M:'I', AM:'I', part:'J', auto:true, ferie:true};   /* jour férié : tout le monde indisponible d'office */
     if (v === 'A') return {kind:'A', M:'A', AM:null};
@@ -1840,7 +1842,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'e4e53ff8c4';
+  const BUILD = '1cb110660f';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5263,7 +5265,8 @@ const PROTO = [
   /* indice dans une alternance : à 2 personnes, selon le numéro de semaine (paire = 1re personne, impaire = 2e) ; au-delà, cycle continu */
   function rotIdx(k, n){ if (n === 2) return isoWk(parse(k)) % 2 === 0 ? 0 : 1; const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7); return ((wk % n) + n) % n; }
   /* mention du type « NP ou HR » / « AM + EF » : les initiales sont des médecins, on les poste tous les deux */
-  function mentionWho(t){ if (typeof t !== 'string') return null; const tk2 = t.trim().split(/\s*(?:\bou\b|\bet\b|[\/+,&])\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean); if (tk2.length < 2) return null; const ids = []; for (const x of tk2) { const id = doctors[x] ? x : Object.keys(doctors).find(i=>norm(dLabel(i)) === norm(x)); if (!id) return null; if (!ids.includes(id)) ids.push(id); } return ids.length > 1 ? ids : null; }
+  const nrmM = x => String(x == null ? '' : x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  function mentionWho(t){ if (typeof t !== 'string') return null; const tk2 = t.trim().split(/\s*(?:\bou\b|\bet\b|[\/+,&])\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean); if (tk2.length < 2) return null; const ids = []; for (const x of tk2) { const id = doctors[x] ? x : Object.keys(doctors).find(i=>nrmM(dLabel(i)) === nrmM(x)); if (!id) return null; if (!ids.includes(id)) ids.push(id); } return ids.length > 1 ? ids : null; }
   function vacWho(postId, k, part){
     if (!trame || !isDate(k)) return null;
     const dow = (parse(k).getDay()+6)%7; if (dow > 5) return null;
@@ -5539,6 +5542,21 @@ const PROTO = [
       + '<button type="button" class="ghost" data-offclose="1" style="margin-top:12px;width:100%;min-height:44px">Fermer</button></div>';
   }
   document.addEventListener('click', async e=>{
+    const ar = e.target.closest && e.target.closest('[data-absrm]');
+    if (ar && !window.SEC) {
+      if (!isRim()) return notify(NOADM_MSG, true);
+      const [id, dk, part] = ar.dataset.absrm.split('|'), d = doctors[id]; if (!d) return;
+      const inf = dayInfo(d, dk), lbl = dLabel(id)+' · '+fmtShort.format(parse(dk))+' '+(part === 'M' ? 'matin' : 'après-midi');
+      if (inf.auto) return notify(lbl+' : indisponibilité automatique (jour férié ou dimanche), non modifiable ici.', true);
+      if (!window.confirm('Retirer '+(inf.kind === 'R' ? 'le repos de garde' : 'l’indisponibilité')+' de '+lbl+' ?')) return;
+      if (!(await ensureCode('retirer une absence'))) return;
+      try {
+        if (inf.kind === 'R') await db.doc('medecins/'+id).update({norest: {[dk]: true}});
+        else { const cur = (d.days || {})[dk], other = part === 'M' ? 'AM' : 'M'; await setDays(id, {[dk]: cur === 'J' ? other : null}); }
+        notify('Retiré : '+lbl+'.');
+      } catch(err) { handleErr(err); }
+      renderTrame(); return;
+    }
     const oc = e.target.closest && e.target.closest('[data-offclose]'); if (oc) { offAddClose(); return; }
     const ct = e.target.closest && e.target.closest('[data-offcat]'); if (ct && offAdd) { offAdd.cat = ct.dataset.offcat; offAddRender(); return; }
     const ow = e.target.closest && e.target.closest('[data-offwho]');
@@ -5625,7 +5643,7 @@ const PROTO = [
       return row(full ? 'Senior'+(sr.length > 1 ? 's' : '') : 'Sr', sr) + row(full ? 'Interne'+(it.length > 1 ? 's' : '') : 'Int', it);
     };
     document.querySelectorAll('[data-ggrp]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.ggrp === gGrp)));
-    const narrow = window.matchMedia && window.matchMedia('(max-width:700px)').matches;
+    const narrow = window.matchMedia && window.matchMedia('(max-width:700px)').matches && gScope !== 'tab';   /* « Tableau » : le tableau de la semaine (comme sur ordinateur) aussi sur téléphone */
     wrap.classList.toggle('tw', !narrow);
     if (narrow) {
       const tk0 = key(new Date());
@@ -5663,7 +5681,7 @@ const PROTO = [
         L += '<div class="prow pabs"><details class="absd"'+(window.__absOpen ? ' open' : '')+' ontoggle="window.__absOpen=this.open"><summary class="pname">Absences <b class="acn">'+nAb+'</b></summary>';
         ab.forEach(x=>{
           const cs = ABS_CATS.filter(c=>x.g[c]);
-          L += '<div class="pcell"><span class="pp">'+(x.part === 'M' ? 'Matin' : 'Après-midi')+'</span><span class="pw">'+(cs.length ? cs.map(c=>(admOff ? '<button type="button" class="cat catbtn" data-offadd="'+dk+'|'+x.part+'" data-offcat0="'+esc(c)+'" title="Ajouter quelqu’un en '+esc(c)+'">'+esc(c)+' ＋</button>' : '<span class="cat">'+esc(c)+'</span>')+x.g[c].map(id=>'<span class="ch'+(id === me ? ' me' : '')+'"'+chipSty(id, '')+'>'+esc(dLabel(id))+'</span>').join('')).join('') : '<span class="muted">—</span>')+(admOff ? '<button type="button" class="cat catbtn" data-offadd="'+dk+'|'+x.part+'" data-offcat0="Off">＋ Ajouter un Off</button>' : '')+'</span></div>';
+          L += '<div class="pcell"><span class="pp">'+(x.part === 'M' ? 'Matin' : 'Après-midi')+'</span><span class="pw">'+(cs.length ? cs.map(c=>(admOff ? '<button type="button" class="cat catbtn" data-offadd="'+dk+'|'+x.part+'" data-offcat0="'+esc(c)+'" title="Ajouter quelqu’un en '+esc(c)+'">'+esc(c)+' ＋</button>' : '<span class="cat">'+esc(c)+'</span>')+x.g[c].map(id=>admOff ? '<button type="button" class="ch offrm'+(id === me ? ' me' : '')+'"'+chipSty(id, '')+' data-absrm="'+esc(id)+'|'+dk+'|'+x.part+'" title="Toucher pour retirer">'+esc(dLabel(id))+' ✕</button>' : '<span class="ch'+(id === me ? ' me' : '')+'"'+chipSty(id, '')+'>'+esc(dLabel(id))+'</span>').join('')).join('') : '<span class="muted">—</span>')+(admOff ? '<button type="button" class="cat catbtn" data-offadd="'+dk+'|'+x.part+'" data-offcat0="Off">＋ Ajouter un Off</button>' : '')+'</span></div>';
         });
         L += '</details></div>';
       }
@@ -5712,7 +5730,8 @@ const PROTO = [
       h += '<tr class="absrow"><th class="who" scope="row">'+esc(c)+'</th>' + keys.map((d,i)=>PARTS.map((part,pi)=>{
         if (i === 5 && part === 'AM') return '';
         const l = wk[i][pi][c] || [];
-        return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.filter(vis).map(id=>'<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
+        const admR = isRim() && !window.SEC && canWrite;
+        return '<td class="v'+(part === 'AM' || i === 5 ? ' end' : '')+'">'+l.filter(vis).map(id=>admR ? '<button type="button" class="ch off offrm" data-absrm="'+esc(id)+'|'+key(d)+'|'+part+'" title="Toucher pour retirer">'+esc(dLabel(id))+' ✕</button>' : '<span class="ch off">'+esc(dLabel(id))+'</span>').join('')+'</td>';
       }).join('')).join('') + '</tr>';
     });
     h += ('<tr><th class="who" scope="row">OFF</th>' + keys.map((d,i)=>PARTS.map(part=>{
@@ -7952,7 +7971,7 @@ const PROTO = [
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', admin: v.admin === true, ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, alias: (v.alias && typeof v.alias==='object') ? v.alias : {}, noAst: v.noAst === true, astMax: typeof v.astMax === 'number' && v.astMax > 0 ? Math.floor(v.astMax) : 0, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, dem: (v.dem && typeof v.dem === 'object') ? v.dem : {}, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : '', rap: (v.rap && typeof v.rap === 'object') ? v.rap : {}, pres: (v.pres && typeof v.pres === 'object') ? v.pres : {}};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', admin: v.admin === true, ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, alias: (v.alias && typeof v.alias==='object') ? v.alias : {}, norest: (v.norest && typeof v.norest==='object') ? v.norest : {}, noAst: v.noAst === true, astMax: typeof v.astMax === 'number' && v.astMax > 0 ? Math.floor(v.astMax) : 0, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, dem: (v.dem && typeof v.dem === 'object') ? v.dem : {}, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : '', rap: (v.rap && typeof v.rap === 'object') ? v.rap : {}, pres: (v.pres && typeof v.pres === 'object') ? v.pres : {}};
       });
       doctors = next; loaded = true; renderAll(); maybePatch();
       /* service Ostéo : un compte administrateur « Admin Osteo » est créé d'office quand la base est encore vide */
