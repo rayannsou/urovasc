@@ -103,6 +103,24 @@ table.team.trame .cap{margin-top:2px}
   table.team.trame thead th{font-size:clamp(11px,.85vw,13px)}
 }
 #swPop{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:300;padding:8px 12px;pointer-events:none}.swpin{pointer-events:auto;max-width:560px;margin:0 auto;background:var(--card,#fff);color:var(--ink);border:2px solid var(--accent);border-radius:14px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:6px}.swpt{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.swpx{min-height:32px;min-width:32px;padding:0;border-radius:50%;font-size:18px;line-height:1}.swpq{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}.swpq button{flex:1 1 90px;min-height:44px}
+
+/* « Tableau » sur téléphone : toute la semaine tient dans l'écran, comme le tableur (texte réduit, noms en colonne) */
+@media (max-width:700px){
+#trameWrap.tfit{overflow:visible;border-radius:0;border-left:0;border-right:0;margin:0 -10px}
+#trameWrap.tfit table.team.trame{table-layout:fixed;width:100%;min-width:0;font-size:8px}
+#trameWrap.tfit table.team.trame th.who{width:17%;min-width:0;padding:2px 1px 2px 5px;font-size:7px;line-height:1.15;position:static;white-space:normal;overflow-wrap:normal;word-break:normal;hyphens:auto}
+#trameWrap.tfit table.team.trame th.who small{display:none}
+#trameWrap.tfit table.team.trame thead th{font-size:7.5px;padding:2px 0;letter-spacing:0;line-height:1.1}
+#trameWrap.tfit table.team.trame thead th[colspan]{font-size:8px;letter-spacing:0}
+#trameWrap.tfit table.team.trame td.v{padding:1px 0;height:22px;font-size:7.5px;line-height:1.1;text-align:center;overflow:hidden}
+#trameWrap.tfit table.team.trame td.v .rg{display:block;padding:0;gap:0}
+#trameWrap.tfit table.team.trame td.v .rg em,#trameWrap.tfit table.team.trame td.v .rg+.rg{display:none}
+#trameWrap.tfit table.team.trame td.v .rg+.rg{display:block}
+#trameWrap.tfit table.team.trame td.v .ch{display:block;font-size:7.5px;line-height:1.15;padding:0 1px;margin:0;border-radius:3px;white-space:normal;overflow-wrap:anywhere}
+#trameWrap.tfit table.team.trame td.v .cap{display:none}
+#trameWrap.tfit table.team.trame td.v.unf{outline:1px solid #dc2626;outline-offset:-1px}
+#trameWrap.tfit table.team.trame tr.absrow td.v{font-size:7.5px}
+}
 </style>
 </head>
 <body>
@@ -1253,7 +1271,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 16/11/2026 · 16h16</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 17/11/2026 · 14h19</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1856,7 +1874,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = 'ec528e436f';
+  const BUILD = '68d2d0c7d9';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5711,6 +5729,7 @@ const PROTO = [
     document.querySelectorAll('[data-ggrp]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.ggrp === gGrp)));
     const narrow = window.matchMedia && window.matchMedia('(max-width:700px)').matches && gScope !== 'tab';   /* « Tableau » : le tableau de la semaine (comme sur ordinateur) aussi sur téléphone */
     wrap.classList.toggle('tw', !narrow);
+    wrap.classList.toggle('tfit', !narrow && gScope === 'tab' && !!(window.matchMedia && window.matchMedia('(max-width:700px)').matches));
     if (narrow) {
       const tk0 = key(new Date());
       if (gDay < 0) { const ix = [0,1,2,3,4,5].find(i=>key(addDays(weekStart,i)) === tk0); gDay = ix === undefined ? 0 : ix; }
