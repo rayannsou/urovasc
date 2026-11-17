@@ -113,10 +113,10 @@ table.team.trame .cap{margin-top:2px}
 #trameWrap.tfit table.team.trame thead th{font-size:7.5px;padding:2px 0;letter-spacing:0;line-height:1.1}
 #trameWrap.tfit table.team.trame thead th[colspan]{font-size:8px;letter-spacing:0}
 #trameWrap.tfit table.team.trame td.v{padding:1px 0;height:22px;font-size:7.5px;line-height:1.1;text-align:center;overflow:hidden}
-#trameWrap.tfit table.team.trame td.v .rg{display:block;padding:0;gap:0}
+#trameWrap.tfit table.team.trame td.v .rg{display:flex;flex-wrap:wrap;justify-content:center;padding:0;gap:1px}
 #trameWrap.tfit table.team.trame td.v .rg em,#trameWrap.tfit table.team.trame td.v .rg+.rg{display:none}
-#trameWrap.tfit table.team.trame td.v .rg+.rg{display:block}
-#trameWrap.tfit table.team.trame td.v .ch{display:block;font-size:7.5px;line-height:1.15;padding:0 1px;margin:0;border-radius:3px;white-space:normal;overflow-wrap:anywhere}
+#trameWrap.tfit table.team.trame td.v .rg+.rg{margin-top:1px;padding-top:0;border-top:0}
+#trameWrap.tfit table.team.trame td.v .ch{display:inline-block;font-size:8px;font-weight:600;line-height:1.2;padding:0 2px;margin:0;border-radius:3px;white-space:normal;overflow-wrap:anywhere}
 #trameWrap.tfit table.team.trame td.v .cap{display:none}
 #trameWrap.tfit table.team.trame td.v.unf{outline:1px solid #dc2626;outline-offset:-1px}
 #trameWrap.tfit table.team.trame tr.absrow td.v{font-size:7.5px}
@@ -1271,7 +1271,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 17/11/2026 · 14h19</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 17/11/2026 · 14h24</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1874,7 +1874,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '68d2d0c7d9';
+  const BUILD = '6ab2fd2e15';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -5774,6 +5774,14 @@ const PROTO = [
       wrap.innerHTML = L;
       renderGAlert(); renderEditor(); return;
     }
+    const fitT = wrap.classList.contains('tfit');
+    /* initiales courtes, uniques : alias de 2-3 lettres s'il existe, sinon début du prénom (allongé si deux personnes se ressemblent) */
+    const shMap = {}; if (fitT) { const ds = sortedDocs(), cl = x=>String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z]/g, '').toUpperCase();
+      ds.forEach(d=>{ const al = Object.keys(d.alias || {}).map(cl).filter(x=>x.length >= 2 && x.length <= 3)[0]; if (al && cl(d.label).length > 3) shMap[d.id] = al; });
+      const lenOf = {}; ds.forEach(d=>{ if (!shMap[d.id]) lenOf[d.id] = Math.min(2, cl(d.label).length || 2); });
+      for (let g = 0; g < 6; g++) { const seen = {}; ds.forEach(d=>{ if (shMap[d.id]) return; const t = cl(d.label).slice(0, lenOf[d.id]) || '?'; (seen[t] = seen[t] || []).push(d); }); let ch = false; Object.keys(seen).forEach(t=>{ if (seen[t].length > 1) seen[t].forEach(d=>{ if (lenOf[d.id] < cl(d.label).length) { lenOf[d.id]++; ch = true; } }); }); if (!ch) break; }
+      ds.forEach(d=>{ if (!shMap[d.id]) shMap[d.id] = cl(d.label).slice(0, lenOf[d.id]) || d.label; }); }
+    const shortOf = id => shMap[id] || dLabel(id);
     let h = '<table class="team trame"><thead><tr><th class="who" rowspan="2" scope="col">Poste</th>'
       + keys.map((d,i)=>'<th colspan="'+(i === 5 ? 1 : 2)+'" scope="colgroup" class="end'+(isFerie(key(d)) ? ' jferie' : '')+'"'+(isFerie(key(d)) ? ' title="'+esc(ferieName(key(d)))+'"' : '')+'>'+DOW[i]+' '+d.getDate()+(isFerie(key(d)) ? '<small class="jfl">Férié</small>' : '')+'</th>').join('')
       + '</tr><tr class="sub">' + keys.map((d,i)=>i === 5 ? '<th scope="col" class="end">M</th>' : '<th scope="col">M</th><th scope="col" class="end">AM</th>').join('') + '</tr></thead><tbody>';
@@ -5798,7 +5806,7 @@ const PROTO = [
           let cfl = false;
           inner += splitChips(v, id=>{
             const r = v.ou ? '' : reasonFor(id,k,part); if (r) cfl = true;
-            return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+(r ? ' title="'+esc(dLabel(id)+' : '+r)+'"' : '')+'>'+(r ? '⚠ ' : '')+esc(dLabel(id)+starOf(v,id))+'</span>';
+            return '<span class="ch'+(id === me ? ' me' : '')+(r ? ' bad' : '')+'"'+chipSty(id, r)+(r ? ' title="'+esc(dLabel(id)+' : '+r)+'"' : (fitT ? ' title="'+esc(dLabel(id))+'"' : ''))+'>'+(r ? '⚠ ' : '')+esc((fitT ? shortOf(id) : dLabel(id))+starOf(v,id))+'</span>';
           }, false);
           const unf = isUnf(p, v, k);
           if (unf) inner += '<span class="cap open">⚠ à pourvoir</span>';
