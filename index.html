@@ -121,6 +121,7 @@ table.team.trame .cap{margin-top:2px}
 #trameWrap.tfit table.team.trame td.v.unf{outline:1px solid #dc2626;outline-offset:-1px}
 #trameWrap.tfit table.team.trame tr.absrow td.v{font-size:7.5px}
 }
+.iniin{width:64px;min-width:0;text-transform:uppercase;text-align:center;font-size:13px}
 </style>
 </head>
 <body>
@@ -1271,7 +1272,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 17/11/2026 · 14h24</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 17/11/2026 · 14h39</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1874,7 +1875,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '6ab2fd2e15';
+  const BUILD = '8b6ea4f4c4';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2953,7 +2954,7 @@ const PROTO = [
 
   function renderManage(){
     const list = sortedDocs();
-    const sig = list.map(d=>d.id+':'+d.label+':'+(d.role||'')).join('|')+'#'+pendingRemove+'#'+canWrite;
+    const sig = list.map(d=>d.id+':'+d.label+':'+(d.role||'')+':'+(d.ini||'')).join('|')+'#'+pendingRemove+'#'+canWrite;
     if (sig === manSig) return;
     const a = document.activeElement;
     if (a && a.matches && a.matches('[data-ren]')) return;
@@ -2961,7 +2962,7 @@ const PROTO = [
     { const tn = document.getElementById('teamN'); if (tn) tn.textContent = list.length || ''; }
     $('#people').innerHTML = list.length ? list.map(d=>{
       const c = pendingRemove === d.id;
-      return '<li><input type="text" data-ren="'+esc(d.id)+'" value="'+esc(d.label)+'" maxlength="24" autocomplete="off" aria-label="Nom de '+esc(d.label)+' (modifiable)"'+(canWrite?'':' disabled')+'><select data-role="'+esc(d.id)+'" aria-label="Fonction de '+esc(d.label)+'"'+(canWrite?'':' disabled')+'>'+['Médecin','Interne','Autre'].map(r=>'<option'+((d.role||'Médecin') === r ? ' selected' : '')+'>'+r+'</option>').join('')+'</select>'+(d.role === 'Interne' ? '<select data-auto="'+esc(d.id)+'" aria-label="Autonomie de '+esc(d.label)+'"'+(canWrite?'':' disabled')+'><option value=""'+(d.auto == null ? ' selected' : '')+'>Autonomie ?</option><option value="1"'+(d.auto === true ? ' selected' : '')+'>Autonome</option><option value="0"'+(d.auto === false ? ' selected' : '')+'>Pas autonome</option></select>' : '')+'<button type="button" data-rm="'+esc(d.id)+'" class="'+(c?'confirm':'')+'"'+(canWrite?'':' disabled')+' aria-label="Retirer '+esc(d.label)+'">'+(c?'Confirmer le retrait':'Retirer')+'</button></li>';
+      return '<li><input type="text" data-ren="'+esc(d.id)+'" value="'+esc(d.label)+'" maxlength="24" autocomplete="off" aria-label="Nom de '+esc(d.label)+' (modifiable)"'+(canWrite?'':' disabled')+'><input type="text" class="iniin" data-ini="'+esc(d.id)+'" value="'+esc(d.ini || '')+'" maxlength="4" placeholder="Initiales" autocomplete="off" autocapitalize="characters" aria-label="Initiales de '+esc(d.label)+'"'+(canWrite?'':' disabled')+'><select data-role="'+esc(d.id)+'" aria-label="Fonction de '+esc(d.label)+'"'+(canWrite?'':' disabled')+'>'+['Médecin','Interne','Autre'].map(r=>'<option'+((d.role||'Médecin') === r ? ' selected' : '')+'>'+r+'</option>').join('')+'</select>'+(d.role === 'Interne' ? '<select data-auto="'+esc(d.id)+'" aria-label="Autonomie de '+esc(d.label)+'"'+(canWrite?'':' disabled')+'><option value=""'+(d.auto == null ? ' selected' : '')+'>Autonomie ?</option><option value="1"'+(d.auto === true ? ' selected' : '')+'>Autonome</option><option value="0"'+(d.auto === false ? ' selected' : '')+'>Pas autonome</option></select>' : '')+'<button type="button" data-rm="'+esc(d.id)+'" class="'+(c?'confirm':'')+'"'+(canWrite?'':' disabled')+' aria-label="Retirer '+esc(d.label)+'">'+(c?'Confirmer le retrait':'Retirer')+'</button></li>';
     }).join('') : '<li class="muted" style="border:0;font-family:inherit">Aucun médecin.</li>';
   }
 
@@ -5144,6 +5145,8 @@ const PROTO = [
   });
 
   $('#people').addEventListener('change', async e=>{
+    const ii = e.target.closest('input[data-ini]');
+    if (ii) { if (!db || !canWrite) return notify('Lecture seule : modification impossible.', true); const v = ii.value.trim().toUpperCase().slice(0, 4); ii.value = v; try { await db.doc('medecins/'+ii.dataset.ini).update({ini: v}); notify(v ? 'Initiales enregistrées.' : 'Initiales retirées.'); } catch(err) { handleErr(err); } return; }
     const au = e.target.closest('select[data-auto]');
     if (au) { if (!db || !canWrite) return notify('Lecture seule : modification impossible.', true); try { await db.doc('medecins/'+au.dataset.auto).update({auto: au.value === '' ? null : au.value === '1'}); notify('Niveau enregistré.'); } catch(err) { handleErr(err); } return; }
     const sel = e.target.closest('select[data-role]'); if (!sel) return;
@@ -5313,7 +5316,7 @@ const PROTO = [
   function rotIdx(k, n){ if (n === 2) return isoWk(parse(k)) % 2 === 0 ? 0 : 1; const wk = Math.floor(Math.round((parse(k) - parse('2026-01-05')) / 86400000) / 7); return ((wk % n) + n) % n; }
   /* mention du type « NP ou HR » / « AM + EF » : les initiales sont des médecins, on les poste tous les deux */
   const nrmM = x => String(x == null ? '' : x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-  function mentionWho(t){ if (typeof t !== 'string') return null; const tk2 = t.trim().split(/\s*(?:\bou\b|\bet\b|[\/+,&])\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean); if (tk2.length < 2) return null; const ids = []; for (const x of tk2) { const id = doctors[x] ? x : Object.keys(doctors).find(i=>nrmM(dLabel(i)) === nrmM(x)); if (!id) return null; if (!ids.includes(id)) ids.push(id); } return ids.length > 1 ? ids : null; }
+  function mentionWho(t){ if (typeof t !== 'string') return null; const tk2 = t.trim().split(/\s*(?:\bou\b|\bet\b|[\/+,&])\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean); if (tk2.length < 2) return null; const ids = []; for (const x of tk2) { const id = doctors[x] ? x : Object.keys(doctors).find(i=>nrmM(dLabel(i)) === nrmM(x) || (doctors[i].ini && nrmM(doctors[i].ini) === nrmM(x))); if (!id) return null; if (!ids.includes(id)) ids.push(id); } return ids.length > 1 ? ids : null; }
   function vacWho(postId, k, part){
     if (!trame || !isDate(k)) return null;
     const dow = (parse(k).getDay()+6)%7; if (dow > 5) return null;
@@ -5777,7 +5780,7 @@ const PROTO = [
     const fitT = wrap.classList.contains('tfit');
     /* initiales courtes, uniques : alias de 2-3 lettres s'il existe, sinon début du prénom (allongé si deux personnes se ressemblent) */
     const shMap = {}; if (fitT) { const ds = sortedDocs(), cl = x=>String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z]/g, '').toUpperCase();
-      ds.forEach(d=>{ const al = Object.keys(d.alias || {}).map(cl).filter(x=>x.length >= 2 && x.length <= 3)[0]; if (al && cl(d.label).length > 3) shMap[d.id] = al; });
+      ds.forEach(d=>{ if (d.ini) { shMap[d.id] = cl(d.ini) || d.ini; return; } const al = Object.keys(d.alias || {}).map(cl).filter(x=>x.length >= 2 && x.length <= 3)[0]; if (al && cl(d.label).length > 3) shMap[d.id] = al; });
       const lenOf = {}; ds.forEach(d=>{ if (!shMap[d.id]) lenOf[d.id] = Math.min(2, cl(d.label).length || 2); });
       for (let g = 0; g < 6; g++) { const seen = {}; ds.forEach(d=>{ if (shMap[d.id]) return; const t = cl(d.label).slice(0, lenOf[d.id]) || '?'; (seen[t] = seen[t] || []).push(d); }); let ch = false; Object.keys(seen).forEach(t=>{ if (seen[t].length > 1) seen[t].forEach(d=>{ if (lenOf[d.id] < cl(d.label).length) { lenOf[d.id]++; ch = true; } }); }); if (!ch) break; }
       ds.forEach(d=>{ if (!shMap[d.id]) shMap[d.id] = cl(d.label).slice(0, lenOf[d.id]) || d.label; }); }
@@ -8076,7 +8079,7 @@ const PROTO = [
       const next = {};
       snap.docs.forEach(s=>{
         const v = s.data() || {};
-        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', admin: v.admin === true, ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, alias: (v.alias && typeof v.alias==='object') ? v.alias : {}, norest: (v.norest && typeof v.norest==='object') ? v.norest : {}, noAst: v.noAst === true, astMax: typeof v.astMax === 'number' && v.astMax > 0 ? Math.floor(v.astMax) : 0, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, dem: (v.dem && typeof v.dem === 'object') ? v.dem : {}, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : '', rap: (v.rap && typeof v.rap === 'object') ? v.rap : {}, pres: (v.pres && typeof v.pres === 'object') ? v.pres : {}};
+        next[s.id] = {id:s.id, label: typeof v.label==='string' && v.label ? v.label : s.id, order: typeof v.order==='number' ? v.order : 999, days: (v.days && typeof v.days==='object') ? v.days : {}, role: typeof v.role==='string' ? v.role : '', admin: v.admin === true, ok: (v.ok && typeof v.ok==='object') ? v.ok : {}, abs: (v.abs && typeof v.abs==='object') ? v.abs : {}, conf: (v.conf && typeof v.conf==='object') ? v.conf : {}, alias: (v.alias && typeof v.alias==='object') ? v.alias : {}, norest: (v.norest && typeof v.norest==='object') ? v.norest : {}, noAst: v.noAst === true, ini: typeof v.ini === 'string' ? v.ini.trim().slice(0, 4) : '', astMax: typeof v.astMax === 'number' && v.astMax > 0 ? Math.floor(v.astMax) : 0, auto: v.auto === true ? true : v.auto === false ? false : null, interv: v.interv === true, dem: (v.dem && typeof v.dem === 'object') ? v.dem : {}, photo: typeof v.photo === 'string' && v.photo.indexOf('data:image/') === 0 ? v.photo : '', rap: (v.rap && typeof v.rap === 'object') ? v.rap : {}, pres: (v.pres && typeof v.pres === 'object') ? v.pres : {}};
       });
       doctors = next; loaded = true; renderAll(); maybePatch();
       /* service Ostéo : un compte administrateur « Admin Osteo » est créé d'office quand la base est encore vide */
