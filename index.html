@@ -1263,7 +1263,6 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           <div class="thm" role="group" aria-label="Mode d’affichage"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Clair</button><button type="button" data-theme-set="dark">Sombre</button></div>
           <p class="hint" style="margin-top:12px">Palette de couleurs (propre à cet appareil).</p>
           <div class="pals" id="palBox" role="group" aria-label="Palette de couleurs"></div>
-          <label class="chk" style="margin-top:12px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="annPopOn"> Afficher la fenêtre « Nouvelle annonce » (propre à cet appareil)</label>
           </details>
         </div>
         <div class="card" id="creerCard">
@@ -1273,7 +1272,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 19/11/2026 · 22h20</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 19/11/2026 · 22h22</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1876,7 +1875,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '67124499c5';
+  const BUILD = '7aec663ef6';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2321,24 +2320,24 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   const annSeenSet = a=>{ try { localStorage.setItem('planning-annseen', JSON.stringify(a.slice(-200))); } catch(e) {} };
   function annSeenAdd(ids){ const c = annSeenGet() || []; annSeenSet(c.concat(ids.filter(i=>!c.includes(i)))); }
   function annPopup(){ if (window.SEC) return; try { annPopup0(); } catch(e) { annPop = false; } }
-  const annOffGet = ()=>{ try { return localStorage.getItem('planning-annoff') === '1'; } catch(e) { return false; } };
+  const annSnGet = ()=>{ try { const o = JSON.parse(localStorage.getItem('planning-annsnooze') || '{}'); return o.d === key(new Date()) ? (o.ids || []) : []; } catch(e) { return []; } };
+  const annSnAdd = ids=>{ try { localStorage.setItem('planning-annsnooze', JSON.stringify({d: key(new Date()), ids: annSnGet().concat(ids)})); } catch(e) {} };
   function annPopup0(){
-    if (annPop || !annLoaded || !loaded || !doctors[me] || annOffGet()) return;
+    if (annPop || !annLoaded || !loaded || !doctors[me]) return;
     const seen = annSeenGet();
     if (seen === null) { annSeenSet(Object.keys(annon)); return; }   /* première ouverture : les annonces déjà là ne sont pas ré-affichées */
     const today = key(new Date());
-    const fresh = Object.keys(annon).map(id=>Object.assign({id}, annon[id])).filter(x=>x && x.t && x.d && !seen.includes(x.id) && (!x.g || (x.g === 'int') === isIntId(me)) && ((Number(x.r) || 0) ? (!x.e || x.e >= today) : x.d >= today)).sort((a,b)=>String(a.d).localeCompare(String(b.d)) || String(a.a || '').localeCompare(String(b.a || '')));
+    const fresh = Object.keys(annon).map(id=>Object.assign({id}, annon[id])).filter(x=>x && x.t && x.d && !seen.includes(x.id) && !annSnGet().includes(x.id) && (!x.g || (x.g === 'int') === isIntId(me)) && ((Number(x.r) || 0) ? (!x.e || x.e >= today) : x.d >= today)).sort((a,b)=>String(a.d).localeCompare(String(b.d)) || String(a.a || '').localeCompare(String(b.a || '')));
     if (!fresh.length) return;
     annPop = true;
     const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
     w.innerHTML = '<div class="codebox annf" style="max-height:80vh;overflow:auto"><p><b>📣 '+(fresh.length > 1 ? 'Nouvelles annonces' : 'Nouvelle annonce')+'</b></p>'
       + fresh.map(x=>'<div class="ptx-i" style="margin:8px 0"><b>'+esc(x.t)+'</b><br><small>'+esc(fmtLong.format(parse(x.d)).replace(/^./, c=>c.toUpperCase()))+' · '+esc(annTime(x))+(Number(x.r) ? ' · 🔁 répétée' : '')+'</small></div>').join('')
-      + '<div class="asb"><button type="button" class="primary" data-annpopok>OK</button><button type="button" data-annpopoff>OK, ne plus afficher</button></div><p class="hint" style="margin:6px 0 0"><small>« Ne plus afficher » coupe cette fenêtre sur cet appareil ; les annonces restent visibles dans le planning. Vous pouvez la réactiver dans Réglages → Apparence.</small></p></div>';
+      + '<div class="asb"><button type="button" class="primary" data-annpopok>OK</button><button type="button" data-annpopoff>OK, ne plus afficher</button></div><p class="hint" style="margin:6px 0 0"><small>« OK » : la fenêtre revient demain. « Ne plus afficher » : plus jamais pour ' + (fresh.length > 1 ? 'ces annonces' : 'cette annonce') + ' (elle reste visible dans le planning).</small></p></div>';
     document.body.appendChild(w);
-    w.querySelector('[data-annpopok]').addEventListener('click', ()=>{ annSeenAdd(fresh.map(x=>x.id)); w.remove(); annPop = false; });
-    w.querySelector('[data-annpopoff]').addEventListener('click', ()=>{ annSeenAdd(fresh.map(x=>x.id)); try { localStorage.setItem('planning-annoff', '1'); } catch(e) {} const cb = document.getElementById('annPopOn'); if (cb) cb.checked = false; w.remove(); annPop = false; notify('Fenêtre désactivée. Réactivable dans Réglages → Apparence.'); });
+    w.querySelector('[data-annpopok]').addEventListener('click', ()=>{ annSnAdd(fresh.map(x=>x.id)); w.remove(); annPop = false; });
+    w.querySelector('[data-annpopoff]').addEventListener('click', ()=>{ annSeenAdd(fresh.map(x=>x.id)); w.remove(); annPop = false; });
   }
-  (function(){ const cb = document.getElementById('annPopOn'); if (!cb) return; cb.checked = !annOffGet(); cb.addEventListener('change', ()=>{ try { if (cb.checked) localStorage.removeItem('planning-annoff'); else localStorage.setItem('planning-annoff', '1'); } catch(e) {} if (cb.checked) annPopup(); }); })();
   function annOpen(id, defK){
     const x = id ? annon[id] : null; if (id && !x) return;
     const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
