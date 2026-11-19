@@ -1272,7 +1272,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
           </details>
         </div>
         <div id="impSlotR"></div>
-        <p class="hint" style="text-align:center;opacity:.7">Version du 19/11/2026 · 22h22</p>
+        <p class="hint" style="text-align:center;opacity:.7">Version du 19/11/2026 · 22h24</p>
         <div class="card" id="exportCard">
           <details class="cardfold" id="fExp"><summary>Exporter</summary>
           <details class="info"><summary>ⓘ Infos</summary><p class="hint">Choisissez un mois et un format, puis le fichier à télécharger.</p></details>
@@ -1875,7 +1875,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
   (function(){ const bar = ()=>{ let b = document.getElementById('offbar'); const off = !navigator.onLine; if (!off) { if (b) b.remove(); return; } if (b) return; b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.textContent = '📴 Hors ligne : dernier planning enregistré sur cet appareil. Les modifications reprendront au retour du réseau.'; document.body.appendChild(b); };
     window.addEventListener('offline', bar); window.addEventListener('online', bar); setTimeout(bar, 500); })();
   /* nouvelle version : on compare l'identifiant de version de la page en ligne à celui chargé */
-  const BUILD = '7aec663ef6';
+  const BUILD = 'e3d686a88c';
   let updShown = false;
   async function checkUpdate(){
     if (updShown || !/^[0-9a-f]{8,}$/.test(BUILD) || !navigator.onLine) return;
@@ -2225,7 +2225,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
 
   /* ---------- annonces : cours, réunions… affichés avant le planning du jour ---------- */
   const annOn = (x, k)=>{ if (!x.d) return false; if (x.d === k) return true; const n = Number(x.r) || 0; if (!n || k < x.d || (x.e && k > x.e)) return false; const df = Math.round((parse(k) - parse(x.d)) / 86400000); return df % (7*n) === 0; };
-  const annList = (k, grpOnly)=>Object.keys(annon).map(id=>Object.assign({id}, annon[id])).filter(x=>x && annOn(x, k) && x.t && (!grpOnly || !x.g || (x.g === 'int') === isIntId(me))).sort((a,b)=>String(a.a || '').localeCompare(String(b.a || '')) || a.t.localeCompare(b.t));
+  const annList = (k, grpOnly)=>Object.keys(annon).map(id=>Object.assign({id}, annon[id])).filter(x=>x && annOn(x, k) && x.t && (!grpOnly || !x.g || (x.g === 'int') === isIntId(me) || isRim())).sort((a,b)=>String(a.a || '').localeCompare(String(b.a || '')) || a.t.localeCompare(b.t));
   const annTime = x => x.a ? (x.b ? x.a.replace(':','h')+' – '+x.b.replace(':','h') : 'dès '+x.a.replace(':','h')) : 'Toute la journée';
   const annGrpTxt = g => g === 'sen' ? 'Seniors' : g === 'int' ? 'Internes' : '';
   /* présentateur d'une annonce (ex. « Cas cliniques ») : un interne s'inscrit lui-même, dans sa fiche (medecins/<id>.pres) */
@@ -2327,7 +2327,7 @@ button{transition:transform .08s ease,background-color .15s,border-color .15s}bu
     const seen = annSeenGet();
     if (seen === null) { annSeenSet(Object.keys(annon)); return; }   /* première ouverture : les annonces déjà là ne sont pas ré-affichées */
     const today = key(new Date());
-    const fresh = Object.keys(annon).map(id=>Object.assign({id}, annon[id])).filter(x=>x && x.t && x.d && !seen.includes(x.id) && !annSnGet().includes(x.id) && (!x.g || (x.g === 'int') === isIntId(me)) && ((Number(x.r) || 0) ? (!x.e || x.e >= today) : x.d >= today)).sort((a,b)=>String(a.d).localeCompare(String(b.d)) || String(a.a || '').localeCompare(String(b.a || '')));
+    const fresh = Object.keys(annon).map(id=>Object.assign({id}, annon[id])).filter(x=>x && x.t && x.d && !seen.includes(x.id) && !annSnGet().includes(x.id) && (!x.g || (x.g === 'int') === isIntId(me) || isRim()) && ((Number(x.r) || 0) ? (!x.e || x.e >= today) : x.d >= today)).sort((a,b)=>String(a.d).localeCompare(String(b.d)) || String(a.a || '').localeCompare(String(b.a || '')));
     if (!fresh.length) return;
     annPop = true;
     const w = document.createElement('div'); w.className = 'codeov'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
